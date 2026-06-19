@@ -73,6 +73,17 @@ export function PortfolioTable({
     return list;
   }, [portfolio, sortField, sortDir]);
 
+  const summaryStats = useMemo(() => {
+    if (!portfolio) return null;
+    const positions = portfolio.positions;
+    const totalValue = positions.reduce((sum, p) => sum + p.currentValueCHF, 0);
+    const uniqueAssetClasses = new Set(positions.map(p => p.sectorOrAssetClass)).size;
+    const avgDrift = positions.length > 0
+      ? positions.reduce((sum, p) => sum + Math.abs(p.driftPercent), 0) / positions.length
+      : 0;
+    return { totalValue, uniqueAssetClasses, avgDrift, positionCount: positions.length };
+  }, [portfolio]);
+
   function toggleSort(field: SortField) {
     if (sortField === field) {
       setSortDir(d => (d === "asc" ? "desc" : "asc"));
@@ -107,6 +118,35 @@ export function PortfolioTable({
           </div>
 
           <AllocationChart positions={portfolio.positions} />
+
+          {summaryStats && (
+            <div className="grid grid-cols-4 gap-3 mb-4">
+              <div className="bg-slate-700/50 rounded-lg p-3 text-center">
+                <p className="text-xs text-slate-400 uppercase tracking-wide">Total Value</p>
+                <p className="text-lg font-semibold text-white mt-1">CHF {(summaryStats.totalValue / 1e6).toFixed(1)}M</p>
+              </div>
+              <div className="bg-slate-700/50 rounded-lg p-3 text-center">
+                <p className="text-xs text-slate-400 uppercase tracking-wide">Positions</p>
+                <p className="text-lg font-semibold text-white mt-1">{summaryStats.positionCount}</p>
+              </div>
+              <div className="bg-slate-700/50 rounded-lg p-3 text-center">
+                <p className="text-xs text-slate-400 uppercase tracking-wide">Asset Classes</p>
+                <p className="text-lg font-semibold text-white mt-1">{summaryStats.uniqueAssetClasses}</p>
+              </div>
+              <div className="bg-slate-700/50 rounded-lg p-3 text-center">
+                <p className="text-xs text-slate-400 uppercase tracking-wide">Avg Drift</p>
+                <p
+                  className={clsx(
+                    "text-lg font-semibold mt-1",
+                    summaryStats.avgDrift < 1 ? "text-green-400" :
+                    summaryStats.avgDrift <= 2 ? "text-amber-400" : "text-red-400"
+                  )}
+                >
+                  {summaryStats.avgDrift.toFixed(2)}%
+                </p>
+              </div>
+            </div>
+          )}
 
           <div className="overflow-x-auto">
             <table className="w-full text-sm">

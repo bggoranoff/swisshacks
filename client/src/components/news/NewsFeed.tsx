@@ -41,6 +41,18 @@ export function NewsFeed({ news, loading, error, onRetry }: NewsFeedProps) {
   return (
     <Card>
       <CardTitle icon={Newspaper}>News Feed</CardTitle>
+      {news && news.articles.length > 0 && (
+        <div className="flex items-center gap-4 mb-3 text-xs">
+          <span className="text-slate-400">{news.articles.length} articles</span>
+          <span className="text-slate-400">{news.alerts.length} alerts</span>
+          <span className="text-slate-400">
+            {news.articles.filter(a => a.sourceType === "live").length} live
+          </span>
+          <span className="text-slate-400">
+            Updated {new Date(news.generatedAt).toLocaleTimeString()}
+          </span>
+        </div>
+      )}
       <div className="max-h-[400px] overflow-y-auto space-y-3">
         {articles.map((article) => (
           <div
