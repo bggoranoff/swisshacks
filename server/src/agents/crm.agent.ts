@@ -9,20 +9,54 @@ const LLM_URL = () => (process.env.PHOENIQS_API_URL || "https://maas.phoeniqs.co
 const LLM_KEY = () => process.env.PHOENIQS_API_KEY || "";
 const LLM_MODEL = () => process.env.PHOENIQS_MODEL || "inference-gpt-oss-120b";
 
-const SYSTEM_PROMPT = `You are a wealth management analyst. Read these relationship manager notes and extract: values, life events, business context, risk sensitivities, personal priorities, and communication style preference. For each trait, cite the exact CRM entry date and a one-sentence excerpt. Rate your confidence (0-1) for each trait. Return ONLY valid JSON with this structure: {"values": ["..."], "lifeEvents": ["..."], "businessContext": ["..."], "riskSensitivities": ["..."], "personalPriorities": ["..."], "communicationStyle": "data-driven"|"values-led"|"balanced", "evidence": [{"trait": "...", "crmDate": "...", "crmExcerpt": "..."}], "traitConfidence": {"trait_name": 0.9}}`;
+const SYSTEM_PROMPT = `You are a wealth management analyst. Read these relationship manager notes and extract: values, life events, business context, risk sensitivities, personal priorities, and communication style preference. For each trait, cite the exact CRM entry date and a one-sentence excerpt. Rate your confidence (0-1) for each trait. Return ONLY a JSON object. No markdown fences, no explanatory text before or after. Start your response with { and end with }. Use this structure: {"values": ["..."], "lifeEvents": ["..."], "businessContext": ["..."], "riskSensitivities": ["..."], "personalPriorities": ["..."], "communicationStyle": "data-driven"|"values-led"|"balanced", "evidence": [{"trait": "...", "crmDate": "...", "crmExcerpt": "..."}], "traitConfidence": {"trait_name": 0.9}}`;
 
 function parseJson(content: string): any {
+  const trimmed = content.trim();
+
+  // Step 1: Try direct JSON.parse
   try {
-    return JSON.parse(content);
-  } catch {
-    const match = content.match(/\{[\s\S]*\}/);
-    if (match) {
-      try {
-        return JSON.parse(match[0]);
-      } catch { /* fall through */ }
-    }
-    return null;
+    return JSON.parse(trimmed);
+  } catch (e1) {
+    console.debug(`[CRM Agent] parseJson: direct parse failed (${(e1 as Error).message}), trying markdown strip...`);
   }
+
+  // Step 2: Strip markdown fences (```json ... ``` or ``` ... ```)
+  const fenceStripped = trimmed
+    .replace(/^```(?:json)?\s*/i, "")
+    .replace(/\s*```\s*$/, "")
+    .trim();
+
+  if (fenceStripped !== trimmed) {
+    try {
+      return JSON.parse(fenceStripped);
+    } catch (e2) {
+      console.debug(`[CRM Agent] parseJson: fence-stripped parse failed (${(e2 as Error).message}), trying object regex...`);
+    }
+  }
+
+  // Step 3: Regex to find first { ... } (greedy)
+  const objMatch = trimmed.match(/\{[\s\S]*\}/);
+  if (objMatch) {
+    try {
+      return JSON.parse(objMatch[0]);
+    } catch (e3) {
+      console.debug(`[CRM Agent] parseJson: object-regex parse failed (${(e3 as Error).message}), trying array regex...`);
+    }
+  }
+
+  // Step 4: Regex to find first [ ... ] (in case it's an array)
+  const arrMatch = trimmed.match(/\[[\s\S]*\]/);
+  if (arrMatch) {
+    try {
+      return JSON.parse(arrMatch[0]);
+    } catch (e4) {
+      console.debug(`[CRM Agent] parseJson: array-regex parse failed (${(e4 as Error).message}), giving up.`);
+    }
+  }
+
+  console.warn(`[CRM Agent] parseJson: all strategies exhausted. Raw content (first 300 chars): ${trimmed.slice(0, 300)}`);
+  return null;
 }
 
 function chunkArray<T>(arr: T[], size: number): T[][] {

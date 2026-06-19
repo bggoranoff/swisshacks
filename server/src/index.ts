@@ -14,6 +14,7 @@ import { traceService } from "./services/trace.service";
 import { SixService } from "./services/six.service";
 import { PhoeniqsService } from "./services/phoeniqs.service";
 import { NewsAIService } from "./services/newsai.service";
+import { generatePresentation } from "./utils/generate-pptx";
 
 const app = express();
 const port = parseInt(process.env.PORT || "3000", 10);
@@ -152,6 +153,12 @@ app.get("/api/traces/:traceId", (req, res) => {
   }
   res.json({ success: true, data: trace });
 });
+
+// Presentation download
+app.get("/api/presentation", asyncHandler(async (_req: Request, res: Response) => {
+  const filePath = await generatePresentation();
+  res.download(filePath, "WealthAdvisor_AI_Presentation.pptx");
+}));
 
 // Integrations
 const sixService = new SixService();
