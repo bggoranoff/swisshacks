@@ -12,6 +12,20 @@ const LLM_URL = () => (process.env.PHOENIQS_API_URL || "https://maas.phoeniqs.co
 const LLM_KEY = () => process.env.PHOENIQS_API_KEY || "";
 const LLM_MODEL = () => process.env.PHOENIQS_MODEL || "inference-gpt-oss-120b";
 
+const PERSONA_CONTEXT: Record<string, string> = {
+  schneider: "Schneider is emotional and purpose-driven, with a family foundation supporting chronic-illness research. Use warm, empathetic language. Reference family legacy and foundation mission when relevant.",
+  huber: "Huber is an environmentalist financing South American reforestation. Lead with sustainability values. Frame environmental news as directly connected to their life's work.",
+  raeber: "Räber is a conservative Swiss couple with precision-engineering background, averse to US tech. Use precise data, percentages, and Swiss market references. Avoid enthusiasm about tech stocks.",
+  ammann: "Ammann is a prominent Swiss entrepreneur where reputational risk equals financial risk. Be direct about public-profile exposure. Use urgent, professional tone for reputation-related issues.",
+};
+
+const PERSONA_TONE: Record<string, string> = {
+  schneider: "values-led",
+  huber: "values-led",
+  raeber: "data-driven",
+  ammann: "balanced",
+};
+
 function parseJson(content: string): any {
   try {
     return JSON.parse(content);
@@ -59,12 +73,18 @@ export class MessageAgent {
       styleInstruction = "Balance data-driven analysis with personal values. Be professional yet personable.";
     }
 
+    const personaContext = PERSONA_CONTEXT[clientId.toLowerCase()] || "";
+    const personaSection = personaContext
+      ? `\nPERSONA GUIDANCE: ${personaContext}`
+      : "";
+
     const systemPrompt =
       "You are a relationship manager drafting a personalised advisory note. " +
       "Write in the client's preferred communication style. " +
       "Never give direct financial advice — present options and reasoning. " +
       "The client always decides. " +
-      styleInstruction;
+      styleInstruction +
+      personaSection;
 
     const alertContext = alert
       ? `\nTRIGGER EVENT:\nTitle: ${alert.title}\nSummary: ${alert.summary}\nType: ${alert.alertType || "conflict"}\nRelevance: ${alert.relevanceScore}`
@@ -80,6 +100,7 @@ export class MessageAgent {
       `Values: ${dna.values.join(", ")}\n` +
       `Risk sensitivities: ${dna.riskSensitivities.join(", ")}\n` +
       `Communication style: ${dna.communicationStyle}\n` +
+      (personaContext ? `\nPERSONA: ${personaContext}\n` : "") +
       portfolioSummary +
       alertContext +
       `\n\nIMPORTANT: Return ONLY a JSON object (no markdown fences). Use \\n for newlines inside string values. Structure:\n` +
@@ -128,12 +149,19 @@ export class MessageAgent {
         }
       }
 
+      // Determine tone: persona-specific mapping takes precedence over DNA communicationStyle.
+      // For ammann with reputation-related alerts, the system prompt already instructs urgent
+      // language — tone stays "balanced" (the only valid value for ammann in the type union).
+      const personaTone = PERSONA_TONE[clientId.toLowerCase()];
+      const resolvedTone: "data-driven" | "values-led" | "balanced" =
+        (personaTone as "data-driven" | "values-led" | "balanced") || dna.communicationStyle;
+
       const msg: AdvisoryMessage = {
         id: generateId(),
         clientId,
         subject: parsed.subject || `Advisory Note — ${client.name}`,
         body: parsed.body,
-        tone: dna.communicationStyle,
+        tone: resolvedTone,
         toneInfluences: Array.isArray(parsed.toneInfluences) ? parsed.toneInfluences : [],
         referencedAlert: alert?.id,
         proposedAction: parsed.proposedAction || undefined,
@@ -152,7 +180,7 @@ export class MessageAgent {
         agent: "message-agent",
         action: "generate-advisory",
         clientId,
-        inputSummary: `alert=${alert?.id || "none"}, style=${dna.communicationStyle}`,
+        inputSummary: `alert=${alert?.id || "none"}, style=${dna.communicationStyle}, persona=${clientId.toLowerCase()}`,
         outputSummary: `subject="${msg.subject}", confidence=${msg.confidence}, tone=${msg.tone}`,
         durationMs: Date.now() - startTime,
       });
