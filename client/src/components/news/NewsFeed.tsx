@@ -1,6 +1,6 @@
 import type { NewsDigest } from "../../types/api";
 import { Card, CardTitle } from "../shared/Card";
-import { SkeletonBlock } from "../shared/LoadingSpinner";
+import { SkeletonBlock } from "../shared/SkeletonLoader";
 import { ErrorState } from "../shared/ErrorState";
 import { EmptyState } from "../shared/EmptyState";
 import { Newspaper } from "lucide-react";
@@ -32,7 +32,7 @@ function formatDate(dateStr: string): string {
 }
 
 export function NewsFeed({ news, loading, error, onRetry }: NewsFeedProps) {
-  if (loading) return <Card><CardTitle icon={Newspaper}>News Feed</CardTitle><SkeletonBlock /></Card>;
+  if (loading) return <Card><CardTitle icon={Newspaper}>News Feed</CardTitle><SkeletonBlock lines={4} /></Card>;
   if (error) return <Card><CardTitle icon={Newspaper}>News Feed</CardTitle><ErrorState message={error} onRetry={onRetry} /></Card>;
   if (!news || news.articles.length === 0) return <Card><CardTitle icon={Newspaper}>News Feed</CardTitle><EmptyState message="No recent news articles" /></Card>;
 
