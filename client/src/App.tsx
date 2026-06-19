@@ -219,6 +219,7 @@ function App() {
                   portfolio={portfolio}
                   loading={dnaFetch.loading || portfolioFetch.loading || newsFetch.loading}
                   selectedId={selectedId}
+                  triggerEvent={clients?.find(c => c.id === selectedId)?.triggerEvent}
                   onApprove={(id) => setApprovedAlertId(id)}
                 />
               </div>

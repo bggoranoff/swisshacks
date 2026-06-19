@@ -11,6 +11,7 @@ interface AlertsPanelProps {
   portfolio: PortfolioAnalysis | null;
   loading: boolean;
   selectedId?: string | null;
+  triggerEvent?: string;
   onApprove?: (id: string) => void;
   onDismiss?: (id: string) => void;
 }
@@ -68,7 +69,7 @@ const RAEBER_CIO_ALERT: AlertItem = {
   alertType: "cio-conflict",
 };
 
-export function AlertsPanel({ news, portfolio, loading, selectedId, onApprove, onDismiss }: AlertsPanelProps) {
+export function AlertsPanel({ news, portfolio, loading, selectedId, triggerEvent, onApprove, onDismiss }: AlertsPanelProps) {
   const [approved, setApproved] = useState<Set<string>>(new Set());
   const [dismissed, setDismissed] = useState<Set<string>>(new Set());
 
@@ -175,6 +176,12 @@ export function AlertsPanel({ news, portfolio, loading, selectedId, onApprove, o
     <Card>
       <CardTitle icon={ShieldAlert}>Alerts &amp; Conflicts</CardTitle>
       <div className="space-y-3">
+        {triggerEvent && (
+          <div className="bg-slate-700/30 border border-slate-600/50 rounded-lg p-3 mb-3">
+            <p className="text-xs text-slate-400 uppercase tracking-wide mb-1">Scenario Trigger</p>
+            <p className="text-sm text-slate-300">{triggerEvent}</p>
+          </div>
+        )}
         {alerts.map((alert) => (
           <div
             key={alert.id}
