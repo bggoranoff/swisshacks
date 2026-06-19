@@ -11,6 +11,7 @@ import { extractDNA } from "./agents/crm.agent";
 import { NewsAgent } from "./agents/news.agent";
 import { MessageAgent } from "./agents/message.agent";
 import { traceService } from "./services/trace.service";
+import { auditService } from "./services/audit.service";
 import { SixService } from "./services/six.service";
 import { PhoeniqsService } from "./services/phoeniqs.service";
 import { NewsAIService } from "./services/newsai.service";
@@ -159,6 +160,13 @@ app.get("/api/presentation", asyncHandler(async (_req: Request, res: Response) =
   const filePath = await generatePresentation();
   res.download(filePath, "WealthAdvisor_AI_Presentation.pptx");
 }));
+
+// Audit trail
+app.get("/api/audit", (req, res) => {
+  const clientId = req.query.clientId as string | undefined;
+  const entries = clientId ? auditService.getEntriesByClient(clientId) : auditService.getEntries();
+  res.json({ success: true, data: entries });
+});
 
 // Integrations
 const sixService = new SixService();

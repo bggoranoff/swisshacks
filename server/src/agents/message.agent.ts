@@ -3,6 +3,7 @@ import { AdvisoryMessage } from "../types/message";
 import { extractDNA } from "./crm.agent";
 import { NewsAgent } from "./news.agent";
 import { getClient, getPortfolio } from "../data/store";
+import { auditService } from "../services/audit.service";
 
 const messageStore = new Map<string, AdvisoryMessage>();
 const newsAgent = new NewsAgent();
@@ -35,6 +36,7 @@ export class MessageAgent {
     alertId?: string,
     conflictIsin?: string
   ): Promise<AdvisoryMessage> {
+    const startTime = Date.now();
     const client = getClient(clientId);
     if (!client) {
       return this.fallbackAdvisory(clientId, "Unknown Client");
@@ -145,6 +147,16 @@ export class MessageAgent {
       };
 
       messageStore.set(msg.id, msg);
+
+      auditService.log({
+        agent: "message-agent",
+        action: "generate-advisory",
+        clientId,
+        inputSummary: `alert=${alert?.id || "none"}, style=${dna.communicationStyle}`,
+        outputSummary: `subject="${msg.subject}", confidence=${msg.confidence}, tone=${msg.tone}`,
+        durationMs: Date.now() - startTime,
+      });
+
       return msg;
     } catch (err) {
       console.error("[MessageAgent] LLM call failed:", (err as Error).message);

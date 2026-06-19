@@ -2,6 +2,7 @@ import axios from "axios";
 import { CRMEntry } from "../types/data";
 import { ClientDNA } from "../types/dna";
 import { getFallbackDNA } from "../data/fallback-dna";
+import { auditService } from "../services/audit.service";
 
 const dnaCache = new Map<string, ClientDNA>();
 
@@ -150,6 +151,8 @@ export async function extractDNA(
   entries: CRMEntry[],
   forceRefresh = false,
 ): Promise<ClientDNA> {
+  const startTime = Date.now();
+
   if (!forceRefresh && dnaCache.has(clientId)) {
     return dnaCache.get(clientId)!;
   }
@@ -233,5 +236,15 @@ export async function extractDNA(
 
   dnaCache.set(clientId, dna);
   console.log(`[CRM Agent] DNA extracted for ${clientId}: ${dna.values.length} values, style=${dna.communicationStyle}`);
+
+  auditService.log({
+    agent: "crm-agent",
+    action: "extract-dna",
+    clientId,
+    inputSummary: `${entries.length} CRM entries`,
+    outputSummary: `${dna.values.length} values, style=${dna.communicationStyle}`,
+    durationMs: Date.now() - startTime,
+  });
+
   return dna;
 }

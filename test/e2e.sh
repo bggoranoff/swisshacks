@@ -24,4 +24,5 @@ check "$BASE/api/clients/schneider/news" "News" GET 15
 check "$BASE/api/traces" "Traces"
 check "$BASE/api/clients/schneider/advisory" "Advisory" POST 30
 check "$BASE/api/integrations" "Integrations" GET 30
+check "$BASE/api/audit" "Audit"
 exit $fail
