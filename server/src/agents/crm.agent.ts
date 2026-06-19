@@ -9,7 +9,7 @@ const LLM_URL = () => (process.env.PHOENIQS_API_URL || "https://maas.phoeniqs.co
 const LLM_KEY = () => process.env.PHOENIQS_API_KEY || "";
 const LLM_MODEL = () => process.env.PHOENIQS_MODEL || "inference-gpt-oss-120b";
 
-const SYSTEM_PROMPT = `You are a wealth management analyst. Read these relationship manager notes and extract: values, life events, business context, risk sensitivities, personal priorities, and communication style preference. For each trait, cite the exact CRM entry date and a one-sentence excerpt. Rate your confidence (0-1) for each trait. Return ONLY a JSON object. No markdown fences, no explanatory text before or after. Start your response with { and end with }. Use this structure: {"values": ["..."], "lifeEvents": ["..."], "businessContext": ["..."], "riskSensitivities": ["..."], "personalPriorities": ["..."], "communicationStyle": "data-driven"|"values-led"|"balanced", "evidence": [{"trait": "...", "crmDate": "...", "crmExcerpt": "..."}], "traitConfidence": {"trait_name": 0.9}}`;
+const SYSTEM_PROMPT = `You are a wealth management analyst. Read these relationship manager notes and extract: values, life events, business context, risk sensitivities, personal priorities, and communication style preference. For each trait, cite the exact CRM entry date and a one-sentence excerpt. Rate your confidence (0-1) for each trait. Return ONLY a JSON object. No markdown fences, no explanatory text before or after. Start your response with { and end with }. Use this structure: {"values": ["..."], "lifeEvents": ["..."], "businessContext": ["..."], "riskSensitivities": ["..."], "personalPriorities": ["..."], "communicationStyle": "data-driven"|"values-led"|"balanced", "evidence": [{"trait": "...", "crmDate": "...", "crmExcerpt": "..."}], "traitConfidence": {"trait_name": 0.9}} CRITICAL: Do not explain your reasoning or thought process. Do not describe what you will do. Output ONLY the raw JSON object. Your entire response must be parseable JSON.`;
 
 function parseJson(content: string): any {
   const trimmed = content.trim();
@@ -168,7 +168,7 @@ export async function extractDNA(
 
   for (let i = 0; i < chunks.length; i++) {
     const chunk = chunks[i];
-    const userPrompt = `Analyze these CRM conversation logs and extract the client's investment identity:\n\n${formatCRMEntries(chunk)}`;
+    const userPrompt = `Analyze these CRM conversation logs and extract the client's investment identity:\n\n${formatCRMEntries(chunk)}\n\nRemember: respond with ONLY the JSON object. No other text.`;
 
     try {
       console.log(`[CRM Agent] Processing chunk ${i + 1}/${chunks.length} for ${clientId}...`);
@@ -204,7 +204,7 @@ export async function extractDNA(
   let summary = "";
   try {
     console.log(`[CRM Agent] Consolidating DNA for ${clientId}...`);
-    const consolidationPrompt = `Based on this extracted client profile, write a 2-3 sentence summary of this client's investment identity. Also refine the communication style classification.\n\nProfile:\n${JSON.stringify(merged, null, 2)}\n\nReturn ONLY valid JSON: {"summary": "...", "communicationStyle": "data-driven"|"values-led"|"balanced"}`;
+    const consolidationPrompt = `Based on this extracted client profile, write a 2-3 sentence summary of this client's investment identity. Also refine the communication style classification.\n\nProfile:\n${JSON.stringify(merged, null, 2)}\n\nReturn ONLY valid JSON: {"summary": "...", "communicationStyle": "data-driven"|"values-led"|"balanced"}\n\nRemember: respond with ONLY the JSON object. No other text.`;
     const content = await callLLM(SYSTEM_PROMPT, consolidationPrompt);
     const parsed = parseJson(content);
     if (parsed) {
