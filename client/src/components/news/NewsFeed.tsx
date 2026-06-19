@@ -38,6 +38,11 @@ export function NewsFeed({ news, loading, error, onRetry }: NewsFeedProps) {
 
   const articles = [...news.articles].sort((a, b) => b.relevanceScore - a.relevanceScore);
 
+  const bullishCount = articles.filter(a => a.sentimentLabel === "BULLISH").length;
+  const bearishCount = articles.filter(a => a.sentimentLabel === "BEARISH").length;
+  const neutralCount = articles.filter(a => a.sentimentLabel === "NEUTRAL").length;
+  const total = articles.length || 1;
+
   return (
     <Card>
       <CardTitle icon={Newspaper}>News Feed</CardTitle>
@@ -53,6 +58,19 @@ export function NewsFeed({ news, loading, error, onRetry }: NewsFeedProps) {
           </span>
         </div>
       )}
+      <div className="mb-3">
+        <div className="flex items-center gap-2 mb-1">
+          <span className="text-xs text-slate-400">Sentiment</span>
+          <span className="text-xs text-green-400">{bullishCount} bullish</span>
+          <span className="text-xs text-slate-400">{neutralCount} neutral</span>
+          <span className="text-xs text-red-400">{bearishCount} bearish</span>
+        </div>
+        <div className="h-1.5 rounded-full bg-slate-700 flex overflow-hidden">
+          <div className="bg-green-500 h-full" style={{ width: `${(bullishCount/total)*100}%` }} />
+          <div className="bg-slate-500 h-full" style={{ width: `${(neutralCount/total)*100}%` }} />
+          <div className="bg-red-500 h-full" style={{ width: `${(bearishCount/total)*100}%` }} />
+        </div>
+      </div>
       <div className="max-h-[400px] overflow-y-auto space-y-3">
         {articles.map((article) => (
           <div
