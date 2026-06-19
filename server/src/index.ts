@@ -104,7 +104,11 @@ app.get("/api/clients/:id/portfolio", asyncHandler(async (req: Request, res: Res
     res.status(404).json({ success: false, error: "Portfolio not found" });
     return;
   }
-  res.json({ success: true, data: { clientId: client.id, strategy: portfolio.strategy, totalValueCHF: portfolio.totalTargetCHF, positions: portfolio.positions, driftBreaches: [], conflicts: [] } });
+  const positionsWithCio = portfolio.positions.map(p => {
+    const cio = portfolio.cioRecommendations.find(c => c.isin === p.isin);
+    return { ...p, cioRating: cio?.rating || null };
+  });
+  res.json({ success: true, data: { clientId: client.id, strategy: portfolio.strategy, totalValueCHF: portfolio.totalTargetCHF, positions: positionsWithCio, driftBreaches: [], conflicts: [] } });
 }));
 
 // Advisory (with tracing)
