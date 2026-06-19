@@ -12,12 +12,14 @@ import {
   ChevronDown,
   ArrowLeftRight,
   ScanSearch,
+  Bell,
 } from "lucide-react";
 
 interface AdvisoryPanelProps {
   advisory: AdvisoryMessage | null;
   loading: boolean;
   clientId: string | null;
+  contextAlertTitle?: string | null;
   onGenerate: () => void;
   onRegenerate: () => void;
 }
@@ -86,7 +88,7 @@ function AdvisorySkeleton() {
   );
 }
 
-export function AdvisoryPanel({ advisory, loading, clientId, onGenerate, onRegenerate }: AdvisoryPanelProps) {
+export function AdvisoryPanel({ advisory, loading, clientId, contextAlertTitle, onGenerate, onRegenerate }: AdvisoryPanelProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [editedBody, setEditedBody] = useState("");
   const [copied, setCopied] = useState(false);
@@ -142,6 +144,15 @@ export function AdvisoryPanel({ advisory, loading, clientId, onGenerate, onRegen
       {/* Advisory content */}
       {advisory && !loading && (
         <>
+          {/* Alert context banner */}
+          {contextAlertTitle && (
+            <div className="flex items-center gap-2 px-3 py-2 mb-3 rounded-lg bg-amber-900/30 border border-amber-700/50 text-amber-200 text-xs">
+              <Bell className="h-3.5 w-3.5 shrink-0 text-amber-400" />
+              <span className="font-medium">Responding to:</span>
+              <span className="truncate">{contextAlertTitle}</span>
+            </div>
+          )}
+
           {/* Header: subject + tone badge + confidence */}
           <div className="flex items-start gap-3 flex-wrap mb-1">
             <h3 className="text-lg font-semibold text-white leading-snug">{advisory.subject}</h3>

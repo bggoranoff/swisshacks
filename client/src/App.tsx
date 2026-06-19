@@ -26,6 +26,7 @@ function App() {
   const [advisory, setAdvisory] = useState<AdvisoryMessage | null>(null);
   const [advisoryLoading, setAdvisoryLoading] = useState(false);
   const [demoActive, setDemoActive] = useState(false);
+  const [approvedAlertId, setApprovedAlertId] = useState<string | null>(null);
   const advisoryRef = useRef<HTMLDivElement>(null);
 
   // Fetch clients list
@@ -47,16 +48,22 @@ function App() {
   const handleSelectClient = useCallback((id: string) => {
     setSelectedId(id);
     setAdvisory(null);
+    setApprovedAlertId(null);
   }, []);
 
   const handleGenerate = useCallback(async () => {
     if (!selectedId) return;
     setAdvisoryLoading(true);
+    // Pick the approved alert first, then fall back to the first news alert
+    const firstNewsAlertId = news?.alerts?.[0]?.id ? `news-${news.alerts[0].id}` : undefined;
+    const contextAlertId = approvedAlertId ?? firstNewsAlertId ?? undefined;
+    const body: Record<string, unknown> = {};
+    if (contextAlertId) body.alertId = contextAlertId;
     try {
       const res = await fetch(`/api/clients/${selectedId}/advisory`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({}),
+        body: JSON.stringify(body),
       });
       const json = await res.json();
       if (json.success) {
@@ -69,7 +76,7 @@ function App() {
     } finally {
       setAdvisoryLoading(false);
     }
-  }, [selectedId]);
+  }, [selectedId, approvedAlertId, news]);
 
   const handleRegenerate = useCallback(() => {
     handleGenerate();
@@ -99,7 +106,7 @@ function App() {
       fetch("/api/clients/schneider/advisory", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({}),
+        body: JSON.stringify(approvedAlertId ? { alertId: approvedAlertId } : {}),
       })
         .then((res) => res.json())
         .then((json) => {
@@ -212,16 +219,32 @@ function App() {
                   portfolio={portfolio}
                   loading={dnaFetch.loading || portfolioFetch.loading || newsFetch.loading}
                   selectedId={selectedId}
+                  onApprove={(id) => setApprovedAlertId(id)}
                 />
               </div>
               <div ref={advisoryRef} className="col-span-2">
-                <AdvisoryPanel
-                  advisory={advisory}
-                  loading={advisoryLoading}
-                  clientId={selectedId}
-                  onGenerate={handleGenerate}
-                  onRegenerate={handleRegenerate}
-                />
+                {(() => {
+                  // Resolve the alert title to show in the AdvisoryPanel banner.
+                  // Prefer the approved alert; fall back to the first news alert.
+                  const firstNewsAlert = news?.alerts?.[0];
+                  let contextAlertTitle: string | undefined;
+                  if (approvedAlertId) {
+                    contextAlertTitle = news?.alerts?.find((a) => `news-${a.id}` === approvedAlertId)?.title
+                      ?? firstNewsAlert?.title;
+                  } else if (firstNewsAlert) {
+                    contextAlertTitle = firstNewsAlert.title;
+                  }
+                  return (
+                    <AdvisoryPanel
+                      advisory={advisory}
+                      loading={advisoryLoading}
+                      clientId={selectedId}
+                      contextAlertTitle={contextAlertTitle ?? null}
+                      onGenerate={handleGenerate}
+                      onRegenerate={handleRegenerate}
+                    />
+                  );
+                })()}
               </div>
             </div>
           )}
