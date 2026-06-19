@@ -193,6 +193,44 @@ function App() {
             </div>
           ) : (
             <div className="grid grid-cols-2 gap-6">
+              {/* Client Header */}
+              <div className="col-span-2 bg-slate-800/50 border border-slate-700 rounded-xl p-4 flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <div className={`h-12 w-12 rounded-full flex items-center justify-center text-lg font-semibold text-white ${
+                    selectedId === "schneider" ? "bg-blue-600" :
+                    selectedId === "huber" ? "bg-green-600" :
+                    selectedId === "raeber" ? "bg-amber-600" : "bg-purple-600"
+                  }`}>
+                    {selectedId === "schneider" ? "MS" :
+                     selectedId === "huber" ? "PH" :
+                     selectedId === "raeber" ? "RR" : "CA"}
+                  </div>
+                  <div>
+                    <h2 className="text-lg font-semibold text-white">
+                      {clients?.find(c => c.id === selectedId)?.name || selectedId}
+                    </h2>
+                    <p className="text-sm text-slate-400">
+                      {clients?.find(c => c.id === selectedId)?.description}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-4">
+                  <div className="text-right">
+                    <p className="text-xs text-slate-400">Strategy</p>
+                    <p className="text-sm font-medium text-white">{clients?.find(c => c.id === selectedId)?.strategy}</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-xs text-slate-400">CRM Notes</p>
+                    <p className="text-sm font-medium text-white">{clients?.find(c => c.id === selectedId)?.crmEntryCount}</p>
+                  </div>
+                  {dna && (
+                    <div className="text-right">
+                      <p className="text-xs text-slate-400">Comm. Style</p>
+                      <p className="text-sm font-medium text-white capitalize">{dna.communicationStyle}</p>
+                    </div>
+                  )}
+                </div>
+              </div>
               <div id="dna-panel">
                 <DNAPanel
                   dna={dna}
