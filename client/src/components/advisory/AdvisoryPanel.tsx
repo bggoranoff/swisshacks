@@ -219,20 +219,18 @@ export function AdvisoryPanel({ advisory, loading, clientId, contextAlertTitle, 
             </div>
           </div>
 
-          {/* Tone influence pills */}
+          {/* Tone Influences */}
           {advisory.toneInfluences && advisory.toneInfluences.length > 0 && (
-            <div className="flex flex-wrap gap-1.5 mb-4">
-              {advisory.toneInfluences.map((ti, i) => (
-                <span
-                  key={i}
-                  className={`inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full ${toneStyle.pill}`}
-                  title={ti.effect}
-                >
-                  <span className="font-medium">{ti.dnaValue}</span>
-                  <span className="opacity-70">·</span>
-                  <span className="opacity-80">{ti.effect}</span>
-                </span>
-              ))}
+            <div className="mt-3 mb-3">
+              <p className="text-xs text-slate-400 uppercase tracking-wide mb-2">Tone Influences</p>
+              <div className="flex flex-wrap gap-2">
+                {advisory.toneInfluences.map((t, i) => (
+                  <div key={i} className="bg-slate-700/50 rounded-lg px-3 py-1.5 text-xs">
+                    <span className="text-blue-300 font-medium">{t.dnaValue}</span>
+                    <span className="text-slate-400 ml-1">→ {t.effect}</span>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
 
