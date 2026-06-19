@@ -48,6 +48,12 @@ function SidebarSkeleton() {
 export function Sidebar({ clients, selectedId, onSelect, loading }: SidebarProps) {
   return (
     <aside className="flex flex-col gap-1 p-4 bg-slate-900 border-r border-slate-700 overflow-y-auto shadow-lg shadow-black/20">
+      {/* Logo / branding */}
+      <div className="px-3 pb-3 mb-1">
+        <span className="text-sm font-bold tracking-tight text-white">WealthAdvisor</span>
+        <span className="text-sm font-bold tracking-tight text-blue-400"> AI</span>
+      </div>
+      <div className="border-t border-slate-700/60 mb-3" />
       <div className="flex items-center gap-2 mb-3 px-3">
         <Users className="h-3.5 w-3.5 text-slate-500" />
         <span className="text-xs font-semibold text-slate-400 uppercase tracking-wide">Clients</span>
@@ -59,6 +65,7 @@ export function Sidebar({ clients, selectedId, onSelect, loading }: SidebarProps
           <button
             key={client.id}
             onClick={() => onSelect(client.id)}
+            title={client.triggerEvent}
             className={clsx(
               "w-full text-left p-3 rounded-lg flex items-center gap-3 transition-all duration-200 group",
               selectedId === client.id
@@ -81,14 +88,22 @@ export function Sidebar({ clients, selectedId, onSelect, loading }: SidebarProps
               )}>
                 {client.name}
               </span>
-              <span
-                className={clsx(
-                  "text-xs px-2 py-0.5 rounded-full inline-block mt-1 font-medium",
-                  STRATEGY_STYLES[client.strategy] ?? "bg-slate-700 text-slate-300"
-                )}
-              >
-                {client.strategy}
+              <span className="text-xs text-slate-400 block truncate leading-snug mt-0.5">
+                {client.description}
               </span>
+              <div className="flex items-center gap-2 mt-1">
+                <span
+                  className={clsx(
+                    "text-xs px-2 py-0.5 rounded-full inline-block font-medium",
+                    STRATEGY_STYLES[client.strategy] ?? "bg-slate-700 text-slate-300"
+                  )}
+                >
+                  {client.strategy}
+                </span>
+                <span className="text-xs text-slate-500">
+                  {client.crmEntryCount} notes
+                </span>
+              </div>
             </div>
           </button>
         ))

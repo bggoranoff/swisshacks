@@ -1,4 +1,5 @@
 import { useState, useCallback, useRef } from "react";
+import { Briefcase } from "lucide-react";
 import { Sidebar } from "./components/layout/Sidebar";
 import { Header } from "./components/layout/Header";
 import { TraceDrawer } from "./components/traces/TraceDrawer";
@@ -151,19 +152,35 @@ function App() {
         )}
         <main className="flex-1 overflow-y-auto p-6">
           {!selectedId ? (
-            <div className="flex items-center justify-center h-full">
-              <div className="text-center max-w-md">
-                <div className="mx-auto h-16 w-16 rounded-2xl bg-gradient-to-br from-blue-600 to-blue-800 flex items-center justify-center mb-6 shadow-lg shadow-blue-500/20">
-                  <span className="text-2xl font-bold text-white">W</span>
-                </div>
-                <h2 className="text-2xl font-semibold text-white mb-2 tracking-tight">Welcome to <span className="text-blue-400">Wealth</span>Advisor</h2>
-                <p className="text-slate-400 text-sm leading-relaxed">
-                  Select a client from the sidebar to view their DNA profile, portfolio analysis, and generate personalised advisory notes.
-                </p>
-                <div className="mt-6 flex items-center justify-center gap-2 text-slate-500 text-xs">
-                  <div className="h-px w-8 bg-slate-700" />
-                  <span>or click Demo for a guided walkthrough</span>
-                  <div className="h-px w-8 bg-slate-700" />
+            <div className="grid grid-cols-2">
+              <div className="col-span-2 flex flex-col items-center justify-center h-96 text-center">
+                <div className="bg-slate-800 border border-slate-700 rounded-2xl p-8 max-w-lg">
+                  <div className="h-16 w-16 rounded-full bg-blue-600/20 flex items-center justify-center mx-auto mb-4">
+                    <Briefcase className="h-8 w-8 text-blue-400" />
+                  </div>
+                  <h2 className="text-xl font-semibold text-white mb-2">Welcome to WealthAdvisor AI</h2>
+                  <p className="text-slate-400 text-sm mb-4">
+                    Select a client from the sidebar to view their investment DNA, portfolio analysis,
+                    news alerts, and generate personalised advisory messages.
+                  </p>
+                  <div className="grid grid-cols-2 gap-3 text-left">
+                    <div className="bg-slate-700/50 rounded-lg p-3">
+                      <p className="text-xs text-blue-400 font-medium">Client DNA</p>
+                      <p className="text-xs text-slate-500 mt-1">AI-extracted values, priorities &amp; style</p>
+                    </div>
+                    <div className="bg-slate-700/50 rounded-lg p-3">
+                      <p className="text-xs text-green-400 font-medium">Portfolio Analysis</p>
+                      <p className="text-xs text-slate-500 mt-1">Holdings, drift &amp; allocation charts</p>
+                    </div>
+                    <div className="bg-slate-700/50 rounded-lg p-3">
+                      <p className="text-xs text-purple-400 font-medium">News Monitoring</p>
+                      <p className="text-xs text-slate-500 mt-1">Live news scored by relevance</p>
+                    </div>
+                    <div className="bg-slate-700/50 rounded-lg p-3">
+                      <p className="text-xs text-amber-400 font-medium">Advisory Messages</p>
+                      <p className="text-xs text-slate-500 mt-1">Personalised RM communication</p>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
