@@ -192,6 +192,7 @@ function App() {
                   news={news}
                   portfolio={portfolio}
                   loading={dnaFetch.loading || portfolioFetch.loading || newsFetch.loading}
+                  selectedId={selectedId}
                 />
               </div>
               <div ref={advisoryRef} className="col-span-2">

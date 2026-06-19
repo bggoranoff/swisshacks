@@ -3,13 +3,14 @@ import type { NewsDigest, PortfolioAnalysis } from "../../types/api";
 import { Card, CardTitle } from "../shared/Card";
 import { SkeletonBlock } from "../shared/LoadingSpinner";
 import { EmptyState } from "../shared/EmptyState";
-import { ShieldAlert, AlertTriangle, AlertCircle, Info, ChevronDown, Check, X } from "lucide-react";
+import { ShieldAlert, AlertTriangle, TrendingUp, AlertCircle, Info, ChevronDown, Check, X } from "lucide-react";
 import clsx from "clsx";
 
 interface AlertsPanelProps {
   news: NewsDigest | null;
   portfolio: PortfolioAnalysis | null;
   loading: boolean;
+  selectedId?: string | null;
   onApprove?: (id: string) => void;
   onDismiss?: (id: string) => void;
 }
@@ -23,10 +24,24 @@ interface AlertItem {
   riskType?: string;
   swap?: { name: string; reason: string };
   source: "news" | "portfolio" | "cio";
+  alertType?: "conflict" | "opportunity" | "cio-conflict";
 }
 
-function SeverityIcon({ severity }: { severity: string }) {
-  switch (severity) {
+function AlertIcon({ alert }: { alert: AlertItem }) {
+  // CIO conflict alerts get amber AlertTriangle
+  if (alert.source === "cio" || alert.alertType === "cio-conflict") {
+    return <AlertTriangle className="h-5 w-5 mt-0.5 text-amber-400 shrink-0" />;
+  }
+  // Opportunity alerts get green TrendingUp
+  if (alert.alertType === "opportunity") {
+    return <TrendingUp className="h-5 w-5 mt-0.5 text-green-400 shrink-0" />;
+  }
+  // Conflict alerts get red ShieldAlert
+  if (alert.alertType === "conflict" || alert.riskType === "conflict" || alert.riskType === "values" || alert.riskType === "reputational") {
+    return <ShieldAlert className="h-5 w-5 mt-0.5 text-red-400 shrink-0" />;
+  }
+  // Fallback by severity
+  switch (alert.severity) {
     case "high":
       return <AlertTriangle className="h-5 w-5 mt-0.5 text-red-400 shrink-0" />;
     case "medium":
@@ -36,12 +51,30 @@ function SeverityIcon({ severity }: { severity: string }) {
   }
 }
 
-export function AlertsPanel({ news, portfolio, loading, onApprove, onDismiss }: AlertsPanelProps) {
+// Hardcoded CIO conflict alert for the Räber client
+const RAEBER_CIO_ALERT: AlertItem = {
+  id: "cio-raeber-us-tech",
+  title: "CIO Recommends Rebalancing into US AI Stocks",
+  reason: "The CIO recommendation list suggests increasing allocation to US AI and technology stocks. This conflicts with your documented aversion to US tech exposure.",
+  reasoningChain: [
+    "CIO recommendation list includes BUY ratings for US AI stocks",
+    "Client DNA shows strong aversion to US technology exposure",
+    "Client prefers Swiss blue-chip and precision engineering investments",
+    "Accepting this rebalancing would contradict the client's investment identity",
+  ],
+  severity: "high",
+  riskType: "conflict",
+  source: "cio",
+  alertType: "cio-conflict",
+};
+
+export function AlertsPanel({ news, portfolio, loading, selectedId, onApprove, onDismiss }: AlertsPanelProps) {
   const [approved, setApproved] = useState<Set<string>>(new Set());
   const [dismissed, setDismissed] = useState<Set<string>>(new Set());
 
   const alerts: AlertItem[] = [];
 
+  // News-sourced alerts
   if (news?.alerts) {
     for (const a of news.alerts) {
       alerts.push({
@@ -52,10 +85,12 @@ export function AlertsPanel({ news, portfolio, loading, onApprove, onDismiss }: 
         reasoningChain: a.reasoningChain,
         riskType: a.alertType,
         source: "news",
+        alertType: a.alertType,
       });
     }
   }
 
+  // Portfolio DNA conflict alerts
   if (portfolio?.conflicts) {
     for (const c of portfolio.conflicts) {
       const conflict = c as any;
@@ -68,10 +103,12 @@ export function AlertsPanel({ news, portfolio, loading, onApprove, onDismiss }: 
         riskType: conflict.riskType,
         swap: conflict.suggestedSwap ? { name: conflict.suggestedSwap.name, reason: conflict.suggestedSwap.reason } : undefined,
         source: "portfolio",
+        alertType: "conflict",
       });
     }
   }
 
+  // Portfolio CIO conflict alerts (from API)
   if ((portfolio as any)?.cioConflicts) {
     for (const c of (portfolio as any).cioConflicts) {
       const conflict = c as any;
@@ -84,8 +121,16 @@ export function AlertsPanel({ news, portfolio, loading, onApprove, onDismiss }: 
         riskType: conflict.riskType,
         swap: conflict.suggestedSwap ? { name: conflict.suggestedSwap.name, reason: conflict.suggestedSwap.reason } : undefined,
         source: "cio",
+        alertType: "cio-conflict",
       });
     }
+  }
+
+  // Inject hardcoded Räber CIO conflict alert
+  const isRaeber = selectedId === "raeber";
+  const alreadyHasCioAlert = alerts.some((a) => a.id === RAEBER_CIO_ALERT.id);
+  if (isRaeber && !alreadyHasCioAlert) {
+    alerts.unshift(RAEBER_CIO_ALERT);
   }
 
   function handleApprove(id: string) {
@@ -134,18 +179,23 @@ export function AlertsPanel({ news, portfolio, loading, onApprove, onDismiss }: 
           <div
             key={alert.id}
             className={clsx(
-              "p-4 rounded-lg bg-slate-700/50 border border-slate-600",
-              dismissed.has(alert.id) && "opacity-50"
+              "p-4 rounded-lg bg-slate-700/50 border border-slate-600 transition-opacity",
+              dismissed.has(alert.id) && "opacity-40"
             )}
           >
             <div className="flex items-start gap-3">
-              <SeverityIcon severity={alert.severity} />
+              <AlertIcon alert={alert} />
               <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 flex-wrap">
                   <p className="font-medium text-sm text-slate-100">{alert.title}</p>
                   {approved.has(alert.id) && (
                     <span className="flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-green-900/50 text-green-300">
                       <Check className="h-3 w-3" /> Approved
+                    </span>
+                  )}
+                  {dismissed.has(alert.id) && (
+                    <span className="flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-slate-700 text-slate-400">
+                      <X className="h-3 w-3" /> Dismissed
                     </span>
                   )}
                 </div>
@@ -154,13 +204,13 @@ export function AlertsPanel({ news, portfolio, loading, onApprove, onDismiss }: 
                 {alert.riskType && (
                   <span className={clsx(
                     "inline-block text-xs px-2 py-0.5 rounded-full mt-2",
-                    alert.riskType === "conflict" || alert.riskType === "values" || alert.riskType === "reputational"
-                      ? "bg-red-900/50 text-red-300"
-                      : alert.riskType === "opportunity"
+                    alert.alertType === "cio-conflict" || alert.source === "cio"
+                      ? "bg-amber-900/50 text-amber-300"
+                      : alert.alertType === "opportunity"
                         ? "bg-green-900/50 text-green-300"
-                        : "bg-amber-900/50 text-amber-300"
+                        : "bg-red-900/50 text-red-300"
                   )}>
-                    {alert.riskType}
+                    {alert.source === "cio" ? "CIO conflict" : alert.riskType}
                   </span>
                 )}
 
@@ -189,7 +239,7 @@ export function AlertsPanel({ news, portfolio, loading, onApprove, onDismiss }: 
 
                 {alert.reasoningChain && alert.reasoningChain.length > 0 && (
                   <details className="mt-2">
-                    <summary className="flex items-center gap-1 text-xs text-slate-400 cursor-pointer">
+                    <summary className="flex items-center gap-1 text-xs text-slate-400 cursor-pointer select-none">
                       <ChevronDown className="h-3 w-3" /> Why this alert?
                     </summary>
                     <div className="text-xs text-slate-400 mt-1 pl-4 space-y-1">
