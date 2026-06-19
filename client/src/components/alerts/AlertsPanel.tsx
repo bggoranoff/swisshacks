@@ -3,7 +3,7 @@ import type { NewsDigest, PortfolioAnalysis } from "../../types/api";
 import { Card, CardTitle } from "../shared/Card";
 import { SkeletonBlock } from "../shared/LoadingSpinner";
 import { EmptyState } from "../shared/EmptyState";
-import { ShieldAlert, AlertTriangle, TrendingUp, AlertCircle, Info, ChevronDown, Check, X } from "lucide-react";
+import { ShieldAlert, AlertTriangle, TrendingUp, AlertCircle, Info, ChevronDown, Check, X, ArrowLeftRight, ArrowRight } from "lucide-react";
 import clsx from "clsx";
 
 interface AlertsPanelProps {
@@ -225,6 +225,28 @@ export function AlertsPanel({ news, portfolio, loading, selectedId, triggerEvent
                   <p className="text-xs text-green-300 mt-2">
                     Suggested swap: {alert.swap.name} &mdash; {alert.swap.reason}
                   </p>
+                )}
+
+                {/* Only show for conflict alerts */}
+                {alert.alertType === "conflict" && (
+                  <div className="mt-3 bg-slate-600/30 rounded-lg p-3 border border-slate-600/50">
+                    <div className="flex items-center gap-2 mb-2">
+                      <ArrowLeftRight className="h-4 w-4 text-blue-400" />
+                      <span className="text-xs font-medium text-blue-300 uppercase tracking-wide">Suggested Swap</span>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <div className="flex-1">
+                        <p className="text-xs text-slate-400">Current Holding</p>
+                        <p className="text-sm text-red-300">{alert.swap ? alert.swap.name : "Conflicting position"}</p>
+                      </div>
+                      <ArrowRight className="h-4 w-4 text-slate-500" />
+                      <div className="flex-1">
+                        <p className="text-xs text-slate-400">Replacement (BUY-rated)</p>
+                        <p className="text-sm text-green-300">{alert.swap ? alert.swap.reason : "Same sector, DNA-aligned"}</p>
+                      </div>
+                    </div>
+                    <p className="text-xs text-slate-500 mt-2">Swap stays within mandate. CIO BUY-rated. Strategy unchanged.</p>
+                  </div>
                 )}
 
                 {!approved.has(alert.id) && !dismissed.has(alert.id) && (
