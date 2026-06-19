@@ -1,6 +1,7 @@
 import axios from "axios";
 import { ScoredNewsArticle, NewsDigest } from "../types/news";
 import { MOCK_TRIGGERS, PERSONA_KEYWORDS } from "../data/mock-triggers";
+import { auditService } from "../services/audit.service";
 
 const CACHE_TTL_MS = 5 * 60 * 1000;
 
@@ -26,6 +27,7 @@ export class NewsAgent {
   }
 
   async getNewsDigest(clientId: string, dnaSummary?: string): Promise<NewsDigest> {
+    const startTime = Date.now();
     const cached = this.cache.get(clientId);
     if (cached && Date.now() - cached.cachedAt < CACHE_TTL_MS) {
       return cached.digest;
@@ -52,6 +54,18 @@ export class NewsAgent {
       alerts,
       generatedAt: new Date().toISOString(),
     };
+
+    const keywords = PERSONA_KEYWORDS[clientId] || [];
+    const liveCount = scored.filter(a => a.sourceType === "live").length;
+
+    auditService.log({
+      agent: "news-agent",
+      action: "get-news-digest",
+      clientId,
+      inputSummary: `keywords: ${keywords.join(", ")}`,
+      outputSummary: `${digest.articles.length} articles, ${digest.alerts.length} alerts, ${liveCount} live`,
+      durationMs: Date.now() - startTime,
+    });
 
     this.cache.set(clientId, { digest, cachedAt: Date.now() });
     return digest;
