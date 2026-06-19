@@ -1,7 +1,7 @@
 import { useState, useMemo } from "react";
 import type { PortfolioAnalysis, EnrichedPosition } from "../../types/api";
 import { Card, CardTitle } from "../shared/Card";
-import { LoadingSpinner } from "../shared/LoadingSpinner";
+import { SkeletonBlock } from "../shared/LoadingSpinner";
 import { ErrorState } from "../shared/ErrorState";
 import { EmptyState } from "../shared/EmptyState";
 import { AllocationChart } from "./AllocationChart";
@@ -94,7 +94,7 @@ export function PortfolioTable({
     <Card>
       <CardTitle icon={Briefcase}>Portfolio Holdings</CardTitle>
 
-      {loading && <LoadingSpinner />}
+      {loading && <SkeletonBlock />}
       {error && <ErrorState message={error} onRetry={onRetry} />}
       {!loading && !error && !portfolio && <EmptyState message="Select a client to view portfolio" />}
 

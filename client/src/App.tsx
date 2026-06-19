@@ -1,6 +1,7 @@
 import { useState, useCallback, useRef } from "react";
 import { Sidebar } from "./components/layout/Sidebar";
 import { Header } from "./components/layout/Header";
+import { TraceDrawer } from "./components/traces/TraceDrawer";
 import { DNAPanel } from "./components/dna/DNAPanel";
 import { PortfolioTable } from "./components/portfolio/PortfolioTable";
 import { NewsFeed } from "./components/news/NewsFeed";
@@ -18,8 +19,10 @@ import type {
 
 function App() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [tracesOpen, setTracesOpen] = useState(false);
   const [advisory, setAdvisory] = useState<AdvisoryMessage | null>(null);
   const [advisoryLoading, setAdvisoryLoading] = useState(false);
+  const [demoActive, setDemoActive] = useState(false);
   const advisoryRef = useRef<HTMLDivElement>(null);
 
   // Fetch clients list
@@ -73,14 +76,21 @@ function App() {
   const handleDemo = useCallback(() => {
     setSelectedId("schneider");
     setAdvisory(null);
+    setDemoActive(true);
 
+    // 2s: scroll DNA panel into view
     setTimeout(() => {
-      const alertsEl = document.getElementById("alerts-panel");
-      if (alertsEl) {
-        alertsEl.scrollIntoView({ behavior: "smooth" });
-      }
+      const dnaEl = document.getElementById("dna-panel");
+      if (dnaEl) dnaEl.scrollIntoView({ behavior: "smooth" });
     }, 2000);
 
+    // 4s: scroll alerts panel into view
+    setTimeout(() => {
+      const alertsEl = document.getElementById("alerts-panel");
+      if (alertsEl) alertsEl.scrollIntoView({ behavior: "smooth" });
+    }, 4000);
+
+    // 6s: auto-click Generate Advisory
     setTimeout(() => {
       setAdvisoryLoading(true);
       fetch("/api/clients/schneider/advisory", {
@@ -95,18 +105,18 @@ function App() {
           } else {
             setAdvisory(mockAdvisory["schneider"] ?? null);
           }
+          if (advisoryRef.current) {
+            advisoryRef.current.scrollIntoView({ behavior: "smooth" });
+          }
         })
         .catch(() => {
           setAdvisory(mockAdvisory["schneider"] ?? null);
+          if (advisoryRef.current) {
+            advisoryRef.current.scrollIntoView({ behavior: "smooth" });
+          }
         })
         .finally(() => setAdvisoryLoading(false));
-    }, 4000);
-
-    setTimeout(() => {
-      if (advisoryRef.current) {
-        advisoryRef.current.scrollIntoView({ behavior: "smooth" });
-      }
-    }, 7000);
+    }, 6000);
   }, []);
 
   return (
@@ -118,29 +128,53 @@ function App() {
         loading={clientsFetch.loading}
       />
       <div className="flex flex-col h-screen overflow-hidden">
-        <Header onDemo={handleDemo} />
+        <Header onDemo={handleDemo} onTracesClick={() => setTracesOpen(true)} />
+        {demoActive && (
+          <div className="bg-blue-700/90 border-b border-blue-500 px-6 py-2 flex items-center justify-between text-white text-xs font-medium">
+            <span>Demo Mode — Walking through Schneider scenario...</span>
+            <button
+              onClick={() => setDemoActive(false)}
+              className="ml-4 text-blue-200 hover:text-white transition-colors"
+              aria-label="Dismiss demo banner"
+            >
+              Dismiss
+            </button>
+          </div>
+        )}
         {anyError && (
-          <div className="bg-amber-900/50 border-b border-amber-700 px-6 py-2 text-amber-200 text-xs font-medium">
+          <div className="bg-amber-900/30 border-b border-amber-700/50 px-6 py-2 text-amber-200 text-xs font-medium flex items-center gap-2">
+            <span className="h-1.5 w-1.5 rounded-full bg-amber-400 animate-pulse" />
             Offline — showing sample data. Connect the backend API for live results.
           </div>
         )}
         <main className="flex-1 overflow-y-auto p-6">
           {!selectedId ? (
             <div className="flex items-center justify-center h-full">
-              <div className="text-center">
-                <h2 className="text-xl font-semibold text-white mb-2">Welcome to WealthAdvisor AI</h2>
-                <p className="text-slate-400 text-sm">Select a client from the sidebar to begin analysis</p>
-                <p className="text-slate-500 text-xs mt-4">Or click Demo to see a guided walkthrough</p>
+              <div className="text-center max-w-md">
+                <div className="mx-auto h-16 w-16 rounded-2xl bg-gradient-to-br from-blue-600 to-blue-800 flex items-center justify-center mb-6 shadow-lg shadow-blue-500/20">
+                  <span className="text-2xl font-bold text-white">W</span>
+                </div>
+                <h2 className="text-2xl font-semibold text-white mb-2 tracking-tight">Welcome to <span className="text-blue-400">Wealth</span>Advisor</h2>
+                <p className="text-slate-400 text-sm leading-relaxed">
+                  Select a client from the sidebar to view their DNA profile, portfolio analysis, and generate personalised advisory notes.
+                </p>
+                <div className="mt-6 flex items-center justify-center gap-2 text-slate-500 text-xs">
+                  <div className="h-px w-8 bg-slate-700" />
+                  <span>or click Demo for a guided walkthrough</span>
+                  <div className="h-px w-8 bg-slate-700" />
+                </div>
               </div>
             </div>
           ) : (
             <div className="grid grid-cols-2 gap-6">
-              <DNAPanel
-                dna={dna}
-                loading={dnaFetch.loading}
-                error={dnaFetch.error && !dna ? dnaFetch.error : null}
-                onRetry={dnaFetch.refetch}
-              />
+              <div id="dna-panel">
+                <DNAPanel
+                  dna={dna}
+                  loading={dnaFetch.loading}
+                  error={dnaFetch.error && !dna ? dnaFetch.error : null}
+                  onRetry={dnaFetch.refetch}
+                />
+              </div>
               <PortfolioTable
                 portfolio={portfolio}
                 loading={portfolioFetch.loading}
@@ -173,6 +207,7 @@ function App() {
           )}
         </main>
       </div>
+      <TraceDrawer isOpen={tracesOpen} onClose={() => setTracesOpen(false)} />
     </div>
   );
 }

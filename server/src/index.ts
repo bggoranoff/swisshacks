@@ -196,6 +196,17 @@ try {
 
 app.listen(port, () => {
   console.log(`[Server] Running on http://localhost:${port}`);
+
+  // Pre-warm DNA cache for all clients (fire-and-forget)
+  const clients = getAllClients();
+  console.log(`[Warmup] Pre-warming DNA cache for ${clients.length} clients...`);
+  Promise.all(
+    clients.map(c =>
+      extractDNA(c.id, c.crmEntries, false)
+        .then(() => console.log(`[Warmup] DNA cached for ${c.id}`))
+        .catch(err => console.warn(`[Warmup] DNA failed for ${c.id}: ${(err as Error).message}`))
+    )
+  ).then(() => console.log(`[Warmup] All DNA caches ready`));
 });
 
 export default app;

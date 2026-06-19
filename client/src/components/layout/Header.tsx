@@ -1,9 +1,10 @@
-import { Play } from "lucide-react";
+import { Activity, Play } from "lucide-react";
 import { useEffect, useState } from "react";
 import { StatusDot } from "../shared/StatusDot";
 
 interface HeaderProps {
   onDemo?: () => void;
+  onTracesClick?: () => void;
 }
 
 interface ProbeStatus {
@@ -21,7 +22,7 @@ const PROBE_LABEL_MAP: Record<string, keyof ProbeStatus> = {
 const DEFAULT_STATUS: ProbeStatus = { six: false, news: false, llm: false };
 const ALL_OK: ProbeStatus = { six: true, news: true, llm: true };
 
-export function Header({ onDemo }: HeaderProps) {
+export function Header({ onDemo, onTracesClick }: HeaderProps) {
   const [status, setStatus] = useState<ProbeStatus>(ALL_OK);
 
   useEffect(() => {
@@ -46,9 +47,21 @@ export function Header({ onDemo }: HeaderProps) {
   }, []);
 
   return (
-    <header className="h-14 px-6 flex items-center justify-between bg-slate-800 border-b border-slate-700">
-      <h1 className="text-lg font-semibold text-white">WealthAdvisor AI</h1>
+    <header className="h-14 px-6 flex items-center justify-between bg-slate-800 border-b border-slate-700 relative after:absolute after:inset-x-0 after:bottom-0 after:h-px after:bg-gradient-to-r after:from-transparent after:via-blue-500/40 after:to-transparent">
+      <h1 className="text-lg font-semibold text-white tracking-tight">
+        <span className="text-blue-400">Wealth</span>Advisor
+        <span className="text-slate-500 font-normal ml-1.5 text-sm">AI</span>
+      </h1>
       <div className="flex items-center gap-4">
+        {onTracesClick && (
+          <button
+            onClick={onTracesClick}
+            className="bg-slate-700 hover:bg-slate-600 text-slate-200 px-3 py-1.5 rounded-lg text-sm font-medium flex items-center gap-2 transition-colors"
+          >
+            <Activity className="h-3.5 w-3.5" />
+            Traces
+          </button>
+        )}
         {onDemo && (
           <button
             onClick={onDemo}

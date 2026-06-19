@@ -1,7 +1,7 @@
 import type { ClientDNA } from "../../types/api";
 import { Card, CardTitle } from "../shared/Card";
 import { ConfidenceBadge } from "../shared/ConfidenceBadge";
-import { LoadingSpinner } from "../shared/LoadingSpinner";
+import { SkeletonBlock } from "../shared/LoadingSpinner";
 import { ErrorState } from "../shared/ErrorState";
 import { EmptyState } from "../shared/EmptyState";
 import { Dna, ChevronDown } from "lucide-react";
@@ -26,7 +26,7 @@ const CATEGORIES: {
 ];
 
 export function DNAPanel({ dna, loading, error, onRetry }: DNAPanelProps) {
-  if (loading) return <Card><CardTitle icon={Dna}>Client DNA</CardTitle><LoadingSpinner /></Card>;
+  if (loading) return <Card><CardTitle icon={Dna}>Client DNA</CardTitle><SkeletonBlock /></Card>;
   if (error) return <Card><CardTitle icon={Dna}>Client DNA</CardTitle><ErrorState message={error} onRetry={onRetry} /></Card>;
   if (!dna) return <Card><CardTitle icon={Dna}>Client DNA</CardTitle><EmptyState message="Select a client to view DNA profile" /></Card>;
 

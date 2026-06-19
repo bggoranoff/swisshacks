@@ -59,64 +59,62 @@ export class NewsAgent {
 
   private async fetchLiveNews(clientId: string): Promise<ScoredNewsArticle[]> {
     const keywords = PERSONA_KEYWORDS[clientId];
-    if (!keywords || !this.newsApiKey) return [];
+    if (!keywords || keywords.length === 0 || !this.newsApiKey) return [];
 
-    const articles: ScoredNewsArticle[] = [];
-    const seenUris = new Set<string>();
+    // Use only the first keyword for a single targeted query per persona
+    const query = keywords[0];
 
-    for (const keyword of keywords.slice(0, 3)) {
-      try {
-        const { data } = await axios.post(
-          `${this.newsApiUrl}/article/getArticles`,
-          {
-            apiKey: this.newsApiKey,
-            keyword,
-            keywordOper: "and",
-            lang: "eng",
-            articlesCount: 5,
-            articlesSortBy: "date",
-            resultType: "articles",
-            dataType: ["news"],
-            includeArticleSentiment: true,
-          },
-          { timeout: 15000 }
-        );
+    try {
+      const { data } = await axios.post(
+        `${this.newsApiUrl}/article/getArticles`,
+        {
+          apiKey: this.newsApiKey,
+          keyword: query,
+          keywordOper: "and",
+          lang: "eng",
+          articlesCount: 10,
+          articlesSortBy: "date",
+          resultType: "articles",
+          dataType: ["news"],
+          includeArticleSentiment: true,
+        },
+        { timeout: 15000 }
+      );
 
-        const results = data?.articles?.results || [];
-        for (const a of results) {
-          const uri = String(a.uri || "");
-          if (seenUris.has(uri)) continue;
-          seenUris.add(uri);
+      const results = data?.articles?.results || [];
+      const articles: ScoredNewsArticle[] = [];
 
-          const sentiment = typeof a.sentiment === "number" ? a.sentiment : 0;
-          let sentimentLabel: "BEARISH" | "NEUTRAL" | "BULLISH" = "NEUTRAL";
-          if (sentiment > 0.2) sentimentLabel = "BULLISH";
-          else if (sentiment < -0.2) sentimentLabel = "BEARISH";
+      for (const a of results) {
+        const uri = String(a.uri || "");
+        const sentiment = typeof a.sentiment === "number" ? a.sentiment : 0;
+        let sentimentLabel: "BEARISH" | "NEUTRAL" | "BULLISH" = "NEUTRAL";
+        if (sentiment > 0.2) sentimentLabel = "BULLISH";
+        else if (sentiment < -0.2) sentimentLabel = "BEARISH";
 
-          articles.push({
-            id: uri || `live-${articles.length}`,
-            title: a.title || "",
-            summary: (a.body || "").slice(0, 280).trim(),
-            url: a.url || "#",
-            source: a.source?.title || "Unknown",
-            sourceType: "live",
-            publishedAt: a.dateTimePub || a.dateTime || new Date().toISOString(),
-            sentiment,
-            sentimentLabel,
-            relevanceScore: 0.3,
-            relevanceReason: `Matched keyword: ${keyword}`,
-            reasoningChain: [`Article matched search query "${keyword}"`],
-            affectedPositions: [],
-            isAlert: false,
-            alertType: undefined,
-          });
-        }
-      } catch (err) {
-        console.warn(`[NewsAgent] Failed to fetch news for keyword "${keyword}":`, (err as Error).message);
+        articles.push({
+          id: uri || `live-${articles.length}`,
+          title: a.title || "",
+          summary: (a.body || "").slice(0, 280).trim(),
+          url: a.url || "#",
+          source: a.source?.title || "Unknown",
+          sourceType: "live",
+          publishedAt: a.dateTimePub || a.dateTime || new Date().toISOString(),
+          sentiment,
+          sentimentLabel,
+          relevanceScore: 0.5,
+          relevanceReason: `Matched keyword: ${query}`,
+          reasoningChain: [`Article matched search query "${query}"`],
+          affectedPositions: [],
+          isAlert: false,
+          alertType: undefined,
+        });
       }
-    }
 
-    return articles;
+      return articles;
+    } catch (err) {
+      console.warn(`[NewsAgent] Event Registry fetch failed for "${query}":`, (err as Error).message);
+      return [];
+    }
   }
 
   private async scoreWithLLM(

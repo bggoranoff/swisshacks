@@ -2,7 +2,7 @@ import { useState } from "react";
 import type { AdvisoryMessage } from "../../types/api";
 import { Card, CardTitle } from "../shared/Card";
 import { ConfidenceBadge } from "../shared/ConfidenceBadge";
-import { LoadingSpinner } from "../shared/LoadingSpinner";
+import { SkeletonLine } from "../shared/LoadingSpinner";
 import { MessageSquare, Copy, Pencil, RefreshCw, Sparkles, ChevronDown } from "lucide-react";
 
 interface AdvisoryPanelProps {
@@ -46,14 +46,17 @@ export function AdvisoryPanel({ advisory, loading, clientId, onGenerate, onRegen
       <CardTitle icon={MessageSquare}>Advisory Draft</CardTitle>
 
       {!advisory && !loading && (
-        <div className="flex flex-col items-center gap-4 py-8">
-          <p className="text-sm text-slate-500 italic">
+        <div className="flex flex-col items-center gap-4 py-10">
+          <div className="h-12 w-12 rounded-full bg-blue-600/20 flex items-center justify-center mb-1">
+            <Sparkles className="h-6 w-6 text-blue-400" />
+          </div>
+          <p className="text-sm text-slate-400">
             {clientId ? "Generate a personalised advisory note for this client" : "Select a client to generate an advisory"}
           </p>
           {clientId && (
             <button
               onClick={onGenerate}
-              className="px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-colors bg-blue-600 hover:bg-blue-700 text-white"
+              className="px-5 py-2.5 rounded-lg text-sm font-medium flex items-center gap-2 transition-all bg-blue-600 hover:bg-blue-500 text-white shadow-lg shadow-blue-600/25 hover:shadow-blue-500/30"
             >
               <Sparkles className="h-4 w-4" /> Generate Advisory
             </button>
@@ -62,9 +65,20 @@ export function AdvisoryPanel({ advisory, loading, clientId, onGenerate, onRegen
       )}
 
       {loading && (
-        <div className="flex flex-col items-center gap-3 py-8">
-          <LoadingSpinner />
-          <p className="text-sm text-slate-400">Generating advisory...</p>
+        <div className="py-6">
+          <div className="flex items-center gap-2 mb-4">
+            <Sparkles className="h-4 w-4 text-blue-400 animate-pulse" />
+            <p className="text-sm text-slate-400">Generating personalised advisory...</p>
+          </div>
+          <div className="space-y-3">
+            <SkeletonLine className="w-2/3 h-4" />
+            <SkeletonLine className="w-full" />
+            <SkeletonLine className="w-full" />
+            <SkeletonLine className="w-5/6" />
+            <SkeletonLine className="w-3/4 mt-4" />
+            <SkeletonLine className="w-full" />
+            <SkeletonLine className="w-4/5" />
+          </div>
         </div>
       )}
 

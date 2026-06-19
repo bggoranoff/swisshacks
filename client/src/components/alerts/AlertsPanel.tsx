@@ -1,7 +1,7 @@
 import { useState } from "react";
 import type { NewsDigest, PortfolioAnalysis } from "../../types/api";
 import { Card, CardTitle } from "../shared/Card";
-import { LoadingSpinner } from "../shared/LoadingSpinner";
+import { SkeletonBlock } from "../shared/LoadingSpinner";
 import { EmptyState } from "../shared/EmptyState";
 import { ShieldAlert, AlertTriangle, AlertCircle, Info, ChevronDown, Check, X } from "lucide-react";
 import clsx from "clsx";
@@ -112,7 +112,7 @@ export function AlertsPanel({ news, portfolio, loading, onApprove, onDismiss }: 
     return (
       <Card>
         <CardTitle icon={ShieldAlert}>Alerts &amp; Conflicts</CardTitle>
-        <LoadingSpinner />
+        <SkeletonBlock />
       </Card>
     );
   }
