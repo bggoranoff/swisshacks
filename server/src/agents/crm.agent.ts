@@ -60,7 +60,8 @@ async function callLLM(systemPrompt: string, userPrompt: string): Promise<string
       timeout: 60000,
     }
   );
-  return resp.data?.choices?.[0]?.message?.content || "";
+  const choice = resp.data?.choices?.[0];
+  return choice?.message?.content || choice?.message?.reasoning_content || choice?.text || "";
 }
 
 function dedup(arr: string[]): string[] {

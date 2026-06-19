@@ -80,12 +80,8 @@ export class MessageAgent {
       `Communication style: ${dna.communicationStyle}\n` +
       portfolioSummary +
       alertContext +
-      `\n\nReturn ONLY valid JSON with these keys:\n` +
-      `{"subject": "short email subject line", "body": "the full advisory message (3-5 paragraphs)", ` +
-      `"proposedAction": "one-sentence recommended action", ` +
-      `"reasoning": "2-3 sentences explaining why this action is suggested", ` +
-      `"confidence": 0.0-1.0, ` +
-      `"toneInfluences": [{"dnaValue": "which value influenced tone", "effect": "how it shaped the message"}]}`;
+      `\n\nIMPORTANT: Return ONLY a JSON object (no markdown fences). Use \\n for newlines inside string values. Structure:\n` +
+      `{"subject":"short subject","body":"the advisory message with \\n for paragraphs","proposedAction":"one sentence","reasoning":"2-3 sentences","confidence":0.85,"toneInfluences":[{"dnaValue":"value","effect":"effect"}]}`;
 
     try {
       const { data } = await axios.post(
@@ -97,7 +93,7 @@ export class MessageAgent {
             { role: "user", content: userPrompt },
           ],
           temperature: 0.4,
-          max_tokens: 1000,
+          max_tokens: 4000,
         },
         {
           headers: {
@@ -108,11 +104,26 @@ export class MessageAgent {
         }
       );
 
-      const content = data?.choices?.[0]?.message?.content || "";
-      const parsed = parseJson(content);
+      const choice = data?.choices?.[0];
+      const content = choice?.message?.content || choice?.message?.reasoning_content || choice?.text || "";
+      console.log("[MessageAgent] LLM response length:", content.length, "finish_reason:", choice?.finish_reason);
+      let parsed = parseJson(content);
 
       if (!parsed || !parsed.body) {
-        return this.fallbackAdvisory(clientId, client.name, alert?.title);
+        console.log("[MessageAgent] First parse failed, trying to extract body from raw response...");
+        // If parsing failed, use the raw LLM text as the body directly
+        if (content.length > 50) {
+          parsed = {
+            subject: `Advisory Note — ${client.name}`,
+            body: content.replace(/```json\n?|\n?```/g, "").trim(),
+            proposedAction: "Review and discuss with your relationship manager.",
+            reasoning: "Generated from LLM response.",
+            confidence: 0.7,
+            toneInfluences: [],
+          };
+        } else {
+          return this.fallbackAdvisory(clientId, client.name, alert?.title);
+        }
       }
 
       const msg: AdvisoryMessage = {
