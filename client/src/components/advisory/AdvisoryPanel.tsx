@@ -91,11 +91,14 @@ function AdvisorySkeleton() {
 export function AdvisoryPanel({ advisory, loading, clientId, contextAlertTitle, onGenerate, onRegenerate }: AdvisoryPanelProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [editedBody, setEditedBody] = useState("");
+  const [savedBody, setSavedBody] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+
+  const displayBody = savedBody ?? advisory?.body ?? "";
 
   function handleCopy() {
     if (!advisory) return;
-    const text = isEditing ? editedBody : advisory.body;
+    const text = isEditing ? editedBody : displayBody;
     navigator.clipboard.writeText(text).then(() => {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
@@ -105,9 +108,14 @@ export function AdvisoryPanel({ advisory, loading, clientId, contextAlertTitle, 
   function handleEdit() {
     if (!advisory) return;
     if (!isEditing) {
-      setEditedBody(advisory.body);
+      setEditedBody(displayBody);
     }
-    setIsEditing(!isEditing);
+    setIsEditing(true);
+  }
+
+  function handleSave() {
+    setSavedBody(editedBody);
+    setIsEditing(false);
   }
 
   const toneStyle = toneStyles[advisory?.tone ?? ""] ?? toneStyles.balanced;
@@ -201,7 +209,7 @@ export function AdvisoryPanel({ advisory, loading, clientId, contextAlertTitle, 
             />
           ) : (
             <div className="mt-3 text-sm text-slate-200 leading-relaxed whitespace-pre-wrap">
-              {advisory.body}
+              {displayBody}
             </div>
           )}
 
@@ -238,14 +246,24 @@ export function AdvisoryPanel({ advisory, loading, clientId, contextAlertTitle, 
               onClick={handleCopy}
               className="px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-colors bg-slate-700 hover:bg-slate-600 text-slate-200"
             >
-              <Copy className="h-4 w-4" /> {copied ? "Copied!" : "Copy"}
+              <Copy className="h-4 w-4" /> Copy
             </button>
-            <button
-              onClick={handleEdit}
-              className="px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-colors bg-slate-700 hover:bg-slate-600 text-slate-200"
-            >
-              <Pencil className="h-4 w-4" /> {isEditing ? "Done" : "Edit"}
-            </button>
+            {copied && <span className="text-xs text-green-400 ml-2 self-center">Copied to clipboard!</span>}
+            {!isEditing ? (
+              <button
+                onClick={handleEdit}
+                className="px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-colors bg-slate-700 hover:bg-slate-600 text-slate-200"
+              >
+                <Pencil className="h-4 w-4" /> Edit
+              </button>
+            ) : (
+              <button
+                onClick={handleSave}
+                className="px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-colors bg-blue-600 hover:bg-blue-700 text-white"
+              >
+                <Pencil className="h-4 w-4" /> Save
+              </button>
+            )}
           </div>
 
           {/* Reasoning collapsible */}
