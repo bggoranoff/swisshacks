@@ -2,6 +2,7 @@ import { useState, useCallback, useRef } from "react";
 import { Sidebar } from "./components/layout/Sidebar";
 import { Header } from "./components/layout/Header";
 import { TraceDrawer } from "./components/traces/TraceDrawer";
+import { AuditDrawer } from "./components/audit/AuditDrawer";
 import { DNAPanel } from "./components/dna/DNAPanel";
 import { PortfolioTable } from "./components/portfolio/PortfolioTable";
 import { NewsFeed } from "./components/news/NewsFeed";
@@ -20,6 +21,7 @@ import type {
 function App() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [tracesOpen, setTracesOpen] = useState(false);
+  const [auditOpen, setAuditOpen] = useState(false);
   const [advisory, setAdvisory] = useState<AdvisoryMessage | null>(null);
   const [advisoryLoading, setAdvisoryLoading] = useState(false);
   const [demoActive, setDemoActive] = useState(false);
@@ -128,7 +130,7 @@ function App() {
         loading={clientsFetch.loading}
       />
       <div className="flex flex-col h-screen overflow-hidden">
-        <Header onDemo={handleDemo} onTracesClick={() => setTracesOpen(true)} />
+        <Header onDemo={handleDemo} onTracesClick={() => setTracesOpen(true)} onAuditClick={() => setAuditOpen(true)} />
         {demoActive && (
           <div className="bg-blue-700/90 border-b border-blue-500 px-6 py-2 flex items-center justify-between text-white text-xs font-medium">
             <span>Demo Mode — Walking through Schneider scenario...</span>
@@ -209,6 +211,7 @@ function App() {
         </main>
       </div>
       <TraceDrawer isOpen={tracesOpen} onClose={() => setTracesOpen(false)} />
+      <AuditDrawer isOpen={auditOpen} onClose={() => setAuditOpen(false)} />
     </div>
   );
 }
