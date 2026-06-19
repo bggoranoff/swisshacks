@@ -5,7 +5,7 @@ import { SkeletonTable } from "../shared/SkeletonLoader";
 import { ErrorState } from "../shared/ErrorState";
 import { EmptyState } from "../shared/EmptyState";
 import { AllocationChart } from "./AllocationChart";
-import { Briefcase, ArrowUpDown, AlertTriangle } from "lucide-react";
+import { Briefcase, ArrowUpDown, AlertTriangle, Search } from "lucide-react";
 import clsx from "clsx";
 
 type SortField = "name" | "sector" | "value" | "drift" | "cioRating";
@@ -60,6 +60,7 @@ export function PortfolioTable({
 }) {
   const [sortField, setSortField] = useState<SortField>("value");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
+  const [search, setSearch] = useState("");
 
   const sorted = useMemo(() => {
     if (!portfolio) return [];
@@ -72,6 +73,14 @@ export function PortfolioTable({
     });
     return list;
   }, [portfolio, sortField, sortDir]);
+
+  const filtered = sorted.filter(p => {
+    if (!search) return true;
+    const q = search.toLowerCase();
+    return p.name.toLowerCase().includes(q) ||
+           p.isin.toLowerCase().includes(q) ||
+           (p.sectorOrAssetClass || "").toLowerCase().includes(q);
+  });
 
   const summaryStats = useMemo(() => {
     if (!portfolio) return null;
@@ -148,6 +157,17 @@ export function PortfolioTable({
             </div>
           )}
 
+          <div className="relative mb-3">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
+            <input
+              type="text"
+              placeholder="Search positions..."
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              className="w-full bg-slate-700/50 border border-slate-600 rounded-lg pl-10 pr-4 py-2 text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:border-blue-500 transition-colors"
+            />
+          </div>
+
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
@@ -168,7 +188,7 @@ export function PortfolioTable({
                 </tr>
               </thead>
               <tbody>
-                {sorted.map(pos => (
+                {filtered.map(pos => (
                   <tr key={pos.isin} className="border-b border-slate-700/50 hover:bg-slate-700/30 transition-colors">
                     <td className="py-3 pr-4 text-slate-100">{pos.name}</td>
                     <td className="py-3 pr-4 text-slate-400 text-xs">{pos.sectorOrAssetClass}</td>
