@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import { Briefcase } from "lucide-react";
 import { Sidebar } from "./components/layout/Sidebar";
 import { Header } from "./components/layout/Header";
@@ -128,6 +128,29 @@ function App() {
         .finally(() => setAdvisoryLoading(false));
     }, 6000);
   }, []);
+
+  useEffect(() => {
+    const handleKey = (e: KeyboardEvent) => {
+      // Don't trigger when typing in inputs
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+
+      const clientIds = ["schneider", "huber", "raeber", "ammann"];
+      if (e.key >= "1" && e.key <= "4") {
+        setSelectedId(clientIds[parseInt(e.key) - 1]);
+      } else if (e.key === "d" || e.key === "D") {
+        handleDemo();
+      } else if (e.key === "t" || e.key === "T") {
+        setTracesOpen(prev => !prev);
+      } else if (e.key === "a" || e.key === "A") {
+        setAuditOpen(prev => !prev);
+      } else if (e.key === "Escape") {
+        setTracesOpen(false);
+        setAuditOpen(false);
+      }
+    };
+    window.addEventListener("keydown", handleKey);
+    return () => window.removeEventListener("keydown", handleKey);
+  }, [handleDemo]);
 
   return (
     <div className="grid grid-cols-[260px_1fr] h-screen bg-slate-900 text-slate-100 font-sans">
