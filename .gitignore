@@ -3,3 +3,4 @@ dist/
 .env
 six-credentials/
 SIX-Noumena-NTT-Data/
+output/
