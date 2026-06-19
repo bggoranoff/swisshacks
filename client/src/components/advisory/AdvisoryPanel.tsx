@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import type { AdvisoryMessage } from "../../types/api";
 import { Card, CardTitle } from "../shared/Card";
 import { ConfidenceBadge } from "../shared/ConfidenceBadge";
@@ -93,6 +93,20 @@ export function AdvisoryPanel({ advisory, loading, clientId, contextAlertTitle, 
   const [editedBody, setEditedBody] = useState("");
   const [savedBody, setSavedBody] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [currentStep, setCurrentStep] = useState(0);
+
+  useEffect(() => {
+    if (loading) {
+      setCurrentStep(0);
+      const stepInterval = setInterval(() => {
+        setCurrentStep(s => Math.min(s + 1, 3));
+      }, 2000);
+      return () => {
+        clearInterval(stepInterval);
+        setCurrentStep(0);
+      };
+    }
+  }, [loading]);
 
   const displayBody = savedBody ?? advisory?.body ?? "";
 
@@ -147,7 +161,29 @@ export function AdvisoryPanel({ advisory, loading, clientId, contextAlertTitle, 
       )}
 
       {/* Loading skeleton */}
-      {loading && <AdvisorySkeleton />}
+      {loading && (
+        <>
+          <div className="space-y-3 py-4">
+            <p className="text-xs text-slate-400 uppercase tracking-wide mb-2">Agent Pipeline</p>
+            {[
+              { label: "CRM Agent", desc: "Extracting client DNA...", color: "bg-blue-500" },
+              { label: "Portfolio Agent", desc: "Analyzing holdings...", color: "bg-green-500" },
+              { label: "News Agent", desc: "Scanning relevant news...", color: "bg-purple-500" },
+              { label: "Message Agent", desc: "Drafting advisory...", color: "bg-amber-500" },
+            ].map((step, i) => (
+              <div key={i} className="flex items-center gap-3">
+                <div className={`h-2 w-2 rounded-full ${step.color} ${i <= currentStep ? "opacity-100" : "opacity-30"} ${i === currentStep ? "animate-pulse" : ""}`} />
+                <div>
+                  <span className={`text-sm font-medium ${i <= currentStep ? "text-white" : "text-slate-500"}`}>{step.label}</span>
+                  <span className={`text-xs ml-2 ${i === currentStep ? "text-slate-300" : "text-slate-600"}`}>{step.desc}</span>
+                  {i < currentStep && <span className="text-xs text-green-400 ml-2">✓</span>}
+                </div>
+              </div>
+            ))}
+          </div>
+          <AdvisorySkeleton />
+        </>
+      )}
 
       {/* Advisory content */}
       {advisory && !loading && (
