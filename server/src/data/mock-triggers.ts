@@ -70,8 +70,8 @@ export const MOCK_TRIGGERS: Record<string, ScoredNewsArticle> = {
 };
 
 export const PERSONA_KEYWORDS: Record<string, string[]> = {
-  schneider: ["pharma research shutdown", "pharmaceutical chronic illness", "drug research division closure"],
-  huber: ["palm oil deforestation", "reforestation sustainability", "ESG environmental"],
-  raeber: ["AI stocks rebalancing", "US technology sector", "tech sector growth"],
-  ammann: ["labour exploitation scandal", "corporate governance ethics", "supply chain violations"],
+  schneider: ["pharmaceutical", "pharma research", "drug development"],
+  huber: ["palm oil", "deforestation", "sustainability"],
+  raeber: ["artificial intelligence stocks", "technology sector", "AI investment"],
+  ammann: ["corporate scandal", "labour rights", "supply chain"],
 };

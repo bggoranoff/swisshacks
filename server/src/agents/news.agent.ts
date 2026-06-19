@@ -61,60 +61,66 @@ export class NewsAgent {
     const keywords = PERSONA_KEYWORDS[clientId];
     if (!keywords || keywords.length === 0 || !this.newsApiKey) return [];
 
-    // Use only the first keyword for a single targeted query per persona
-    const query = keywords[0];
+    // Try each keyword in order, return the first set of results that is non-empty
+    for (const query of keywords) {
+      try {
+        const { data } = await axios.post(
+          `${this.newsApiUrl}/article/getArticles`,
+          {
+            apiKey: this.newsApiKey,
+            keyword: query,
+            keywordOper: "or",
+            lang: "eng",
+            articlesCount: 10,
+            articlesSortBy: "date",
+            resultType: "articles",
+            dataType: ["news"],
+            includeArticleSentiment: true,
+          },
+          { timeout: 15000 }
+        );
 
-    try {
-      const { data } = await axios.post(
-        `${this.newsApiUrl}/article/getArticles`,
-        {
-          apiKey: this.newsApiKey,
-          keyword: query,
-          keywordOper: "and",
-          lang: "eng",
-          articlesCount: 10,
-          articlesSortBy: "date",
-          resultType: "articles",
-          dataType: ["news"],
-          includeArticleSentiment: true,
-        },
-        { timeout: 15000 }
-      );
+        const results = data?.articles?.results || [];
+        if (results.length === 0) {
+          console.warn(`[NewsAgent] No results for keyword "${query}", trying next...`);
+          continue;
+        }
 
-      const results = data?.articles?.results || [];
-      const articles: ScoredNewsArticle[] = [];
+        const articles: ScoredNewsArticle[] = [];
 
-      for (const a of results) {
-        const uri = String(a.uri || "");
-        const sentiment = typeof a.sentiment === "number" ? a.sentiment : 0;
-        let sentimentLabel: "BEARISH" | "NEUTRAL" | "BULLISH" = "NEUTRAL";
-        if (sentiment > 0.2) sentimentLabel = "BULLISH";
-        else if (sentiment < -0.2) sentimentLabel = "BEARISH";
+        for (const a of results) {
+          const uri = String(a.uri || "");
+          const sentiment = typeof a.sentiment === "number" ? a.sentiment : 0;
+          let sentimentLabel: "BEARISH" | "NEUTRAL" | "BULLISH" = "NEUTRAL";
+          if (sentiment > 0.2) sentimentLabel = "BULLISH";
+          else if (sentiment < -0.2) sentimentLabel = "BEARISH";
 
-        articles.push({
-          id: uri || `live-${articles.length}`,
-          title: a.title || "",
-          summary: (a.body || "").slice(0, 280).trim(),
-          url: a.url || "#",
-          source: a.source?.title || "Unknown",
-          sourceType: "live",
-          publishedAt: a.dateTimePub || a.dateTime || new Date().toISOString(),
-          sentiment,
-          sentimentLabel,
-          relevanceScore: 0.5,
-          relevanceReason: `Matched keyword: ${query}`,
-          reasoningChain: [`Article matched search query "${query}"`],
-          affectedPositions: [],
-          isAlert: false,
-          alertType: undefined,
-        });
+          articles.push({
+            id: uri || `live-${articles.length}`,
+            title: a.title || "",
+            summary: (a.body || "").slice(0, 280).trim(),
+            url: a.url || "#",
+            source: a.source?.title || "Unknown",
+            sourceType: "live",
+            publishedAt: a.dateTimePub || a.dateTime || new Date().toISOString(),
+            sentiment,
+            sentimentLabel,
+            relevanceScore: 0.5,
+            relevanceReason: `Matched keyword: ${query}`,
+            reasoningChain: [`Article matched search query "${query}"`],
+            affectedPositions: [],
+            isAlert: false,
+            alertType: undefined,
+          });
+        }
+
+        return articles;
+      } catch (err) {
+        console.warn(`[NewsAgent] Event Registry fetch failed for "${query}":`, (err as Error).message);
       }
-
-      return articles;
-    } catch (err) {
-      console.warn(`[NewsAgent] Event Registry fetch failed for "${query}":`, (err as Error).message);
-      return [];
     }
+
+    return [];
   }
 
   private async scoreWithLLM(
