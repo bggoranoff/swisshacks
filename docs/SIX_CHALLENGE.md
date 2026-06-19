@@ -1,0 +1,84 @@
+# SIX Challenge: "The Next Generation of Wealth Advisory"
+
+**Partners:** SIX, NTT Data & Noumena
+
+**Goal:** Build an AI-powered advisor dashboard that gives every private banking client hyper-personalised care (normally reserved for UHNWI). The relationship manager stays in the loop — AI never advises the client directly.
+
+## Four Core Capabilities
+
+1. **Build Client DNA** — parse raw CRM conversation logs and map each client's personal profile (values, life events, business context, preferences)
+2. **Monitor Global News 24/7** — flag news relevant to holdings or client profiles the moment it breaks
+3. **Suggest Asset Swaps Within Strategy** — within the client's existing mandate (Defensive/Balanced/Growth), AI identifies holdings conflicting with their DNA and proposes replacements from the same sector
+4. **Personalise Advisory Messages** — draft the RM's advisory note in the client's preferred style (data-driven or values-led)
+
+## Four Client Personas
+
+- **Schneider — The Personal Connection:** Emotional, purpose-driven; family foundation for chronic-illness research. Strategy: Balanced. Trigger: Pharma company shuts down its research division for that disease.
+- **Huber — The Purpose-Driven Investor:** Environmentalist financing South American reforestation. Strategy: Defensive. Trigger: Consumer goods company announces historic palm oil deforestation cut-off.
+- **Räber — The Defensive Value Investor:** Conservative Swiss couple; precision-engineering background; averse to US tech. Strategy: Defensive. Trigger: CIO suggests rebalancing from blue chips into US AI stocks.
+- **Ammann — The Corporate Reputation Case:** Prominent Swiss entrepreneur; reputational risk = financial risk. Strategy: Growth. Trigger: Labour exploitation scandal hits a consumer brand in the portfolio.
+
+## Available Technology
+
+- **SIX Financial Information** — MCP server (streamable-http, bearer token) + Web API for market data, prices, fundamentals, estimates (23 tools)
+- **Event Registry / Tenity MCP-News Server** — live news and sentiment feed
+- **LLM API Credits** — provided via Phoeniqs (no need to bring your own key)
+- **Provided datasets** — CRM interaction logs (3 years, 4 clients) + Portfolio Construction workbook (3 mandates, CHF 10M each, with positions, CIO recommendations, transaction history)
+- **Noumena Digital** — domain models, knowledge graphs, AI-ready financial abstractions
+- **NTT DATA** — Azure OpenAI patterns for explainable AI, RAG, and multi-agent decision support
+
+## GitHub Repo Contents
+
+The repo `SwissHacks-2026/SIX-Noumena-NTT-Data` contains:
+
+- `data/` — CRM logs + portfolio construction Excel workbooks
+- `docs/` — challenge pitch deck PDF, deep-dive PDF, SIX MCP tools reference, Phoeniqs setup guide, MCP Developer Guide
+- `demo/` — runnable TypeScript/Express starter wiring Phoeniqs LLM + SIX MCP + Event Registry (copy `.env.example` to `.env`, fill in keys, run `npm install && npm run dev`)
+
+## Judging Criteria
+
+- **Creativity** (25%) — novel human-AI interaction; fresh ideas beyond standard chatbots
+- **Trust & Explainability** (25%) — transparency, traceability, and human control
+- **Feasibility** (20%) — technical realism and architectural soundness
+- **Visual Design** (15%) — clarity, usability, trust-oriented UI
+- **Presentation Quality** (15%) — clear, convincing storytelling
+
+## Deliverables
+
+- End-to-end clickable prototype or working front-end
+- Minimal back-end or agent flow demonstrating personalisation and reasoning
+- Short demo story showing RM workflow (understand change, explain, decide next action)
+- Concise presentation (.pptx) with problem/solution, demo, core functionalities, user journey
+- Submit code + complete the MCP feedback form (one per team, ~5 min)
+
+## Prize
+
+Top two teams get the opportunity to pitch to SIX Management + SIX Goodie Bags. All hackers can sign up for a private pitch coaching session with Magdalena at the SIX booth on Saturday.
+
+## SIX Contacts (On-Site)
+
+- **Ramiro Lopez Cento** (SIX) — MCP support — ramiro.lopez@six-group.com
+- **Laurent Lefevre** (SIX) — webAPI, MCP — laurent.lefevre@six-group.com
+- **Jennifer Chang** (SIX) — Coordination — jennifer.chang@six-group.com
+- **Magdalena Tuta** (SIX) — Coordination, Pitch Training — magdalena.tuta@six-group.com
+- **Thomas Geiger** (NTT DATA) — Wealth Management, Personas, Business Case — thomas.geiger@nttdata.com
+- **Stefan Taroni** (NTT DATA / Phoeniqs) — Tech / LLM Infrastructure & Credits — stefan.taroni@phoenix-technologies.ch
+- **Sandra Daub** (Noumena Digital) — Wealth Management, Personas, Business Case — sandra@noumenadigital.com
+- **Imants Firsts** (Noumena Digital) — Tech Infrastructure — imants.firsts@noumenadigital.com
+
+## Key Links
+
+- **GitHub repo (all challenge materials):** https://github.com/SwissHacks-2026/SIX-Noumena-NTT-Data
+- **Hackathon booklet:** https://tenity.notion.site/Booklet-SwissHacks-2026-3037b73827148128b832c46d3fbb7956
+- **Project submission (by 12:00 Sunday):** https://airtable.com/appH6t7TwTNMVURHO/pag2fqzpf8ejuFAD1/form
+- **SIX MCP feedback form:** https://forms.office.com/e/tX2cH5n9Yi
+- **LLM credits (Phoeniqs):** https://console.phoeniqs.com/
+- **News API (Event Registry):** https://newsapi.ai/
+- **Lovable Pro credits (code: COMM-SWISSHACKS-SPDV):** https://lovable.dev/
+- **Azure for Startups:** https://learn.microsoft.com/en-gb/startups/microsoft-for-startups/getting-started-mfs
+- **SwissHacks 2026 GitHub org:** https://github.com/SwissHacks-2026
+- **Tenity contact (for SharePoint access):** irena.marina@tenity.com
+
+## SharePoint Access Note
+
+The slides link (`f10741.sharepoint.com/sites/tenityswitzerland9/...`) requires guest access to Tenity's Microsoft 365 tenant. The challenge slides are already available in the GitHub repo under `docs/`, so you likely don't need SharePoint access. If you do, contact Irena Marina or ask on the SwissHacks Discord.

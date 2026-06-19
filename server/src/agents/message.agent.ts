@@ -1,0 +1,187 @@
+import axios from "axios";
+import { AdvisoryMessage } from "../types/message";
+import { extractDNA } from "./crm.agent";
+import { NewsAgent } from "./news.agent";
+import { getClient, getPortfolio } from "../data/store";
+
+const messageStore = new Map<string, AdvisoryMessage>();
+const newsAgent = new NewsAgent();
+
+const LLM_URL = () => (process.env.PHOENIQS_API_URL || "https://maas.phoeniqs.com/v1") + "/chat/completions";
+const LLM_KEY = () => process.env.PHOENIQS_API_KEY || "";
+const LLM_MODEL = () => process.env.PHOENIQS_MODEL || "inference-gpt-oss-120b";
+
+function parseJson(content: string): any {
+  try {
+    return JSON.parse(content);
+  } catch {
+    const match = content.match(/\{[\s\S]*\}/);
+    if (match) {
+      try {
+        return JSON.parse(match[0]);
+      } catch { /* fall through */ }
+    }
+    return null;
+  }
+}
+
+function generateId(): string {
+  return Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+}
+
+export class MessageAgent {
+  async generateAdvisory(
+    clientId: string,
+    alertId?: string,
+    conflictIsin?: string
+  ): Promise<AdvisoryMessage> {
+    const client = getClient(clientId);
+    if (!client) {
+      return this.fallbackAdvisory(clientId, "Unknown Client");
+    }
+
+    const dna = await extractDNA(clientId, client.crmEntries);
+    const digest = await newsAgent.getNewsDigest(clientId, dna.summary);
+    const portfolio = getPortfolio(client.strategy);
+
+    const alert = alertId
+      ? digest.alerts.find(a => a.id === alertId) || digest.alerts[0]
+      : digest.alerts[0];
+
+    let styleInstruction = "";
+    if (dna.communicationStyle === "data-driven") {
+      styleInstruction = "Use precise numbers, percentages, and market data. Be concise and analytical.";
+    } else if (dna.communicationStyle === "values-led") {
+      styleInstruction = "Lead with the client's personal values and how the situation connects to what matters to them. Be warm but professional.";
+    } else {
+      styleInstruction = "Balance data-driven analysis with personal values. Be professional yet personable.";
+    }
+
+    const systemPrompt =
+      "You are a relationship manager drafting a personalised advisory note. " +
+      "Write in the client's preferred communication style. " +
+      "Never give direct financial advice — present options and reasoning. " +
+      "The client always decides. " +
+      styleInstruction;
+
+    const alertContext = alert
+      ? `\nTRIGGER EVENT:\nTitle: ${alert.title}\nSummary: ${alert.summary}\nType: ${alert.alertType || "conflict"}\nRelevance: ${alert.relevanceScore}`
+      : "\nNo specific trigger event — provide a general portfolio review note.";
+
+    const portfolioSummary = portfolio
+      ? `\nPORTFOLIO: ${portfolio.strategy} mandate, ${portfolio.positions.length} positions, CHF ${portfolio.totalTargetCHF.toLocaleString()} target`
+      : "";
+
+    const userPrompt =
+      `Draft an advisory note for client ${client.name}.\n` +
+      `\nCLIENT DNA:\n${dna.summary}\n` +
+      `Values: ${dna.values.join(", ")}\n` +
+      `Risk sensitivities: ${dna.riskSensitivities.join(", ")}\n` +
+      `Communication style: ${dna.communicationStyle}\n` +
+      portfolioSummary +
+      alertContext +
+      `\n\nReturn ONLY valid JSON with these keys:\n` +
+      `{"subject": "short email subject line", "body": "the full advisory message (3-5 paragraphs)", ` +
+      `"proposedAction": "one-sentence recommended action", ` +
+      `"reasoning": "2-3 sentences explaining why this action is suggested", ` +
+      `"confidence": 0.0-1.0, ` +
+      `"toneInfluences": [{"dnaValue": "which value influenced tone", "effect": "how it shaped the message"}]}`;
+
+    try {
+      const { data } = await axios.post(
+        LLM_URL(),
+        {
+          model: LLM_MODEL(),
+          messages: [
+            { role: "system", content: systemPrompt },
+            { role: "user", content: userPrompt },
+          ],
+          temperature: 0.4,
+          max_tokens: 1000,
+        },
+        {
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${LLM_KEY()}`,
+          },
+          timeout: 60000,
+        }
+      );
+
+      const content = data?.choices?.[0]?.message?.content || "";
+      const parsed = parseJson(content);
+
+      if (!parsed || !parsed.body) {
+        return this.fallbackAdvisory(clientId, client.name, alert?.title);
+      }
+
+      const msg: AdvisoryMessage = {
+        id: generateId(),
+        clientId,
+        subject: parsed.subject || `Advisory Note — ${client.name}`,
+        body: parsed.body,
+        tone: dna.communicationStyle,
+        toneInfluences: Array.isArray(parsed.toneInfluences) ? parsed.toneInfluences : [],
+        referencedAlert: alert?.id,
+        proposedAction: parsed.proposedAction || undefined,
+        reasoning: parsed.reasoning || "Based on the client's profile and current market conditions.",
+        confidence: typeof parsed.confidence === "number" ? parsed.confidence : 0.7,
+        status: "draft",
+        disclaimer:
+          "This is an AI-generated draft for the relationship manager's review. " +
+          "It does not constitute financial advice. " +
+          "The client's explicit approval is required before any transaction.",
+      };
+
+      messageStore.set(msg.id, msg);
+      return msg;
+    } catch (err) {
+      console.error("[MessageAgent] LLM call failed:", (err as Error).message);
+      return this.fallbackAdvisory(clientId, client.name, alert?.title);
+    }
+  }
+
+  updateStatus(
+    messageId: string,
+    status: "approved" | "rejected",
+    rmNotes?: string
+  ): AdvisoryMessage | null {
+    const msg = messageStore.get(messageId);
+    if (!msg) return null;
+    msg.status = status;
+    if (rmNotes) msg.rmNotes = rmNotes;
+    return msg;
+  }
+
+  getMessage(messageId: string): AdvisoryMessage | null {
+    return messageStore.get(messageId) || null;
+  }
+
+  private fallbackAdvisory(
+    clientId: string,
+    clientName: string,
+    alertTitle?: string
+  ): AdvisoryMessage {
+    const msg: AdvisoryMessage = {
+      id: generateId(),
+      clientId,
+      subject: `Advisory Note — ${clientName}`,
+      body: alertTitle
+        ? `Dear ${clientName},\n\nWe would like to bring to your attention a recent development: "${alertTitle}".\n\nWe recommend scheduling a call to discuss how this may affect your portfolio and explore potential adjustments aligned with your investment values.\n\nBest regards,\nYour Relationship Manager`
+        : `Unable to generate advisory at this time. Please review the alerts panel for pending items.`,
+      tone: "balanced",
+      toneInfluences: [],
+      referencedAlert: undefined,
+      proposedAction: "Schedule a review meeting with your relationship manager.",
+      reasoning: "Advisory generated using fallback template due to service unavailability.",
+      confidence: 0.3,
+      status: "draft",
+      disclaimer:
+        "This is an AI-generated draft for the relationship manager's review. " +
+        "It does not constitute financial advice. " +
+        "The client's explicit approval is required before any transaction.",
+    };
+    messageStore.set(msg.id, msg);
+    return msg;
+  }
+}
