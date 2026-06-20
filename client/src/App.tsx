@@ -30,6 +30,7 @@ function App() {
   const [advisory, setAdvisory] = useState<AdvisoryMessage | null>(null);
   const [advisoryLoading, setAdvisoryLoading] = useState(false);
   const [demoActive, setDemoActive] = useState(false);
+  const [demoStep, setDemoStep] = useState(0);
   const [approvedAlertId, setApprovedAlertId] = useState<string | null>(null);
   const [advisoryLanguage, setAdvisoryLanguage] = useState<string>("en");
   const advisoryRef = useRef<HTMLDivElement>(null);
@@ -188,15 +189,22 @@ function App() {
       <div className="flex flex-col h-screen overflow-hidden">
         <Header onDemo={handleDemo} onTracesClick={() => setTracesOpen(true)} onAuditClick={() => setAuditOpen(true)} />
         {demoActive && (
-          <div className="bg-blue-700/90 border-b border-blue-500 px-6 py-2 flex items-center justify-between text-white text-xs font-medium">
-            <span>Demo Mode — Walking through Schneider scenario...</span>
-            <button
-              onClick={() => setDemoActive(false)}
-              className="ml-4 text-blue-200 hover:text-white transition-colors"
-              aria-label="Dismiss demo banner"
-            >
-              Dismiss
-            </button>
+          <div className="bg-blue-900/30 border-b border-blue-600/30 px-4 py-2 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <span className="text-xs text-blue-400">Demo Mode</span>
+              <div className="flex items-center gap-1">
+                {["Select Client", "View DNA", "Check Alerts", "Generate Advisory"].map((step, i) => (
+                  <span key={i} className={`text-xs px-2 py-0.5 rounded-full ${
+                    i < demoStep ? "bg-green-900/50 text-green-300" :
+                    i === demoStep ? "bg-blue-600 text-white animate-pulse" :
+                    "bg-slate-700 text-slate-500"
+                  }`}>
+                    {i < demoStep ? "✓" : i + 1}. {step}
+                  </span>
+                ))}
+              </div>
+            </div>
+            <button onClick={() => { setDemoActive(false); setDemoStep(0); }} className="text-xs text-slate-400 hover:text-white">Dismiss</button>
           </div>
         )}
         {anyError && (

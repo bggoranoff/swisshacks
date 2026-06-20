@@ -132,6 +132,11 @@ export function NewsFeed({ news, loading, error, onRetry, durationMs }: NewsFeed
               {article.sourceType === "scenario" && (
                 <span className="text-xs px-2 py-0.5 rounded-full bg-cyan-900/50 text-cyan-300">Scenario</span>
               )}
+              {article.affectedPositions && article.affectedPositions.length > 0 && (
+                <span className="text-xs px-2 py-0.5 rounded-full bg-slate-600 text-slate-300">
+                  {article.affectedPositions.length} position{article.affectedPositions.length > 1 ? "s" : ""} affected
+                </span>
+              )}
             </div>
 
             <div className="mt-2 h-1 rounded-full bg-slate-600">
