@@ -2,7 +2,7 @@ import { useMemo } from "react";
 import { PieChart, Pie, Cell, Tooltip } from "recharts";
 import type { EnrichedPosition } from "../../types/api";
 
-const COLORS = ["#ec6608", "#2e6fd6", "#22c55e", "#f59e0b", "#8b5cf6", "#06b6d4"];
+const COLORS = ["#C8102E", "#2e6fd6", "#22c55e", "#f59e0b", "#8b5cf6", "#06b6d4"];
 
 interface Slice {
   name: string;
@@ -40,7 +40,7 @@ export function AllocationChart({ positions }: { positions: EnrichedPosition[] }
             <Pie data={target} dataKey="value" cx={90} cy={90} innerRadius={50} outerRadius={80} strokeWidth={0}>
               {target.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
             </Pie>
-            <Tooltip formatter={(v) => `CHF ${formatCHF(Number(v))}`} contentStyle={{ background: "#1e293b", border: "1px solid #334155", borderRadius: "8px", fontSize: "12px", color: "#e2e8f0" }} />
+            <Tooltip formatter={(v) => `CHF ${formatCHF(Number(v))}`} contentStyle={{ background: "var(--color-slate-800, #1e293b)", border: "1px solid var(--color-slate-700, #334155)", borderRadius: "8px", fontSize: "12px", color: "var(--color-slate-200, #e2e8f0)" }} />
           </PieChart>
           <span className="text-xs text-slate-400">Target</span>
         </div>
@@ -49,7 +49,7 @@ export function AllocationChart({ positions }: { positions: EnrichedPosition[] }
             <Pie data={actual} dataKey="value" cx={90} cy={90} innerRadius={50} outerRadius={80} strokeWidth={0}>
               {actual.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
             </Pie>
-            <Tooltip formatter={(v) => `CHF ${formatCHF(Number(v))}`} contentStyle={{ background: "#1e293b", border: "1px solid #334155", borderRadius: "8px", fontSize: "12px", color: "#e2e8f0" }} />
+            <Tooltip formatter={(v) => `CHF ${formatCHF(Number(v))}`} contentStyle={{ background: "var(--color-slate-800, #1e293b)", border: "1px solid var(--color-slate-700, #334155)", borderRadius: "8px", fontSize: "12px", color: "var(--color-slate-200, #e2e8f0)" }} />
           </PieChart>
           <span className="text-xs text-slate-400">Actual</span>
         </div>

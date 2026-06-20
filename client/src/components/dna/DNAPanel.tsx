@@ -90,11 +90,30 @@ export function DNAPanel({ dna, onOpenDrawer, loading, error, onRetry, durationM
           </div>
         )}
 
+        {/* Life Events — always visible */}
+        {dna.lifeEvents && dna.lifeEvents.length > 0 && (
+          <div>
+            <p className="text-xs font-medium text-slate-400 uppercase tracking-wide mb-2">Life Events</p>
+            <div className="flex flex-col gap-0">
+              {dna.lifeEvents.map((item, idx) => (
+                <div key={item} className="flex items-stretch gap-3">
+                  <div className="flex flex-col items-center">
+                    <div className="h-2 w-2 rounded-full bg-purple-400 mt-1 shrink-0" />
+                    {idx < dna.lifeEvents!.length - 1 && (
+                      <div className="w-0.5 flex-1 bg-slate-700 mt-1" />
+                    )}
+                  </div>
+                  <p className="text-sm text-slate-400 pb-3">{item}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
       </div>
 
       {/* Additional context — collapsed by default */}
       {(
-        (dna.lifeEvents && dna.lifeEvents.length > 0) ||
         (dna.businessContext && dna.businessContext.length > 0) ||
         (dna.riskSensitivities && dna.riskSensitivities.length > 0) ||
         (dna.personalPriorities && dna.personalPriorities.length > 0)
@@ -110,25 +129,6 @@ export function DNAPanel({ dna, onOpenDrawer, loading, error, onRetry, durationM
 
           {showAdditional && (
             <div className="mt-3 space-y-4">
-
-              {dna.lifeEvents && dna.lifeEvents.length > 0 && (
-                <div>
-                  <p className="text-xs font-medium text-slate-400 uppercase tracking-wide mb-2">Life Events</p>
-                  <div className="flex flex-col gap-0">
-                    {dna.lifeEvents.map((item, idx) => (
-                      <div key={item} className="flex items-stretch gap-3">
-                        <div className="flex flex-col items-center">
-                          <div className="h-2 w-2 rounded-full bg-purple-400 mt-1 shrink-0" />
-                          {idx < dna.lifeEvents!.length - 1 && (
-                            <div className="w-0.5 flex-1 bg-slate-700 mt-1" />
-                          )}
-                        </div>
-                        <p className="text-sm text-slate-400 pb-3">{item}</p>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
 
               {dna.businessContext && dna.businessContext.length > 0 && (
                 <div>
@@ -194,12 +194,12 @@ export function DNAPanel({ dna, onOpenDrawer, loading, error, onRetry, durationM
             <div className="absolute left-1 top-0 bottom-0 w-0.5 bg-slate-700" />
             {timelineData.map(([year, entries]) => (
               <div key={year} className="mb-4 relative">
-                <div className="absolute -left-3 top-0.5 h-2.5 w-2.5 rounded-full bg-six-orange border-2 border-slate-800" />
+                <div className="absolute -left-3 top-0.5 h-2.5 w-2.5 rounded-full bg-six-red border-2 border-slate-800" />
                 <p className="text-sm font-medium text-white ml-2">{year}</p>
                 <div className="ml-2 mt-1 space-y-1">
                   {entries.slice(0, 3).map((e, i) => (
                     <p key={i} className="text-xs text-slate-400">
-                      <span className="text-six-orange">{e.trait}</span> — {e.excerpt?.slice(0, 60)}...
+                      <span className="text-six-red">{e.trait}</span> — {e.excerpt?.slice(0, 60)}...
                     </p>
                   ))}
                 </div>

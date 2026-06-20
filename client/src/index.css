@@ -9,9 +9,9 @@
    ============================================================ */
 @theme {
   /* SIX brand colors */
-  --color-six-orange: #ec6608;        /* signature SIX orange — primary accent */
-  --color-six-orange-bright: #ff7e29; /* hover / lighter accent */
-  --color-six-orange-dark: #c2530a;   /* pressed / darker accent */
+  --color-six-red: #C8102E;           /* signature SIX red — primary accent */
+  --color-six-red-bright: #E4253D;    /* hover / lighter accent */
+  --color-six-red-dark: #9B0C23;      /* pressed / darker accent */
   --color-six-blue: #2e6fd6;          /* secondary accent blue */
   --color-six-blue-bright: #4f8bf0;
   --color-six-navy: #14233f;          /* deep brand navy */
@@ -26,6 +26,21 @@
   --radius-xl: 3px;
   --radius-2xl: 4px;
   --radius-3xl: 4px;
+}
+
+/* Light theme: invert slate scale so dark-mode classes "just work" */
+.light {
+  --color-slate-50: #020617;
+  --color-slate-100: #0f172a;
+  --color-slate-200: #1e293b;
+  --color-slate-300: #475569;
+  --color-slate-400: #64748b;
+  --color-slate-500: #94a3b8;
+  --color-slate-600: #cbd5e1;
+  --color-slate-700: #e2e8f0;
+  --color-slate-800: #f1f5f9;
+  --color-slate-900: #ffffff;
+  --color-slate-950: #ffffff;
 }
 
 /* Hide native scrollbars, keep scrollability */
@@ -67,6 +82,13 @@
   background: #475569;
 }
 
+.light ::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+}
+.light ::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
 /* Smooth transitions for skeleton loaders */
 @keyframes shimmer {
   0% { background-position: -200% 0; }
@@ -77,13 +99,13 @@
   animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
 
-/* Selection color — SIX orange tint */
+/* Selection color — SIX red tint */
 ::selection {
-  background-color: rgba(236, 102, 8, 0.3);
+  background-color: rgba(200, 16, 46, 0.3);
 }
 
-/* Focus ring — SIX orange */
+/* Focus ring — SIX red */
 *:focus-visible {
-  outline: 2px solid rgba(236, 102, 8, 0.5);
+  outline: 2px solid rgba(200, 16, 46, 0.5);
   outline-offset: 2px;
 }

@@ -95,7 +95,7 @@ export function NewsFeed({ news, loading, error, onRetry, durationMs, fetchedAt 
             onClick={() => setFilter(f)}
             className={`text-xs px-3 py-1 rounded-full transition-colors ${
               filter === f
-                ? "bg-six-orange text-white"
+                ? "bg-six-red text-white"
                 : "bg-slate-700 text-slate-400 hover:text-slate-200"
             }`}
           >
@@ -119,7 +119,7 @@ export function NewsFeed({ news, loading, error, onRetry, durationMs, fetchedAt 
                 href={article.url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="font-medium text-sm text-slate-100 hover:text-six-orange-bright transition-colors"
+                className="font-medium text-sm text-slate-100 hover:text-six-red-bright transition-colors"
               >
                 {article.title}
                 <ExternalLink className="inline h-3 w-3 ml-1 text-slate-500" />
@@ -146,7 +146,7 @@ export function NewsFeed({ news, loading, error, onRetry, durationMs, fetchedAt 
 
             <div className="mt-2 h-1 rounded-full bg-slate-600">
               <div
-                className="h-full rounded-full bg-six-orange"
+                className="h-full rounded-full bg-six-red"
                 style={{ width: `${Math.round(article.relevanceScore * 100)}%` }}
               />
             </div>

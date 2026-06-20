@@ -35,7 +35,7 @@ export class ErrorBoundary extends Component<Props, State> {
           <p className="text-xs text-slate-500">{this.state.error?.message}</p>
           <button
             onClick={() => this.setState({ hasError: false, error: undefined })}
-            className="text-xs text-six-orange hover:underline flex items-center gap-1"
+            className="text-xs text-six-red hover:underline flex items-center gap-1"
           >
             <RefreshCw className="h-3 w-3" /> Try again
           </button>

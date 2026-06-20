@@ -81,10 +81,10 @@ export function CompareView({ generic, personalised, onClose }: CompareViewProps
         </div>
 
         {/* DNA-Personalised column */}
-        <div className="rounded-xl border border-six-orange/40 bg-six-orange/5 overflow-hidden">
-          <div className="flex items-center gap-2 px-4 py-3 bg-six-orange/15 border-b border-six-orange/40">
-            <Sparkles className="h-4 w-4 text-six-orange" />
-            <span className="text-sm font-semibold text-six-orange-bright">DNA-Personalised</span>
+        <div className="rounded-xl border border-six-red/40 bg-six-red/5 overflow-hidden">
+          <div className="flex items-center gap-2 px-4 py-3 bg-six-red/15 border-b border-six-red/40">
+            <Sparkles className="h-4 w-4 text-six-red" />
+            <span className="text-sm font-semibold text-six-red-bright">DNA-Personalised</span>
             <span className={`ml-auto text-xs px-2 py-0.5 rounded-full font-medium ${personalStyle.badge}`}>
               {personalised.tone}
             </span>
@@ -100,8 +100,8 @@ export function CompareView({ generic, personalised, onClose }: CompareViewProps
               {highlightPersonalRefs(personalised.body)}
             </div>
             {personalised.proposedAction && (
-              <div className="rounded-lg bg-six-orange/15 border border-six-orange/40 p-3">
-                <p className="text-xs font-semibold text-six-orange uppercase tracking-wider mb-1">
+              <div className="rounded-lg bg-six-red/15 border border-six-red/40 p-3">
+                <p className="text-xs font-semibold text-six-red uppercase tracking-wider mb-1">
                   Proposed Action
                 </p>
                 <p className="text-sm text-slate-200">{personalised.proposedAction}</p>
@@ -109,12 +109,12 @@ export function CompareView({ generic, personalised, onClose }: CompareViewProps
             )}
             {personalised.toneInfluences && personalised.toneInfluences.length > 0 && (
               <div className="mt-2">
-                <p className="text-xs text-six-orange uppercase tracking-wide mb-1.5 font-medium">DNA Influences</p>
+                <p className="text-xs text-six-red uppercase tracking-wide mb-1.5 font-medium">DNA Influences</p>
                 <div className="flex flex-wrap gap-1.5">
                   {personalised.toneInfluences.map((t, i) => (
-                    <div key={i} className="flex items-center gap-1 bg-six-orange/15 rounded-lg px-2.5 py-1 text-xs border border-six-orange/40">
-                      <span className="text-six-orange font-medium">{t.dnaValue}</span>
-                      <ChevronRight className="h-3 w-3 text-six-orange/70" />
+                    <div key={i} className="flex items-center gap-1 bg-six-red/15 rounded-lg px-2.5 py-1 text-xs border border-six-red/40">
+                      <span className="text-six-red font-medium">{t.dnaValue}</span>
+                      <ChevronRight className="h-3 w-3 text-six-red/70" />
                       <span className="text-slate-300">{t.effect}</span>
                     </div>
                   ))}

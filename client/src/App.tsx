@@ -1,5 +1,5 @@
 import { useState, useCallback, useRef, useEffect } from "react";
-import { Briefcase, MessageCircle, ChevronLeft } from "lucide-react";
+import { Briefcase, MessageCircle, ChevronLeft, ChevronRight } from "lucide-react";
 import { Sidebar } from "./components/layout/Sidebar";
 import { TraitDrawer } from "./components/dna/TraitDrawer";
 import { Header } from "./components/layout/Header";
@@ -10,7 +10,7 @@ import { NewsFeed } from "./components/news/NewsFeed";
 import { AlertsPanel } from "./components/alerts/AlertsPanel";
 import { AdvisoryPanel } from "./components/advisory/AdvisoryPanel";
 import { ErrorBoundary } from "./components/shared/ErrorBoundary";
-import { KnowledgeGraphPanel } from "./components/graph/KnowledgeGraphPanel";
+import { StrategyRadarPanel } from "./components/strategy/StrategyRadarPanel";
 import { ChatPanel } from "./components/chat/ChatPanel";
 import { useFetch } from "./hooks/useFetch";
 import { prefetchClients } from "./hooks/prefetchCache";
@@ -40,7 +40,7 @@ interface DrawerState {
 function ResizeHandle({ onMouseDown }: { onMouseDown: (e: React.MouseEvent) => void }) {
   return (
     <div
-      className="w-1 shrink-0 cursor-col-resize bg-slate-700 hover:bg-six-orange/60 active:bg-six-orange transition-colors z-30"
+      className="w-1 shrink-0 cursor-col-resize bg-slate-700 hover:bg-six-red/60 active:bg-six-red transition-colors z-30"
       onMouseDown={onMouseDown}
     />
   );
@@ -59,6 +59,7 @@ function App() {
   const [sidebarWidth, setSidebarWidth] = useState(260);
   const [chatWidth, setChatWidth] = useState(360);
   const [chatOpen, setChatOpen] = useState(true);
+  const [sidebarOpen, setSidebarOpen] = useState(true);
   const [drawer, setDrawer] = useState<DrawerState>({ open: false, trait: null, category: null });
 
   const handleChatHistoryChange = (clientId: string, msgs: ChatMessage[]) => {
@@ -276,30 +277,43 @@ function App() {
     <div className="flex h-screen bg-slate-900 text-slate-100 font-sans">
       {(dnaLoading || portLoading || newsLoading) && (
         <div className="fixed top-0 left-0 right-0 h-0.5 bg-slate-800 z-[60]">
-          <div className="h-full bg-six-orange animate-pulse" style={{ width: "60%", transition: "width 0.5s" }} />
+          <div className="h-full bg-six-red animate-pulse" style={{ width: "60%", transition: "width 0.5s" }} />
         </div>
       )}
-      <Sidebar
-        clients={clients}
-        selectedId={selectedId}
-        onSelect={handleSelectClient}
-        onHome={() => setSelectedId(null)}
-        loading={clientsFetch.loading}
-        conflictCount={portfolio?.conflicts?.length}
-        style={{ width: sidebarWidth, flexShrink: 0 }}
-      />
-      <ResizeHandle onMouseDown={startSidebarResize} />
+      {sidebarOpen ? (
+        <>
+          <Sidebar
+            clients={clients}
+            selectedId={selectedId}
+            onSelect={handleSelectClient}
+            onHome={() => setSelectedId(null)}
+            loading={clientsFetch.loading}
+            conflictCount={portfolio?.conflicts?.length}
+            style={{ width: sidebarWidth, flexShrink: 0 }}
+            onClose={() => setSidebarOpen(false)}
+          />
+          <ResizeHandle onMouseDown={startSidebarResize} />
+        </>
+      ) : (
+        <button
+          onClick={() => setSidebarOpen(true)}
+          title="Open client list"
+          className="flex flex-col items-center justify-center w-8 h-screen bg-slate-900 border-r border-slate-700 hover:bg-slate-800 transition-colors shrink-0 group"
+        >
+          <ChevronRight className="h-4 w-4 text-slate-500 group-hover:text-six-red transition-colors" />
+        </button>
+      )}
       <div className="flex flex-col flex-1 min-w-0 h-screen overflow-hidden">
         <Header onDemo={handleDemo} onAuditClick={() => setAuditOpen(true)} />
         {demoActive && (
-          <div className="bg-six-orange/10 border-b border-six-orange/30 px-4 py-2 flex items-center justify-between">
+          <div className="bg-six-red/10 border-b border-six-red/30 px-4 py-2 flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <span className="text-xs text-six-orange">Demo Mode</span>
+              <span className="text-xs text-six-red">Demo Mode</span>
               <div className="flex items-center gap-1">
                 {["Select Client", "View DNA", "Check Alerts", "Generate Advisory"].map((step, i) => (
                   <span key={i} className={`text-xs px-2 py-0.5 rounded-full ${
                     i < demoStep ? "bg-green-900/50 text-green-300" :
-                    i === demoStep ? "bg-six-orange text-white animate-pulse" :
+                    i === demoStep ? "bg-six-red text-white animate-pulse" :
                     "bg-slate-700 text-slate-500"
                   }`}>
                     {i < demoStep ? "✓" : i + 1}. {step}
@@ -321,9 +335,9 @@ function App() {
         <main className="flex-1 overflow-y-auto p-6">
           {!selectedId ? (
             <div className="flex flex-col items-center justify-center min-h-[70vh] text-center px-6">
-              <Briefcase className="h-10 w-10 text-six-orange mb-6" strokeWidth={1.5} />
-              <h2 className="text-3xl sm:text-4xl font-semibold tracking-tight text-white mb-3">
-                Welcome to <span className="text-six-orange">SIX</span> AI
+              <Briefcase className="h-10 w-10 text-six-red mb-6" strokeWidth={1.5} />
+              <h2 className="text-3xl sm:text-4xl font-semibold tracking-tight text-slate-50 mb-3">
+                Welcome to <span className="text-six-red">SIX</span> AI
               </h2>
               <p className="text-slate-400 text-sm max-w-lg mb-10 leading-relaxed">
                 Select a client from the sidebar to view their investment DNA, portfolio analysis,
@@ -331,7 +345,7 @@ function App() {
               </p>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-x-10 gap-y-6 max-w-2xl text-center">
                 <div>
-                  <p className="text-xs font-semibold uppercase tracking-wide text-six-orange">Client DNA</p>
+                  <p className="text-xs font-semibold uppercase tracking-wide text-six-red">Client DNA</p>
                   <p className="text-xs text-slate-500 mt-1.5">AI-extracted values, priorities &amp; style</p>
                 </div>
                 <div>
@@ -339,7 +353,7 @@ function App() {
                   <p className="text-xs text-slate-500 mt-1.5">Holdings, drift &amp; allocation charts</p>
                 </div>
                 <div>
-                  <p className="text-xs font-semibold uppercase tracking-wide text-six-orange-bright">News Monitoring</p>
+                  <p className="text-xs font-semibold uppercase tracking-wide text-six-red-bright">News Monitoring</p>
                   <p className="text-xs text-slate-500 mt-1.5">Live news scored by relevance</p>
                 </div>
                 <div>
@@ -382,16 +396,16 @@ function App() {
               <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-4 flex items-center justify-between flex-wrap gap-4">
                 <div className="flex items-center gap-4">
                   <div className={`h-12 w-12 rounded-full shrink-0 flex items-center justify-center text-lg font-semibold text-white ${
-                    selectedId === "schneider" ? "bg-six-orange" :
+                    selectedId === "schneider" ? "bg-six-red" :
                     selectedId === "huber" ? "bg-six-blue" :
-                    selectedId === "raeber" ? "bg-six-orange-dark" : "bg-six-blue-bright"
+                    selectedId === "raeber" ? "bg-six-red-dark" : "bg-six-blue-bright"
                   }`}>
                     {selectedId === "schneider" ? "HS" :
                      selectedId === "huber" ? "MH" :
                      selectedId === "raeber" ? "ER" : "JA"}
                   </div>
                   <div>
-                    <h2 className="text-lg font-semibold text-white">
+                    <h2 className="text-lg font-semibold text-slate-50">
                       {clients?.find(c => c.id === selectedId)?.name || selectedId}
                     </h2>
                     <p className="text-sm text-slate-400">
@@ -420,7 +434,7 @@ function App() {
                 <span>AUM: <span className="text-white font-medium">CHF {portfolio ? (portfolio.totalValueCHF / 1e6).toFixed(0) : '—'}M</span></span>
                 <span>Alerts: <span className="text-amber-400 font-medium">{news?.alerts?.length || 0}</span></span>
                 <span>Conflicts: <span className="text-red-400 font-medium">{portfolio?.conflicts?.length || 0}</span></span>
-                <span>DNA Traits: <span className="text-six-orange font-medium">{dna ? dna.values.length + dna.riskSensitivities.length : 0}</span></span>
+                <span>DNA Traits: <span className="text-six-red font-medium">{dna ? dna.values.length + dna.riskSensitivities.length : 0}</span></span>
               </div>
               <ErrorBoundary fallbackMessage="Failed to load DNA profile">
                 <DNAPanel
@@ -464,12 +478,16 @@ function App() {
                   triggerEvent={clients?.find(c => c.id === selectedId)?.triggerEvent}
                 />
               </ErrorBoundary>
-              {/* Knowledge Graph row — 2 cols to leave room for a second graph */}
-              <div className="grid grid-cols-2 gap-6">
-                <ErrorBoundary fallbackMessage="Failed to load knowledge graph">
-                  <KnowledgeGraphPanel clientId={selectedId} />
-                </ErrorBoundary>
-              </div>
+              {/* Strategy radar */}
+              <ErrorBoundary fallbackMessage="Failed to load strategy profile">
+                <StrategyRadarPanel
+                  dna={dna}
+                  portfolio={portfolio}
+                  news={news}
+                  strategy={clients?.find(c => c.id === selectedId)?.strategy ?? "Balanced"}
+                  loading={dnaFetch.loading || portfolioFetch.loading}
+                />
+              </ErrorBoundary>
             </div>
           )}
         </main>
@@ -503,7 +521,7 @@ function App() {
           title="Open chat (Ctrl+\)"
           className="flex flex-col items-center justify-center w-8 h-screen bg-slate-900 border-l border-slate-700 hover:bg-slate-800 transition-colors shrink-0 group"
         >
-          <ChevronLeft className="h-4 w-4 text-slate-500 group-hover:text-six-orange transition-colors" />
+          <ChevronLeft className="h-4 w-4 text-slate-500 group-hover:text-six-red transition-colors" />
         </button>
       )}
 

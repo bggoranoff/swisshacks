@@ -2,6 +2,7 @@ import clsx from "clsx";
 import { ClipboardList, Keyboard, Play } from "lucide-react";
 import { useEffect, useState } from "react";
 import { StatusDot } from "../shared/StatusDot";
+import { useTheme } from "../../ThemeContext";
 
 interface HeaderProps {
   onDemo?: () => void;
@@ -24,6 +25,7 @@ const DEFAULT_STATUS: ProbeStatus = { six: false, news: false, llm: false };
 const ALL_OK: ProbeStatus = { six: true, news: true, llm: true };
 
 export function Header({ onDemo, onAuditClick }: HeaderProps) {
+  const { theme, toggle } = useTheme();
   const [status, setStatus] = useState<ProbeStatus>(ALL_OK);
 
   useEffect(() => {
@@ -50,11 +52,8 @@ export function Header({ onDemo, onAuditClick }: HeaderProps) {
   const allConnected = status.six && status.news && status.llm;
 
   return (
-    <header className="h-14 px-6 flex items-center justify-between bg-slate-800 border-b border-slate-700 relative after:absolute after:inset-x-0 after:bottom-0 after:h-px after:bg-gradient-to-r after:from-transparent after:via-six-orange/40 after:to-transparent">
-      <h1 className="text-lg font-semibold text-white tracking-tight">
-        <span className="text-six-orange font-bold">SIX</span>
-        <span className="text-slate-500 font-normal ml-1.5 text-sm">AI</span>
-      </h1>
+    <header className="h-14 px-6 flex items-center justify-between bg-slate-800 border-b border-slate-700 relative after:absolute after:inset-x-0 after:bottom-0 after:h-px after:bg-gradient-to-r after:from-transparent after:via-six-red/40 after:to-transparent">
+      <div />
       <div className="flex items-center gap-4">
         {onAuditClick && (
           <button
@@ -68,12 +67,26 @@ export function Header({ onDemo, onAuditClick }: HeaderProps) {
         {onDemo && (
           <button
             onClick={onDemo}
-            className="bg-six-orange hover:bg-six-orange-bright text-white px-3 py-1.5 rounded text-sm font-medium flex items-center gap-2 transition-colors"
+            className="bg-six-red hover:bg-six-red-bright text-white px-3 py-1.5 rounded text-sm font-medium flex items-center gap-2 transition-colors"
           >
             <Play className="h-3.5 w-3.5" />
             Demo
           </button>
         )}
+        <button
+          onClick={toggle}
+          title={`Switch to ${theme === "dark" ? "light" : "dark"} mode`}
+          className="p-1.5 rounded-lg text-slate-400 hover:text-slate-200 hover:bg-slate-700 transition-colors"
+        >
+          <svg width="18" height="18" viewBox="0 0 20 20" fill="none">
+            <circle cx="10" cy="10" r="8" stroke="currentColor" strokeWidth="1.5" />
+            {theme === "dark" ? (
+              <path d="M10 2 A8 8 0 0 0 10 18 Z" fill="currentColor" />
+            ) : (
+              <path d="M10 2 A8 8 0 0 1 10 18 Z" fill="currentColor" />
+            )}
+          </svg>
+        </button>
         <div className="relative group">
           <button className="text-slate-500 hover:text-slate-300 transition-colors">
             <Keyboard className="h-4 w-4" />

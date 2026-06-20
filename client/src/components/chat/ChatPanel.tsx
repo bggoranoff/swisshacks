@@ -75,7 +75,7 @@ export function ChatPanel({ clientId, clientName, history, onHistoryChange, onCl
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-slate-700 shrink-0">
         <div className="flex items-center gap-2">
-          <MessageCircle className="h-4 w-4 text-six-orange/70" />
+          <MessageCircle className="h-4 w-4 text-six-red/70" />
           <span className="text-sm font-semibold text-slate-300 uppercase tracking-wide">RM Assistant</span>
         </div>
         {onClose && (
@@ -111,7 +111,7 @@ export function ChatPanel({ clientId, clientName, history, onHistoryChange, onCl
           <div key={i} className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}>
             <div className={`max-w-[85%] px-3 py-2 rounded-lg text-sm leading-relaxed ${
               m.role === "user"
-                ? "bg-six-orange text-white"
+                ? "bg-six-red text-white"
                 : "bg-slate-700 text-slate-200"
             }`}>
               {m.content}
@@ -131,7 +131,7 @@ export function ChatPanel({ clientId, clientName, history, onHistoryChange, onCl
       <div className="shrink-0 border-t border-slate-700 p-3 space-y-2">
         <div className="flex items-center">
           <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-md bg-slate-800 border border-slate-700 text-slate-300">
-            <span className="text-six-orange font-semibold">@</span>
+            <span className="text-six-red font-semibold">@</span>
             {clientName}
           </span>
         </div>
@@ -142,13 +142,13 @@ export function ChatPanel({ clientId, clientName, history, onHistoryChange, onCl
             onChange={e => setInput(e.target.value)}
             onKeyDown={e => { if (e.key === "Enter") handleSend(); }}
             placeholder="Ask about this client..."
-            className="flex-1 bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:border-six-orange transition-colors"
+            className="flex-1 bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:border-six-red transition-colors"
             disabled={sending}
           />
           <button
             onClick={() => handleSend()}
             disabled={sending || !input.trim()}
-            className="bg-six-orange hover:bg-six-orange-bright disabled:opacity-50 text-white px-3 py-2 rounded-lg flex items-center transition-colors"
+            className="bg-six-red hover:bg-six-red-bright disabled:opacity-50 text-white px-3 py-2 rounded-lg flex items-center transition-colors"
           >
             <Send className="h-4 w-4" />
           </button>
