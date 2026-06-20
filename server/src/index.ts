@@ -10,18 +10,23 @@ import { loadAllData } from "./data/loader";
 import { getAllClients, getClient, getPortfolio } from "./data/store";
 import { extractDNA } from "./agents/crm.agent";
 import { NewsAgent, scenarioNewsEnabled } from "./agents/news.agent";
+import { SCENARIO_TRIGGERS } from "./data/scenario-triggers";
 import { MessageAgent } from "./agents/message.agent";
 import { traceService } from "./services/trace.service";
 import { auditService } from "./services/audit.service";
 import { SixService } from "./services/six.service";
 import { PhoeniqsService } from "./services/phoeniqs.service";
 import { NewsAIService } from "./services/newsai.service";
+import { HOME_NEWS_LIMITS, HOME_SCORE_THRESHOLDS } from "./config/news-scoring";
+import { NewsWatchlistService } from "./services/news-watchlist.service";
+import { NewsDiscoveryService } from "./services/news-discovery.service";
+import { NewsEffectService } from "./services/news-effect.service";
+import { NewsAttributionService } from "./services/news-attribution.service";
 import { generatePresentation } from "./utils/generate-pptx";
 import { knowledgeGraphService } from "./services/knowledge-graph.service";
 import { detectConflicts } from "./agents/conflict.agent";
 import { chat, getChatHistory } from "./agents/chat.agent";
-import type { ClientProfile, CrmLogEntry } from "./types/data";
-import type { ScoredNewsArticle } from "./types/news";
+import type { CrmLogEntry } from "./types/data";
 import type {
   HomeAffectedClient,
   HomeDashboard,
@@ -30,6 +35,7 @@ import type {
   HomeTodo,
   HomeTodoSeverity,
 } from "./types/home";
+import type { ClientNewsScore, NewsImpactScore, SeverityBand } from "./types/news-impact";
 
 const app = express();
 const port = parseInt(process.env.PORT || "3000", 10);
@@ -188,6 +194,10 @@ app.post("/api/clients/:id/trait-summary", asyncHandler(async (req: Request, res
 
 // Client News
 const newsAgent = new NewsAgent();
+const newsWatchlistService = new NewsWatchlistService();
+const newsDiscoveryService = new NewsDiscoveryService();
+const newsEffectService = new NewsEffectService();
+const newsAttributionService = new NewsAttributionService(newsEffectService);
 
 const severityRank: Record<HomeTodoSeverity, number> = {
   high: 3,
@@ -195,23 +205,8 @@ const severityRank: Record<HomeTodoSeverity, number> = {
   low: 1,
 };
 
-type AggregatedNewsItem = HomeNewsItem & { maxRelevance: number };
-type AggregatedTodo = HomeTodo & { maxRelevance: number };
-
 interface HomeDashboardOptions {
   includeScenario: boolean;
-}
-
-function normalizeArticleKey(article: ScoredNewsArticle): string {
-  const source = article.title || article.id;
-  const key = source
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, " ")
-    .trim()
-    .split(/\s+/)
-    .slice(0, 12)
-    .join("-");
-  return key || article.id;
 }
 
 function dateValue(date: string): number {
@@ -219,88 +214,41 @@ function dateValue(date: string): number {
   return Number.isFinite(value) ? value : 0;
 }
 
-function makeAffectedClient(client: ClientProfile, article: ScoredNewsArticle): HomeAffectedClient {
-  return {
-    id: client.id,
-    name: client.name,
-    strategy: client.strategy,
-    reason: article.relevanceReason || "Matched this client's monitored themes.",
-    relevanceScore: article.relevanceScore,
-    alertType: article.alertType,
-  };
+function scorePercent(value: number): string {
+  return `${Math.round(value * 100)}%`;
 }
 
-function addAffectedClient(clients: HomeAffectedClient[], affected: HomeAffectedClient) {
-  const existing = clients.find(c => c.id === affected.id);
-  if (!existing) {
-    clients.push(affected);
-    return;
-  }
-
-  if (affected.relevanceScore > existing.relevanceScore) {
-    existing.reason = affected.reason;
-    existing.relevanceScore = affected.relevanceScore;
-    existing.alertType = affected.alertType;
-  }
-}
-
-function shouldCreateTodo(article: ScoredNewsArticle): boolean {
-  return (article.isAlert && article.relevanceScore >= 0.7) || article.relevanceScore >= 0.82;
-}
-
-function shouldAttachClient(article: ScoredNewsArticle): boolean {
-  return (article.isAlert && article.relevanceScore >= 0.7) || article.relevanceScore >= 0.6;
-}
-
-function severityForArticle(article: ScoredNewsArticle, affectedClientCount: number): HomeTodoSeverity {
-  if (
-    article.alertType === "conflict" &&
-    (article.relevanceScore >= 0.9 || affectedClientCount >= 2 || article.sentimentLabel === "BEARISH")
-  ) {
-    return "high";
-  }
-  if (article.alertType === "conflict" || article.relevanceScore >= 0.85) {
-    return "high";
-  }
-  if (article.alertType === "opportunity" || article.relevanceScore >= 0.7) {
-    return "medium";
-  }
+function severityFromBand(band: SeverityBand, score: number): HomeTodoSeverity {
+  if (band === "major" || score >= 0.02) return "high";
+  if (band === "material" || score >= 0.008) return "medium";
   return "low";
 }
 
-function titleForTodo(article: ScoredNewsArticle): string {
-  if (article.alertType === "conflict") {
-    return `Review portfolio risk: ${article.title}`;
-  }
-  if (article.alertType === "opportunity") {
-    return `Assess client opportunity: ${article.title}`;
-  }
-  return `Review client relevance: ${article.title}`;
+function makeAffectedClient(score: ClientNewsScore): HomeAffectedClient {
+  return {
+    id: score.clientId,
+    name: score.clientName,
+    strategy: score.strategy,
+    reason: score.reason,
+    clientNewsScore: score.clientNewsScore,
+    portfolioExposureShare: score.portfolioExposureShare,
+    severityBand: score.severityBand,
+    effectDirection: score.effectDirection,
+    affectedSleeveLabel: score.affectedSleeveLabel,
+    affectedHoldings: score.affectedHoldings.map(holding => ({
+      isin: holding.isin,
+      name: holding.name,
+      portfolioWeight: holding.portfolioWeight,
+      matchReason: holding.matchReason,
+      attributionTier: holding.attributionTier,
+      severityBand: holding.severityBand,
+    })),
+    relevanceScore: score.clientNewsScore,
+  };
 }
 
-function recommendedActionForArticle(article: ScoredNewsArticle): string {
-  if (article.alertType === "conflict") {
-    return "Review affected holdings, check suitability against client DNA, and prepare client communication with possible swap or rebalance options.";
-  }
-  if (article.alertType === "opportunity") {
-    return "Assess suitability against client DNA and prepare a short opportunity note for affected clients.";
-  }
-  return "Review relevance and decide whether client outreach is needed.";
-}
-
-function riskTagsForArticle(article: ScoredNewsArticle): string[] {
-  const tags = new Set<string>();
-
-  if (article.alertType === "conflict") tags.add("Portfolio conflict");
-  if (article.alertType === "opportunity") tags.add("Opportunity");
-  if (article.sentimentLabel === "BEARISH") tags.add("Bearish news");
-  if (article.sentimentLabel === "BULLISH") tags.add("Bullish news");
-  tags.add(article.sourceType === "scenario" ? "Scenario source" : "Live news");
-
-  return Array.from(tags);
-}
-
-function sourceArticle(article: ScoredNewsArticle): HomeSourceArticle {
+function sourceArticle(impact: NewsImpactScore): HomeSourceArticle {
+  const { article } = impact;
   return {
     id: article.id,
     title: article.title,
@@ -308,154 +256,135 @@ function sourceArticle(article: ScoredNewsArticle): HomeSourceArticle {
     source: article.source,
     sourceType: article.sourceType,
     publishedAt: article.publishedAt,
-    relevanceScore: article.relevanceScore,
+    relevanceScore: impact.globalNewsScore || impact.maxClientNewsScore,
+    globalNewsScore: impact.globalNewsScore,
+    severityBand: impact.severityBand,
   };
 }
 
-function sourceArticleRank(article: HomeSourceArticle): number {
-  return article.relevanceScore * 10000000000000 + dateValue(article.publishedAt);
+function riskTagsForImpact(impact: NewsImpactScore, scope: "client" | "global"): string[] {
+  const tags = new Set<string>();
+  tags.add(scope === "global" ? "Global todo" : "Client todo");
+  tags.add(`${impact.severityBand} effect`);
+  if (impact.effectDirection !== "unknown") tags.add(`${impact.effectDirection} effect`);
+  if (impact.eventFamily && impact.eventFamily !== "unattributed") tags.add(impact.eventFamily);
+  tags.add(impact.article.sourceType === "scenario" ? "Scenario source" : "Live news");
+  return Array.from(tags);
 }
 
-function addSourceArticle(articles: HomeSourceArticle[], article: HomeSourceArticle) {
-  const existing = articles.find(a => a.id === article.id || (a.title === article.title && a.url === article.url));
-  if (!existing) {
-    articles.push(article);
-    articles.sort((a, b) => sourceArticleRank(b) - sourceArticleRank(a));
-    return;
+function recommendedActionForImpact(scope: "client" | "global"): string {
+  if (scope === "global") {
+    return "Review the affected clients, confirm the suggested outreach priority, and prepare a coordinated relationship-manager response.";
   }
+  return "Review the affected portfolio sleeve and prepare a client communication explaining the risk or opportunity and any proposed follow-up.";
+}
 
-  if (article.relevanceScore > existing.relevanceScore || dateValue(article.publishedAt) > dateValue(existing.publishedAt)) {
-    existing.title = article.title;
-    existing.url = article.url;
-    existing.source = article.source;
-    existing.sourceType = article.sourceType;
-    existing.publishedAt = article.publishedAt;
-    existing.relevanceScore = Math.max(existing.relevanceScore, article.relevanceScore);
-    articles.sort((a, b) => sourceArticleRank(b) - sourceArticleRank(a));
-  }
+function clientTodo(impact: NewsImpactScore, clientScore: ClientNewsScore): HomeTodo {
+  const articleSource = sourceArticle(impact);
+  return {
+    id: `home-todo-client-${impact.article.id}-${clientScore.clientId}`,
+    title: `Review ${clientScore.clientName}: ${impact.article.title}`,
+    summary: clientScore.reason,
+    severity: severityFromBand(clientScore.severityBand, clientScore.clientNewsScore),
+    scope: "client",
+    triggerType: "news",
+    recommendedAction: recommendedActionForImpact("client"),
+    affectedClients: [makeAffectedClient(clientScore)],
+    sourceArticle: articleSource,
+    sourceArticles: [articleSource],
+    createdAt: new Date().toISOString(),
+    riskTags: riskTagsForImpact(impact, "client"),
+    clientNewsScore: clientScore.clientNewsScore,
+    portfolioExposureShare: clientScore.portfolioExposureShare,
+    severityBand: clientScore.severityBand,
+    effectDirection: clientScore.effectDirection,
+    eventFamily: clientScore.eventFamily,
+  };
+}
+
+function globalTodo(impact: NewsImpactScore): HomeTodo {
+  const articleSource = sourceArticle(impact);
+  return {
+    id: `home-todo-global-${impact.article.id}`,
+    title: `Global portfolio review: ${impact.article.title}`,
+    summary: `${impact.affectedClientCount} affected clients; global score ${scorePercent(impact.globalNewsScore)}. Review the largest contributors and coordinate outreach.`,
+    severity: severityFromBand(impact.severityBand, impact.globalNewsScore),
+    scope: "global",
+    triggerType: "news",
+    recommendedAction: recommendedActionForImpact("global"),
+    affectedClients: impact.clientScores.map(makeAffectedClient),
+    sourceArticle: articleSource,
+    sourceArticles: [articleSource],
+    createdAt: new Date().toISOString(),
+    riskTags: riskTagsForImpact(impact, "global"),
+    globalNewsScore: impact.globalNewsScore,
+    severityBand: impact.severityBand,
+    effectDirection: impact.effectDirection,
+    eventFamily: impact.eventFamily,
+  };
 }
 
 async function buildHomeDashboard(options: HomeDashboardOptions): Promise<HomeDashboard> {
   const clients = getAllClients();
-  const newsByKey = new Map<string, AggregatedNewsItem>();
-  const todosByKey = new Map<string, AggregatedTodo>();
+  const watchlist = await newsWatchlistService.build(clients);
+  const scenarioArticles = options.includeScenario ? Object.values(SCENARIO_TRIGGERS) : [];
+  const articles = await newsDiscoveryService.discover(watchlist.interests, scenarioArticles);
+  const impacts = await newsAttributionService.scoreArticles(articles, watchlist);
 
-  const digestResults = await Promise.allSettled(
-    clients.map(async client => ({
-      client,
-      digest: await newsAgent.getNewsDigest(client.id),
-    }))
-  );
+  const latestNews: HomeNewsItem[] = impacts
+    .filter(impact => impact.affectedClientCount > 0)
+    .sort((a, b) =>
+      b.globalNewsScore - a.globalNewsScore ||
+      b.maxClientNewsScore - a.maxClientNewsScore ||
+      dateValue(b.article.publishedAt) - dateValue(a.article.publishedAt)
+    )
+    .slice(0, HOME_NEWS_LIMITS.latestNews)
+    .map(impact => ({
+      id: `home-news-${impact.article.id}`,
+      articleId: impact.article.id,
+      title: impact.article.title,
+      summary: impact.article.summary,
+      source: impact.article.source,
+      sourceType: impact.article.sourceType,
+      url: impact.article.url,
+      publishedAt: impact.article.publishedAt,
+      sentiment: impact.article.sentiment,
+      sentimentLabel: impact.article.sentimentLabel,
+      relevanceScore: impact.globalNewsScore || impact.maxClientNewsScore,
+      globalNewsScore: impact.globalNewsScore,
+      maxClientNewsScore: impact.maxClientNewsScore,
+      affectedClientCount: impact.affectedClientCount,
+      severityBand: impact.severityBand,
+      effectDirection: impact.effectDirection,
+      eventFamily: impact.eventFamily,
+      discoverySource: impact.article.discoverySource,
+      matchedInterests: impact.article.matchedInterestIds,
+      affectedClients: impact.clientScores.map(makeAffectedClient),
+    }));
 
-  for (const result of digestResults) {
-    if (result.status === "rejected") {
-      console.warn("[Home] Failed to build one client news digest:", result.reason);
-      continue;
+  const todos: HomeTodo[] = [];
+  for (const impact of impacts) {
+    for (const score of impact.clientScores) {
+      if (score.clientNewsScore >= HOME_SCORE_THRESHOLDS.clientNewsScore) {
+        todos.push(clientTodo(impact, score));
+      }
     }
-
-    const { client, digest } = result.value;
-
-    for (const article of digest.articles) {
-      if (!options.includeScenario && article.sourceType === "scenario") {
-        continue;
-      }
-
-      const articleKey = normalizeArticleKey(article);
-      const affectedClient = makeAffectedClient(client, article);
-
-      let newsItem = newsByKey.get(articleKey);
-      if (!newsItem) {
-        newsItem = {
-          id: `home-news-${articleKey}`,
-          articleId: article.id,
-          title: article.title,
-          summary: article.summary,
-          source: article.source,
-          sourceType: article.sourceType,
-          url: article.url,
-          publishedAt: article.publishedAt,
-          sentiment: article.sentiment,
-          sentimentLabel: article.sentimentLabel,
-          relevanceScore: article.relevanceScore,
-          affectedClients: [],
-          maxRelevance: article.relevanceScore,
-        };
-        newsByKey.set(articleKey, newsItem);
-      } else {
-        newsItem.relevanceScore = Math.max(newsItem.relevanceScore, article.relevanceScore);
-        newsItem.maxRelevance = Math.max(newsItem.maxRelevance, article.relevanceScore);
-
-        if (dateValue(article.publishedAt) > dateValue(newsItem.publishedAt)) {
-          newsItem.articleId = article.id;
-          newsItem.title = article.title;
-          newsItem.summary = article.summary;
-          newsItem.source = article.source;
-          newsItem.sourceType = article.sourceType;
-          newsItem.url = article.url;
-          newsItem.publishedAt = article.publishedAt;
-          newsItem.sentiment = article.sentiment;
-          newsItem.sentimentLabel = article.sentimentLabel;
-        }
-      }
-
-      if (shouldAttachClient(article)) {
-        addAffectedClient(newsItem.affectedClients, affectedClient);
-      }
-
-      if (!shouldCreateTodo(article)) {
-        continue;
-      }
-
-      const todoKey = `${article.alertType || "review"}-${articleKey}`;
-      let todo = todosByKey.get(todoKey);
-      const articleSource = sourceArticle(article);
-      if (!todo) {
-        todo = {
-          id: `home-todo-${todoKey}`,
-          title: titleForTodo(article),
-          summary: article.relevanceReason || article.summary,
-          severity: severityForArticle(article, 1),
-          triggerType: "news",
-          recommendedAction: recommendedActionForArticle(article),
-          affectedClients: [],
-          sourceArticle: articleSource,
-          sourceArticles: [articleSource],
-          createdAt: new Date().toISOString(),
-          riskTags: riskTagsForArticle(article),
-          maxRelevance: article.relevanceScore,
-        };
-        todosByKey.set(todoKey, todo);
-      }
-
-      addAffectedClient(todo.affectedClients, affectedClient);
-      addSourceArticle(todo.sourceArticles, articleSource);
-      todo.sourceArticle = todo.sourceArticles[0] || todo.sourceArticle;
-      todo.maxRelevance = Math.max(todo.maxRelevance, article.relevanceScore);
-
-      const nextSeverity = severityForArticle(article, todo.affectedClients.length);
-      if (severityRank[nextSeverity] > severityRank[todo.severity]) {
-        todo.severity = nextSeverity;
-      }
+    if (impact.globalNewsScore >= HOME_SCORE_THRESHOLDS.globalNewsScore) {
+      todos.push(globalTodo(impact));
     }
   }
 
-  const latestNews = Array.from(newsByKey.values())
-    .sort((a, b) => b.maxRelevance - a.maxRelevance || dateValue(b.publishedAt) - dateValue(a.publishedAt))
-    .slice(0, 12)
-    .map(({ maxRelevance, ...item }) => item);
-
-  const todos = Array.from(todosByKey.values())
+  const sortedTodos = todos
     .sort((a, b) =>
-      b.maxRelevance - a.maxRelevance ||
       severityRank[b.severity] - severityRank[a.severity] ||
+      (b.globalNewsScore || b.clientNewsScore || 0) - (a.globalNewsScore || a.clientNewsScore || 0) ||
       b.affectedClients.length - a.affectedClients.length ||
       dateValue(b.sourceArticle.publishedAt) - dateValue(a.sourceArticle.publishedAt)
     )
-    .slice(0, 12)
-    .map(({ maxRelevance, ...todo }) => todo);
+    .slice(0, HOME_NEWS_LIMITS.todos);
 
   return {
-    todos,
+    todos: sortedTodos,
     latestNews,
     generatedAt: new Date().toISOString(),
   };
