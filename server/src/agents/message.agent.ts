@@ -122,6 +122,14 @@ export class MessageAgent {
       holdingsSection +
       alertContext +
       (LANG_INSTRUCTIONS[language] ? `\n\nLANGUAGE: ${LANG_INSTRUCTIONS[language]}\n` : "") +
+      `\n\nStructure your advisory note as follows:\n` +
+      `1. GREETING — Address the RM professionally\n` +
+      `2. SITUATION — What triggered this advisory (reference the specific news event or CIO recommendation)\n` +
+      `3. IMPACT — How this affects the client's portfolio specifically (reference position names and values)\n` +
+      `4. RECOMMENDATION — What action to consider (with the specific swap if applicable)\n` +
+      `5. PERSONAL CONTEXT — Why this matters to THIS client specifically (reference their DNA values)\n` +
+      `6. NEXT STEPS — What the RM should discuss with the client\n` +
+      `\nKeep the total under 300 words. Write as if the RM will copy this directly into an email.\n` +
       `\n\nIMPORTANT: Return ONLY a JSON object (no markdown fences). Use \\n for newlines inside string values. Structure:\n` +
       `{"subject":"short subject","body":"the advisory message with \\n for paragraphs","proposedAction":"one sentence","reasoning":"2-3 sentences","confidence":0.85,"toneInfluences":[{"dnaValue":"value","effect":"effect"}]}`;
 

@@ -147,28 +147,45 @@ export function KnowledgeGraphPanel({ clientId }: { clientId: string | null }) {
             {layoutNodes.map((n) => {
               const r = NODE_RADIUS[n.type] || 8;
               const fill = NODE_COLORS[n.type] || "#64748b";
-              const isHovered = hoveredNode === n.id;
-              const dimmed = hoveredNode && !isHovered &&
+              const activeNode = hoveredNode || selectedNode;
+              const isActive = activeNode === n.id;
+              const isSelected = selectedNode === n.id;
+              const dimmed = activeNode && !isActive &&
                 !graph.edges.some(
                   (e) =>
-                    (e.source === hoveredNode && e.target === n.id) ||
-                    (e.target === hoveredNode && e.source === n.id)
+                    (e.source === activeNode && e.target === n.id) ||
+                    (e.target === activeNode && e.source === n.id)
                 );
               return (
                 <g
                   key={n.id}
                   onMouseEnter={() => setHoveredNode(n.id)}
                   onMouseLeave={() => setHoveredNode(null)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setSelectedNode(selectedNode === n.id ? null : n.id);
+                  }}
                   style={{ cursor: "pointer" }}
                 >
+                  {isSelected && (
+                    <circle
+                      cx={n.x}
+                      cy={n.y}
+                      r={r + 5}
+                      fill="none"
+                      stroke={fill}
+                      strokeWidth={1.5}
+                      strokeOpacity={0.5}
+                    />
+                  )}
                   <circle
                     cx={n.x}
                     cy={n.y}
-                    r={isHovered ? r + 2 : r}
+                    r={isActive ? r + 2 : r}
                     fill={fill}
                     opacity={dimmed ? 0.2 : 1}
                   />
-                  {(isHovered || n.type === "client" || n.type === "sector") && (
+                  {(isActive || n.type === "client" || n.type === "sector") && (
                     <text
                       x={n.x}
                       y={n.y + r + 12}
@@ -185,6 +202,72 @@ export function KnowledgeGraphPanel({ clientId }: { clientId: string | null }) {
               );
             })}
           </svg>
+          {/* Selected node info panel */}
+          {selectedNode && nodeMap[selectedNode] && (() => {
+            const node = nodeMap[selectedNode];
+            const connectedEdges = graph.edges.filter(
+              (e) => e.source === selectedNode || e.target === selectedNode
+            );
+            return (
+              <div className="mx-2 mb-2 p-3 bg-slate-800/80 border border-slate-700 rounded-lg text-sm">
+                <div className="flex items-center justify-between mb-1">
+                  <span className="font-semibold text-slate-200 flex items-center gap-2">
+                    <span
+                      className="inline-block h-2.5 w-2.5 rounded-full"
+                      style={{ backgroundColor: NODE_COLORS[node.type] || "#64748b" }}
+                    />
+                    {node.label}
+                  </span>
+                  <button
+                    onClick={() => setSelectedNode(null)}
+                    className="text-slate-500 hover:text-slate-300 text-xs px-1"
+                  >
+                    x
+                  </button>
+                </div>
+                <span className="text-xs text-slate-500 capitalize">{node.type}</span>
+                {node.type === "asset" && (
+                  <div className="mt-1.5 space-y-0.5 text-xs text-slate-400">
+                    {node.properties.isin && (
+                      <div>ISIN: <span className="text-slate-300">{node.properties.isin}</span></div>
+                    )}
+                    {node.properties.value != null && (
+                      <div>Value: <span className="text-slate-300">{typeof node.properties.value === "number" ? node.properties.value.toLocaleString() : node.properties.value}</span></div>
+                    )}
+                    {node.properties.cio_rating && (
+                      <div>CIO Rating: <span className="text-slate-300">{node.properties.cio_rating}</span></div>
+                    )}
+                  </div>
+                )}
+                {node.type === "news" && node.properties.title && (
+                  <div className="mt-1.5 text-xs text-slate-300">
+                    {node.properties.title}
+                  </div>
+                )}
+                {(node.type === "value" || node.type === "risk") && (
+                  <div className="mt-1.5 text-xs text-slate-400">
+                    Connected edges: <span className="text-slate-300">{connectedEdges.length}</span>
+                    {connectedEdges.length > 0 && (
+                      <div className="mt-1 flex flex-wrap gap-1">
+                        {connectedEdges.slice(0, 5).map((edge, i) => {
+                          const otherId = edge.source === selectedNode ? edge.target : edge.source;
+                          const otherNode = nodeMap[otherId];
+                          return (
+                            <span key={i} className="px-1.5 py-0.5 bg-slate-700/60 rounded text-slate-300">
+                              {otherNode ? (otherNode.label.length > 20 ? otherNode.label.slice(0, 17) + "..." : otherNode.label) : otherId}
+                            </span>
+                          );
+                        })}
+                        {connectedEdges.length > 5 && (
+                          <span className="px-1.5 py-0.5 text-slate-500">+{connectedEdges.length - 5} more</span>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            );
+          })()}
           {/* Legend */}
           <div className="flex flex-wrap gap-3 mt-2 justify-center">
             {Object.entries(NODE_COLORS).map(([type, color]) => (
