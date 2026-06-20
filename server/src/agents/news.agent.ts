@@ -1,10 +1,17 @@
 import axios from "axios";
 import { ScoredNewsArticle, NewsDigest } from "../types/news";
-import { MOCK_TRIGGERS, PERSONA_KEYWORDS } from "../data/mock-triggers";
+import { SCENARIO_TRIGGERS, PERSONA_KEYWORDS } from "../data/scenario-triggers";
 import { auditService } from "../services/audit.service";
 import { extractDNA } from "./crm.agent";
+import { getClient } from "../data/store";
+import { ClientDNA } from "../types/dna";
+import { demoModeEnabled, scenarioNewsEnabled as scenarioNewsEnabledConfig } from "../config/demo";
 
 const CACHE_TTL_MS = 5 * 60 * 1000;
+
+export function scenarioNewsEnabled(): boolean {
+  return scenarioNewsEnabledConfig();
+}
 
 function deduplicateArticles(articles: ScoredNewsArticle[]): ScoredNewsArticle[] {
   const seen = new Set<string>();
@@ -47,25 +54,28 @@ export class NewsAgent {
       return cached.digest;
     }
 
-    const liveArticles = await this.fetchLiveNews(clientId);
-    const mockTrigger = MOCK_TRIGGERS[clientId];
-    const allArticles = mockTrigger ? [mockTrigger, ...liveArticles] : liveArticles;
-    const dedupedArticles = deduplicateArticles(allArticles);
-
-    // Resolve DNA summary for LLM scoring
-    let resolvedSummary = dnaSummary;
-    if (!resolvedSummary && this.llmKey) {
-      try {
-        const dna = await extractDNA(clientId, [], false); // uses cache from warmup
-        resolvedSummary = dna.summary || dna.values.join(", ");
-      } catch {
-        // no DNA available — skip LLM scoring
+    let dna: ClientDNA | null = null;
+    let resolvedProfile = dnaSummary;
+    if (!resolvedProfile) {
+      const client = getClient(clientId);
+      if (client) {
+        try {
+          dna = await extractDNA(client.id, client.crmEntries, false);
+          resolvedProfile = this.buildNewsProfileContext(dna);
+        } catch (err) {
+          console.warn(`[NewsAgent] Could not resolve CRM profile for ${clientId}:`, (err as Error).message);
+        }
       }
     }
 
+    const liveArticles = await this.fetchLiveNews(clientId, dna);
+    const scenarioTrigger = scenarioNewsEnabled() ? SCENARIO_TRIGGERS[clientId] : undefined;
+    const allArticles = scenarioTrigger ? [scenarioTrigger, ...liveArticles] : liveArticles;
+    const dedupedArticles = deduplicateArticles(allArticles);
+
     let scored: ScoredNewsArticle[];
-    if (resolvedSummary && this.llmKey) {
-      scored = await this.scoreWithLLM(dedupedArticles, resolvedSummary, clientId);
+    if (resolvedProfile && this.llmKey) {
+      scored = await this.scoreWithLLM(dedupedArticles, resolvedProfile, clientId);
     } else {
       scored = dedupedArticles;
     }
@@ -81,7 +91,7 @@ export class NewsAgent {
       generatedAt: new Date().toISOString(),
     };
 
-    const keywords = PERSONA_KEYWORDS[clientId] || [];
+    const keywords = this.getNewsQueries(clientId, dna);
     const liveCount = scored.filter(a => a.sourceType === "live").length;
 
     auditService.log({
@@ -97,8 +107,49 @@ export class NewsAgent {
     return digest;
   }
 
-  private async fetchLiveNews(clientId: string): Promise<ScoredNewsArticle[]> {
-    const keywords = PERSONA_KEYWORDS[clientId];
+  private getNewsQueries(clientId: string, dna: ClientDNA | null): string[] {
+    if (demoModeEnabled()) {
+      return PERSONA_KEYWORDS[clientId] || [];
+    }
+
+    if (!dna) return [];
+
+    const candidateTerms = [
+      ...(dna.investmentProfile?.hardConstraints || []),
+      ...(dna.investmentProfile?.exclusions || []),
+      ...(dna.investmentProfile?.positiveScreens || []),
+      ...(dna.investmentProfile?.valueThemes || []),
+      ...(dna.values || []),
+      ...(dna.riskSensitivities || []),
+    ];
+
+    const queries = candidateTerms
+      .map(term => term.replace(/[^\p{L}\p{N}\s-]/gu, " ").replace(/\s+/g, " ").trim())
+      .filter(term => term.length >= 4)
+      .map(term => term.split(/\s+/).slice(0, 8).join(" "))
+      .filter((term, index, arr) => arr.indexOf(term) === index)
+      .slice(0, 5);
+
+    return queries;
+  }
+
+  private buildNewsProfileContext(dna: ClientDNA): string {
+    const profile = dna.investmentProfile;
+    return [
+      `Profile source: ${dna.profileSource}`,
+      `Summary: ${dna.summary}`,
+      `Investment objectives: ${(profile?.objectives || []).join(", ")}`,
+      `Hard constraints: ${(profile?.hardConstraints || []).join(", ")}`,
+      `Exclusions: ${(profile?.exclusions || []).join(", ")}`,
+      `Positive screens: ${(profile?.positiveScreens || []).join(", ")}`,
+      `Value themes: ${(profile?.valueThemes || dna.values || []).join(", ")}`,
+      `Risk sensitivities: ${(dna.riskSensitivities || []).join(", ")}`,
+      `Reputation sensitivity: ${profile?.reputationSensitivity || "unknown"}`,
+    ].filter(line => !line.endsWith(": ")).join("\n");
+  }
+
+  private async fetchLiveNews(clientId: string, dna: ClientDNA | null): Promise<ScoredNewsArticle[]> {
+    const keywords = this.getNewsQueries(clientId, dna);
     if (!keywords || keywords.length === 0 || !this.newsApiKey) return [];
 
     // Try each keyword in order, return the first set of results that is non-empty
@@ -187,11 +238,11 @@ export class NewsAgent {
               {
                 role: "system",
                 content:
-                  "You are a wealth management news analyst. Score each article's relevance to the client profile. Return ONLY valid JSON — an array of objects with keys: index (number), relevanceScore (0-1), relevanceReason (string), isAlert (boolean), alertType ('conflict'|'opportunity'|null), reasoningChain (string[]).",
+	                  "You are a wealth management news analyst. Score each article's relevance to the client profile. Return ONLY valid JSON — an array of objects with keys: index (number), relevanceScore (0-1), relevanceReason (string), isAlert (boolean), alertType ('conflict'|'opportunity'|null), reasoningChain (string[]).",
               },
               {
                 role: "user",
-                content: `Client profile: ${dnaSummary}\n\nArticles:\n${articleList}\n\nScore each article's relevance to this client. Return a JSON array.`,
+	                content: `Client investment profile:\n${dnaSummary}\n\nArticles:\n${articleList}\n\nScore each article's investment relevance to this client. Consider objectives, hard constraints, exclusions, positive screens, value themes, and risk sensitivities. Do not use communication style as an investment preference. Return a JSON array.`,
               },
             ],
             temperature: 0.1,

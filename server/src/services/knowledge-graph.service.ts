@@ -27,7 +27,11 @@ class KnowledgeGraphService {
       id: `client-${clientId}`,
       type: "client",
       label: clientId,
-      properties: { strategy: portfolio?.strategy, communicationStyle: dna?.communicationStyle },
+      properties: {
+        strategy: portfolio?.strategy,
+        profileSource: dna?.profileSource,
+        communicationStyle: dna?.communicationProfile?.style || dna?.communicationStyle,
+      },
     });
 
     (dna?.values || []).forEach((v: string, i: number) => {

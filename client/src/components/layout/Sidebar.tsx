@@ -71,7 +71,7 @@ export function Sidebar({ clients, selectedId, onSelect, onHome, loading, confli
           <button
             key={client.id}
             onClick={() => onSelect(client.id)}
-            title={client.triggerEvent}
+            title={client.triggerEvent || client.description}
             className={clsx(
               "w-full text-left p-3 rounded-lg flex items-center gap-3 transition-all duration-200 group",
               selectedId === client.id

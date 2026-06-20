@@ -9,7 +9,7 @@ import morgan from "morgan";
 import { loadAllData } from "./data/loader";
 import { getAllClients, getClient, getPortfolio } from "./data/store";
 import { extractDNA } from "./agents/crm.agent";
-import { NewsAgent } from "./agents/news.agent";
+import { NewsAgent, scenarioNewsEnabled } from "./agents/news.agent";
 import { MessageAgent } from "./agents/message.agent";
 import { traceService } from "./services/trace.service";
 import { auditService } from "./services/audit.service";
@@ -39,13 +39,14 @@ app.get("/api/health", (_req, res) => {
 
 // Clients
 app.get("/api/clients", asyncHandler((_req: Request, res: Response) => {
+  const includeScenarioMetadata = scenarioNewsEnabled();
   const clients = getAllClients().map(c => ({
     id: c.id,
     name: c.name,
     description: c.description,
     strategy: c.strategy,
     crmEntryCount: c.crmEntries.length,
-    triggerEvent: c.triggerEvent,
+    triggerEvent: includeScenarioMetadata ? c.triggerEvent : undefined,
   }));
   res.json({ success: true, data: clients });
 }));
@@ -57,10 +58,12 @@ app.get("/api/clients/:id", asyncHandler((req: Request, res: Response) => {
     return;
   }
   const portfolio = getPortfolio(client.strategy);
+  const { triggerEvent, ...clientData } = client;
   res.json({
     success: true,
     data: {
-      ...client,
+      ...clientData,
+      ...(scenarioNewsEnabled() ? { triggerEvent } : {}),
       crmEntryCount: client.crmEntries.length,
       portfolioSummary: portfolio ? {
         strategy: portfolio.strategy,

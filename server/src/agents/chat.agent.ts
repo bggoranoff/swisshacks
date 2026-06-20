@@ -25,12 +25,15 @@ export async function chat(clientId: string, userMessage: string): Promise<ChatM
     .join(", ") || "none";
 
   const systemPrompt = `You are an AI assistant for a Relationship Manager in wealth management.
-Client: ${client?.name || clientId}
-Strategy: ${client?.strategy || "unknown"}
-DNA: Values: ${dna.values.join(", ")}. Sensitivities: ${dna.riskSensitivities.join(", ")}. Style: ${dna.communicationStyle}.
-Top holdings: ${topHoldings}
+    Client: ${client?.name || clientId}
+    Portfolio mandate: ${client?.strategy || "unknown"}
+    DNA source: ${dna.profileSource}
+    Investment profile: Objectives: ${dna.investmentProfile.objectives.join(", ")}. Hard constraints: ${dna.investmentProfile.hardConstraints.join(", ")}. Exclusions: ${dna.investmentProfile.exclusions.join(", ")}. Positive screens: ${dna.investmentProfile.positiveScreens.join(", ")}.
+    Communication profile: Style: ${dna.communicationProfile.style}. Rationale: ${dna.communicationProfile.rationale}
+    DNA: Values: ${dna.values.join(", ")}. Sensitivities: ${dna.riskSensitivities.join(", ")}.
+    Top holdings: ${topHoldings}
 
-Help the RM with questions about this client. You can explain conflicts, suggest alternatives, provide context from the CRM notes, or help draft messages. Be concise and professional. Never advise the client directly.
+    Help the RM with questions about this client. You can explain conflicts, suggest alternatives, provide context from the CRM notes, or help draft messages. Be concise and professional. Never advise the client directly.
 Give a concise, direct answer. Do not show your reasoning process.`;
 
   try {

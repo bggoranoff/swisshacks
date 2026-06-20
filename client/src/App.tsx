@@ -16,7 +16,7 @@ import { DecisionPanel } from "./components/decisions/DecisionPanel";
 import { ChatPanel } from "./components/chat/ChatPanel";
 import { useFetch } from "./hooks/useFetch";
 import { prefetchClients } from "./hooks/prefetchCache";
-import { mockClients, mockDNA, mockPortfolios, mockNews, mockAdvisory } from "./data/mock";
+import { mockClients, mockDNA, mockPortfolios, mockAdvisory } from "./data/mock";
 import type {
   ClientSummary,
   ClientDNA,
@@ -24,6 +24,8 @@ import type {
   NewsDigest,
   AdvisoryMessage,
 } from "./types/api";
+
+const DEMO_FALLBACKS_ENABLED = import.meta.env.VITE_DEMO_MODE === "true";
 
 interface ChatMessage {
   role: "user" | "assistant";
@@ -111,7 +113,7 @@ function App() {
 
   // Fetch clients list
   const clientsFetch = useFetch<ClientSummary[]>("/api/clients");
-  const clients = clientsFetch.data ?? mockClients;
+  const clients = clientsFetch.data ?? (DEMO_FALLBACKS_ENABLED ? mockClients : []);
 
   // Warm DNA / portfolio / news for every client in the background once the
   // list loads, so selecting a client renders instantly from cache.
@@ -126,10 +128,10 @@ function App() {
   const portfolioFetch = useFetch<PortfolioAnalysis>(selectedId ? `/api/clients/${selectedId}/portfolio` : null);
   const newsFetch = useFetch<NewsDigest>(selectedId ? `/api/clients/${selectedId}/news` : null);
 
-  // Use mock fallbacks when API fails
-  const dna = dnaFetch.data ?? (selectedId && dnaFetch.error ? (mockDNA[selectedId] ?? null) : null);
-  const portfolio = portfolioFetch.data ?? (selectedId && portfolioFetch.error ? (mockPortfolios[selectedId] ?? null) : null);
-  const news = newsFetch.data ?? (selectedId && newsFetch.error ? (mockNews[selectedId] ?? null) : null);
+  // Demo fallbacks are explicit. In normal mode, API/profile failures stay visible.
+  const dna = dnaFetch.data ?? (DEMO_FALLBACKS_ENABLED && selectedId && dnaFetch.error ? (mockDNA[selectedId] ?? null) : null);
+  const portfolio = portfolioFetch.data ?? (DEMO_FALLBACKS_ENABLED && selectedId && portfolioFetch.error ? (mockPortfolios[selectedId] ?? null) : null);
+  const news = newsFetch.data ?? null;
 
   const anyError = clientsFetch.error || dnaFetch.error || portfolioFetch.error || newsFetch.error;
 
@@ -159,10 +161,10 @@ function App() {
       if (json.success) {
         setAdvisory(json.data);
       } else {
-        setAdvisory(mockAdvisory[selectedId] ?? null);
+        setAdvisory(DEMO_FALLBACKS_ENABLED ? (mockAdvisory[selectedId] ?? null) : null);
       }
     } catch {
-      setAdvisory(mockAdvisory[selectedId] ?? null);
+      setAdvisory(DEMO_FALLBACKS_ENABLED ? (mockAdvisory[selectedId] ?? null) : null);
     } finally {
       setAdvisoryLoading(false);
     }
@@ -212,7 +214,7 @@ function App() {
           if (json.success) {
             setAdvisory(json.data);
           } else {
-            setAdvisory(mockAdvisory["schneider"] ?? null);
+            setAdvisory(DEMO_FALLBACKS_ENABLED ? (mockAdvisory["schneider"] ?? null) : null);
           }
           setDemoStep(4);
           if (advisoryRef.current) {
@@ -220,7 +222,7 @@ function App() {
           }
         })
         .catch(() => {
-          setAdvisory(mockAdvisory["schneider"] ?? null);
+          setAdvisory(DEMO_FALLBACKS_ENABLED ? (mockAdvisory["schneider"] ?? null) : null);
           setDemoStep(4);
           if (advisoryRef.current) {
             advisoryRef.current.scrollIntoView({ behavior: "smooth" });
@@ -317,7 +319,9 @@ function App() {
         {anyError && (
           <div className="bg-amber-900/30 border-b border-amber-700/50 px-6 py-2 text-amber-200 text-xs font-medium flex items-center gap-2">
             <span className="h-1.5 w-1.5 rounded-full bg-amber-400 animate-pulse" />
-            Offline — showing sample data. Connect the backend API for live results.
+            {DEMO_FALLBACKS_ENABLED
+              ? "Offline - showing explicit demo sample data. Connect the backend API for live results."
+              : "Backend API error - sample profiles are disabled outside demo mode."}
           </div>
         )}
         <main className="flex-1 overflow-y-auto p-6">
@@ -403,7 +407,7 @@ function App() {
                 </div>
                 <div className="flex items-center gap-4">
                   <div className="text-right">
-                    <p className="text-xs text-slate-400">Strategy</p>
+                    <p className="text-xs text-slate-400">Portfolio Mandate</p>
                     <p className="text-sm font-medium text-white">{clients?.find(c => c.id === selectedId)?.strategy}</p>
                   </div>
                   <div className="text-right">
@@ -413,7 +417,7 @@ function App() {
                   {dna && (
                     <div className="text-right">
                       <p className="text-xs text-slate-400">Comm. Style</p>
-                      <p className="text-sm font-medium text-white capitalize">{dna.communicationStyle}</p>
+                      <p className="text-sm font-medium text-white capitalize">{dna.communicationProfile?.style ?? dna.communicationStyle}</p>
                     </div>
                   )}
                 </div>
