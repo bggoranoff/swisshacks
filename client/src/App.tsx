@@ -153,8 +153,17 @@ function App() {
     return () => window.removeEventListener("keydown", handleKey);
   }, [handleDemo]);
 
+  const dnaLoading = dnaFetch.loading;
+  const portLoading = portfolioFetch.loading;
+  const newsLoading = newsFetch.loading;
+
   return (
     <div className="grid grid-cols-[260px_1fr] h-screen bg-slate-900 text-slate-100 font-sans">
+      {(dnaLoading || portLoading || newsLoading) && (
+        <div className="fixed top-0 left-0 right-0 h-0.5 bg-slate-800 z-[60]">
+          <div className="h-full bg-blue-500 animate-pulse" style={{ width: "60%", transition: "width 0.5s" }} />
+        </div>
+      )}
       <Sidebar
         clients={clients}
         selectedId={selectedId}
