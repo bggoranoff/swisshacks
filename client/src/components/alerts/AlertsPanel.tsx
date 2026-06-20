@@ -3,7 +3,7 @@ import type { NewsDigest, PortfolioAnalysis } from "../../types/api";
 import { Card, CardTitle } from "../shared/Card";
 import { SkeletonBlock } from "../shared/LoadingSpinner";
 import { EmptyState } from "../shared/EmptyState";
-import { ShieldAlert, AlertTriangle, TrendingUp, AlertCircle, Info, ChevronDown, Check, X, ArrowLeftRight, ArrowRight, Briefcase } from "lucide-react";
+import { ShieldAlert, AlertTriangle, TrendingUp, AlertCircle, Info, ChevronDown, X, ArrowLeftRight, ArrowRight, Briefcase } from "lucide-react";
 import clsx from "clsx";
 
 interface AlertsPanelProps {
@@ -13,7 +13,6 @@ interface AlertsPanelProps {
   loading: boolean;
   selectedId?: string | null;
   triggerEvent?: string;
-  onApprove?: (id: string) => void;
   onDismiss?: (id: string) => void;
 }
 
@@ -87,10 +86,8 @@ export function AlertsPanel({
   loading,
   selectedId,
   triggerEvent,
-  onApprove,
   onDismiss,
 }: AlertsPanelProps) {
-  const [approved, setApproved] = useState<Set<string>>(new Set());
   const [dismissed, setDismissed] = useState<Set<string>>(new Set());
   const [expandedChains, setExpandedChains] = useState<Set<string>>(new Set());
 
@@ -172,23 +169,8 @@ export function AlertsPanel({
     alerts.unshift(RAEBER_CIO_ALERT);
   }
 
-  function handleApprove(id: string) {
-    setApproved((prev) => new Set(prev).add(id));
-    setDismissed((prev) => {
-      const next = new Set(prev);
-      next.delete(id);
-      return next;
-    });
-    onApprove?.(id);
-  }
-
   function handleDismiss(id: string) {
     setDismissed((prev) => new Set(prev).add(id));
-    setApproved((prev) => {
-      const next = new Set(prev);
-      next.delete(id);
-      return next;
-    });
     onDismiss?.(id);
   }
 
@@ -244,11 +226,6 @@ export function AlertsPanel({
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 flex-wrap">
                   <p className="font-medium text-sm text-slate-100">{alert.title}</p>
-                  {approved.has(alert.id) && (
-                    <span className="flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-green-900/50 text-green-300">
-                      <Check className="h-3 w-3" /> Approved
-                    </span>
-                  )}
                   {dismissed.has(alert.id) && (
                     <span className="flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-slate-700 text-slate-400">
                       <X className="h-3 w-3" /> Dismissed
@@ -299,14 +276,8 @@ export function AlertsPanel({
                   </div>
                 )}
 
-                {!approved.has(alert.id) && !dismissed.has(alert.id) && (
+                {!dismissed.has(alert.id) && (
                   <div className="flex gap-2 mt-3">
-                    <button
-                      onClick={() => handleApprove(alert.id)}
-                      className="text-xs px-3 py-1 rounded-lg bg-green-600 hover:bg-green-700 text-white flex items-center gap-1 transition-colors"
-                    >
-                      <Check className="h-3 w-3" /> Approve
-                    </button>
                     <button
                       onClick={() => handleDismiss(alert.id)}
                       className="text-xs px-3 py-1 rounded-lg bg-slate-600 hover:bg-slate-500 text-slate-200 flex items-center gap-1 transition-colors"
@@ -338,7 +309,6 @@ export function AlertsPanel({
         {/* Portfolio conflicts from new API shape — appear after news alerts */}
         {typedConflicts.map((conflict, idx) => {
           const cardId = `portfolio-conflict-${conflict.positionIsin || idx}`;
-          const isApproved = approved.has(cardId);
           const isDismissed = dismissed.has(cardId);
           const chainExpanded = expandedChains.has(cardId);
           return (
@@ -361,11 +331,6 @@ export function AlertsPanel({
                     <span className="text-xs px-2 py-0.5 rounded-full bg-amber-900/50 text-amber-300 font-medium">
                       Portfolio Conflict
                     </span>
-                    {isApproved && (
-                      <span className="flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-green-900/50 text-green-300">
-                        <Check className="h-3 w-3" /> Approved
-                      </span>
-                    )}
                     {isDismissed && (
                       <span className="flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-slate-700 text-slate-400">
                         <X className="h-3 w-3" /> Dismissed
@@ -414,14 +379,8 @@ export function AlertsPanel({
                     </div>
                   )}
 
-                  {!isApproved && !isDismissed && (
+                  {!isDismissed && (
                     <div className="flex gap-2 mt-3">
-                      <button
-                        onClick={() => handleApprove(cardId)}
-                        className="text-xs px-3 py-1 rounded-lg bg-green-600 hover:bg-green-700 text-white flex items-center gap-1 transition-colors"
-                      >
-                        <Check className="h-3 w-3" /> Approve
-                      </button>
                       <button
                         onClick={() => handleDismiss(cardId)}
                         className="text-xs px-3 py-1 rounded-lg bg-slate-600 hover:bg-slate-500 text-slate-200 flex items-center gap-1 transition-colors"

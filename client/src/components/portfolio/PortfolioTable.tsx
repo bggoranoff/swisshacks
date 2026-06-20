@@ -181,37 +181,39 @@ export function PortfolioTable({
           <AllocationChart positions={portfolio.positions} />
 
           {summaryStats && (
-            <div className="grid grid-cols-5 gap-3 mb-4">
-              <div className="bg-slate-700/50 rounded-lg p-3 text-center">
-                <p className="text-xs text-slate-400 uppercase tracking-wide">Total Value</p>
-                <p className="text-lg font-semibold text-white mt-1">CHF {(summaryStats.totalValue / 1e6).toFixed(1)}M</p>
-              </div>
-              <div className="bg-slate-700/50 rounded-lg p-3 text-center">
-                <p className="text-xs text-slate-400 uppercase tracking-wide">Positions</p>
-                <p className="text-lg font-semibold text-white mt-1">{summaryStats.positionCount}</p>
-              </div>
-              <div className="bg-slate-700/50 rounded-lg p-3 text-center">
-                <p className="text-xs text-slate-400 uppercase tracking-wide">Asset Classes</p>
-                <p className="text-lg font-semibold text-white mt-1">{summaryStats.uniqueAssetClasses}</p>
-              </div>
-              <div className="bg-slate-700/50 rounded-lg p-3 text-center">
-                <p className="text-xs text-slate-400 uppercase tracking-wide">Avg Drift</p>
-                <p
-                  className={clsx(
-                    "text-lg font-semibold mt-1",
-                    summaryStats.avgDrift < 1 ? "text-green-400" :
-                    summaryStats.avgDrift <= 2 ? "text-amber-400" : "text-red-400"
-                  )}
-                >
-                  {summaryStats.avgDrift.toFixed(2)}%
-                </p>
-              </div>
-              <div className="bg-slate-700/50 rounded-lg p-3 text-center">
-                <p className="text-xs text-slate-400 uppercase tracking-wide">CIO Ratings</p>
-                <div className="flex items-center justify-center gap-2 mt-1">
-                  <span className="text-xs text-green-400">{summaryStats.buyCount} Buy</span>
-                  <span className="text-xs text-slate-400">{summaryStats.holdCount} Hold</span>
-                  <span className="text-xs text-red-400">{summaryStats.sellCount} Sell</span>
+            <div className="overflow-x-auto mb-4">
+              <div className="flex gap-3 min-w-max">
+                <div className="bg-slate-700/50 rounded-lg p-3 text-center min-w-[130px]">
+                  <p className="text-xs text-slate-400 uppercase tracking-wide whitespace-nowrap">Total Value</p>
+                  <p className="text-lg font-semibold text-white mt-1 whitespace-nowrap">CHF {(summaryStats.totalValue / 1e6).toFixed(1)}M</p>
+                </div>
+                <div className="bg-slate-700/50 rounded-lg p-3 text-center min-w-[110px]">
+                  <p className="text-xs text-slate-400 uppercase tracking-wide whitespace-nowrap">Positions</p>
+                  <p className="text-lg font-semibold text-white mt-1">{summaryStats.positionCount}</p>
+                </div>
+                <div className="bg-slate-700/50 rounded-lg p-3 text-center min-w-[120px]">
+                  <p className="text-xs text-slate-400 uppercase tracking-wide whitespace-nowrap">Asset Classes</p>
+                  <p className="text-lg font-semibold text-white mt-1">{summaryStats.uniqueAssetClasses}</p>
+                </div>
+                <div className="bg-slate-700/50 rounded-lg p-3 text-center min-w-[110px]">
+                  <p className="text-xs text-slate-400 uppercase tracking-wide whitespace-nowrap">Avg Drift</p>
+                  <p
+                    className={clsx(
+                      "text-lg font-semibold mt-1 whitespace-nowrap",
+                      summaryStats.avgDrift < 1 ? "text-green-400" :
+                      summaryStats.avgDrift <= 2 ? "text-amber-400" : "text-red-400"
+                    )}
+                  >
+                    {summaryStats.avgDrift.toFixed(2)}%
+                  </p>
+                </div>
+                <div className="bg-slate-700/50 rounded-lg p-3 text-center min-w-[140px]">
+                  <p className="text-xs text-slate-400 uppercase tracking-wide whitespace-nowrap">CIO Ratings</p>
+                  <div className="flex items-center justify-center gap-3 mt-1">
+                    <span className="text-sm font-semibold text-green-400 whitespace-nowrap">{summaryStats.buyCount} <span className="font-normal text-xs">Buy</span></span>
+                    <span className="text-sm font-semibold text-slate-400 whitespace-nowrap">{summaryStats.holdCount} <span className="font-normal text-xs">Hold</span></span>
+                    <span className="text-sm font-semibold text-red-400 whitespace-nowrap">{summaryStats.sellCount} <span className="font-normal text-xs">Sell</span></span>
+                  </div>
                 </div>
               </div>
             </div>
@@ -250,7 +252,7 @@ export function PortfolioTable({
             </div>
           )}
 
-          <div className="flex items-center gap-3 mb-2">
+          <div className="flex items-center gap-3 mt-4 mb-2">
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
               <input
@@ -290,7 +292,7 @@ export function PortfolioTable({
                     <th
                       key={h.field}
                       onClick={() => toggleSort(h.field)}
-                      className="text-left text-xs font-medium text-slate-400 uppercase tracking-wide pb-3 border-b border-slate-700 cursor-pointer hover:text-white"
+                      className="text-left text-xs font-medium text-slate-400 uppercase tracking-wide pb-3 border-b border-slate-700 cursor-pointer hover:text-white whitespace-nowrap pr-4"
                     >
                       {h.label}
                       <ArrowUpDown className="h-3 w-3 inline ml-1" />

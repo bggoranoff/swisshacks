@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { MessageCircle, Send, Loader2 } from "lucide-react";
+import { MessageCircle, Send, Loader2, ChevronRight } from "lucide-react";
 
 interface ChatMessage {
   role: "user" | "assistant";
@@ -12,6 +12,7 @@ interface ChatPanelProps {
   clientName: string;
   history: ChatMessage[];
   onHistoryChange: (msgs: ChatMessage[]) => void;
+  onClose?: () => void;
 }
 
 const SUGGESTIONS = [
@@ -20,7 +21,7 @@ const SUGGESTIONS = [
   "What CIO recommendations conflict with this client's DNA?",
 ];
 
-export function ChatPanel({ clientId, clientName, history, onHistoryChange }: ChatPanelProps) {
+export function ChatPanel({ clientId, clientName, history, onHistoryChange, onClose }: ChatPanelProps) {
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
   const [loaded, setLoaded] = useState<Set<string>>(new Set());
@@ -72,9 +73,20 @@ export function ChatPanel({ clientId, clientName, history, onHistoryChange }: Ch
   return (
     <div className="flex flex-col h-full">
       {/* Header */}
-      <div className="flex items-center gap-2 px-4 py-3 border-b border-slate-700 shrink-0">
-        <MessageCircle className="h-4 w-4 text-six-orange/70" />
-        <span className="text-sm font-semibold text-slate-300 uppercase tracking-wide">RM Assistant</span>
+      <div className="flex items-center justify-between px-4 py-3 border-b border-slate-700 shrink-0">
+        <div className="flex items-center gap-2">
+          <MessageCircle className="h-4 w-4 text-six-orange/70" />
+          <span className="text-sm font-semibold text-slate-300 uppercase tracking-wide">RM Assistant</span>
+        </div>
+        {onClose && (
+          <button
+            onClick={onClose}
+            title="Close chat (Ctrl+\)"
+            className="text-slate-500 hover:text-slate-300 transition-colors"
+          >
+            <ChevronRight className="h-4 w-4" />
+          </button>
+        )}
       </div>
 
       {/* Messages */}

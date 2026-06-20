@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import type { AdvisoryMessage } from "../../types/api";
 import { Card, CardTitle } from "../shared/Card";
-import { ConfidenceBadge } from "../shared/ConfidenceBadge";
 import { SkeletonLine } from "../shared/LoadingSpinner";
 import {
   MessageSquare,
@@ -363,7 +362,6 @@ export function AdvisoryPanel({ advisory: advisoryProp, loading, clientId, conte
               >
                 {advisory.tone}
               </span>
-              <ConfidenceBadge score={advisory.confidence} />
               {advisory.traceId && (
                 <button
                   title={`Trace ID: ${advisory.traceId}`}

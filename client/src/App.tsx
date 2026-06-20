@@ -1,5 +1,5 @@
 import { useState, useCallback, useRef, useEffect } from "react";
-import { Briefcase, MessageCircle } from "lucide-react";
+import { Briefcase, MessageCircle, ChevronLeft } from "lucide-react";
 import { Sidebar } from "./components/layout/Sidebar";
 import { TraitDrawer } from "./components/dna/TraitDrawer";
 import { Header } from "./components/layout/Header";
@@ -59,6 +59,7 @@ function App() {
   const [chatHistories, setChatHistories] = useState<Record<string, ChatMessage[]>>({});
   const [sidebarWidth, setSidebarWidth] = useState(260);
   const [chatWidth, setChatWidth] = useState(360);
+  const [chatOpen, setChatOpen] = useState(true);
   const [drawer, setDrawer] = useState<DrawerState>({ open: false, trait: null, category: null });
 
   const handleChatHistoryChange = (clientId: string, msgs: ChatMessage[]) => {
@@ -260,6 +261,17 @@ function App() {
     if (main) main.scrollTo({ top: 0, behavior: "smooth" });
   }, [selectedId]);
 
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === "\\") {
+        e.preventDefault();
+        setChatOpen(prev => !prev);
+      }
+    };
+    document.addEventListener("keydown", handler);
+    return () => document.removeEventListener("keydown", handler);
+  }, []);
+
   const dnaLoading = dnaFetch.loading;
   const portLoading = portfolioFetch.loading;
   const newsLoading = newsFetch.loading;
@@ -371,7 +383,7 @@ function App() {
               {/* Client Header */}
               <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-4 flex items-center justify-between flex-wrap gap-4">
                 <div className="flex items-center gap-4">
-                  <div className={`h-12 w-12 rounded-full flex items-center justify-center text-lg font-semibold text-white ${
+                  <div className={`h-12 w-12 rounded-full shrink-0 flex items-center justify-center text-lg font-semibold text-white ${
                     selectedId === "schneider" ? "bg-six-orange" :
                     selectedId === "huber" ? "bg-six-blue" :
                     selectedId === "raeber" ? "bg-six-orange-dark" : "bg-six-blue-bright"
@@ -452,7 +464,6 @@ function App() {
                   loading={dnaFetch.loading || portfolioFetch.loading || newsFetch.loading}
                   selectedId={selectedId}
                   triggerEvent={clients?.find(c => c.id === selectedId)?.triggerEvent}
-                  onApprove={(id) => setApprovedAlertId(id)}
                 />
               </ErrorBoundary>
               {/* Knowledge Graph row — 2 cols to leave room for a second graph */}
@@ -469,26 +480,37 @@ function App() {
         </main>
       </div>
 
-      <ResizeHandle onMouseDown={startChatResize} />
-
-      {/* Right chat column */}
-      <div className="flex flex-col h-screen bg-slate-900 overflow-hidden" style={{ width: chatWidth, flexShrink: 0 }}>
-        {selectedId ? (
-          <ErrorBoundary fallbackMessage="Failed to load RM assistant">
-            <ChatPanel
-              clientId={selectedId}
-              clientName={clients?.find(c => c.id === selectedId)?.name ?? selectedId}
-              history={chatHistories[selectedId] ?? []}
-              onHistoryChange={(msgs) => handleChatHistoryChange(selectedId, msgs)}
-            />
-          </ErrorBoundary>
-        ) : (
-          <div className="flex flex-col items-center justify-center h-full text-center px-6">
-            <MessageCircle className="h-8 w-8 text-slate-600 mb-3" strokeWidth={1.5} />
-            <p className="text-sm text-slate-500">Select a client to start a conversation</p>
+      {chatOpen ? (
+        <>
+          <ResizeHandle onMouseDown={startChatResize} />
+          <div className="flex flex-col h-screen bg-slate-900 overflow-hidden" style={{ width: chatWidth, flexShrink: 0 }}>
+            {selectedId ? (
+              <ErrorBoundary fallbackMessage="Failed to load RM assistant">
+                <ChatPanel
+                  clientId={selectedId}
+                  clientName={clients?.find(c => c.id === selectedId)?.name ?? selectedId}
+                  history={chatHistories[selectedId] ?? []}
+                  onHistoryChange={(msgs) => handleChatHistoryChange(selectedId, msgs)}
+                  onClose={() => setChatOpen(false)}
+                />
+              </ErrorBoundary>
+            ) : (
+              <div className="flex flex-col items-center justify-center h-full text-center px-6">
+                <MessageCircle className="h-8 w-8 text-slate-600 mb-3" strokeWidth={1.5} />
+                <p className="text-sm text-slate-500">Select a client to start a conversation</p>
+              </div>
+            )}
           </div>
-        )}
-      </div>
+        </>
+      ) : (
+        <button
+          onClick={() => setChatOpen(true)}
+          title="Open chat (Ctrl+\)"
+          className="flex flex-col items-center justify-center w-8 h-screen bg-slate-900 border-l border-slate-700 hover:bg-slate-800 transition-colors shrink-0 group"
+        >
+          <ChevronLeft className="h-4 w-4 text-slate-500 group-hover:text-six-orange transition-colors" />
+        </button>
+      )}
 
       <TraceDrawer isOpen={tracesOpen} onClose={() => setTracesOpen(false)} />
       <AuditDrawer isOpen={auditOpen} onClose={() => setAuditOpen(false)} />
@@ -501,7 +523,6 @@ function App() {
         evidence={dna?.evidence ?? []}
         clientId={selectedId ?? ""}
         onClose={handleCloseDrawer}
-        rightOffset={chatWidth}
       />
     </div>
   );

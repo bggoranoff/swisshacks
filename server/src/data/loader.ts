@@ -17,7 +17,7 @@ const DATA_DIR = path.join(__dirname, "../../../data");
 const CRM_TAB_MAP: Record<string, { id: string; name: string; description: string; strategy: "Defensive" | "Balanced" | "Growth"; portfolioTab: string; triggerEvent: string }> = {
   "CRM Schneider": {
     id: "schneider",
-    name: "Schneider",
+    name: "Hubertus Schneider",
     description: "Emotionally driven private client running a family foundation for chronic-illness and neuro-degenerative research. Seeks purpose-aligned, balanced investments that reflect her family's health legacy.",
     strategy: "Balanced",
     portfolioTab: "Sample Portfolio Balanced",
@@ -25,7 +25,7 @@ const CRM_TAB_MAP: Record<string, { id: string; name: string; description: strin
   },
   "CRM Huber": {
     id: "huber",
-    name: "Huber",
+    name: "Marius Huber",
     description: "Impact-first investor and environmentalist financing South American reforestation projects. Prioritises measurable ecological outcomes and holds biodiversity risk and greenwashing as hard red lines.",
     strategy: "Defensive",
     portfolioTab: "Sample Portfolio Defensive",
@@ -33,7 +33,7 @@ const CRM_TAB_MAP: Record<string, { id: string; name: string; description: strin
   },
   "CRM Raeber": {
     id: "raeber",
-    name: "Räber",
+    name: "Eugen Räber",
     description: "Conservative Swiss couple with a precision-engineering background. Capital preservation and dividend income take priority; strongly averse to US tech concentration and emerging market exposure.",
     strategy: "Defensive",
     portfolioTab: "Sample Portfolio Defensive",
@@ -41,7 +41,7 @@ const CRM_TAB_MAP: Record<string, { id: string; name: string; description: strin
   },
   "CRM Ammann": {
     id: "ammann",
-    name: "Ammann",
+    name: "Julian Ammann",
     description: "Prominent Swiss entrepreneur for whom reputational risk is inseparable from financial risk. Any ESG controversy or supply-chain scandal in the portfolio is treated as a direct threat to personal brand and business standing.",
     strategy: "Growth",
     portfolioTab: "Sample Portfolio Growth",

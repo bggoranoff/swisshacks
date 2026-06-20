@@ -9,7 +9,7 @@ import type {
 export const mockClients: ClientSummary[] = [
   {
     id: "schneider",
-    name: "Max Schneider",
+    name: "Hubertus Schneider",
     description:
       "Balanced mandate. Family foundation supporting chronic-illness research. Values-led communicator with deep ties to Swiss heritage.",
     strategy: "Balanced",
@@ -18,7 +18,7 @@ export const mockClients: ClientSummary[] = [
   },
   {
     id: "huber",
-    name: "Peter Huber",
+    name: "Marius Huber",
     description:
       "Defensive mandate. Passionate environmentalist focused on reforestation and clean energy. Values-led communicator.",
     strategy: "Defensive",
@@ -27,7 +27,7 @@ export const mockClients: ClientSummary[] = [
   },
   {
     id: "raeber",
-    name: "Rudolf Räber",
+    name: "Eugen Räber",
     description:
       "Defensive mandate. Swiss precision engineering background. Data-driven communicator averse to US tech exposure.",
     strategy: "Defensive",
@@ -36,7 +36,7 @@ export const mockClients: ClientSummary[] = [
   },
   {
     id: "ammann",
-    name: "Clara Ammann",
+    name: "Julian Ammann",
     description:
       "Growth mandate. Corporate reputation focus. Swiss entrepreneur with balanced communication style.",
     strategy: "Growth",

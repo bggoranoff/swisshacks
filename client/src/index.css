@@ -28,6 +28,15 @@
   --radius-3xl: 4px;
 }
 
+/* Hide native scrollbars, keep scrollability */
+.hide-scrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
 @layer utilities {
   .animate-fadeIn {
     animation: fadeIn 0.3s ease-out forwards;

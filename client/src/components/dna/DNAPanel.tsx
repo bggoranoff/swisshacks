@@ -20,7 +20,7 @@ interface DNAPanelProps {
 }
 
 
-export function DNAPanel({ dna, clientId, onOpenDrawer, loading, error, onRetry, durationMs, fetchedAt }: DNAPanelProps) {
+export function DNAPanel({ dna, onOpenDrawer, loading, error, onRetry, durationMs, fetchedAt }: DNAPanelProps) {
   if (loading) return <Card><CardTitle icon={Dna}>Client DNA</CardTitle><SkeletonPills /><SkeletonBlock /></Card>;
   if (error) return <Card><CardTitle icon={Dna}>Client DNA</CardTitle><ErrorState message={error} onRetry={onRetry} /></Card>;
   if (!dna) return <Card><CardTitle icon={Dna}>Client DNA</CardTitle><EmptyState message="Select a client to view DNA profile" /></Card>;
@@ -65,17 +65,20 @@ export function DNAPanel({ dna, clientId, onOpenDrawer, loading, error, onRetry,
         {dna.values && dna.values.length > 0 && (
           <div>
             <p className="text-xs font-medium text-slate-400 uppercase tracking-wide mb-1.5">Client Values</p>
-            <div className="h-40 overflow-y-auto bg-slate-800/50 border border-slate-700 rounded-lg">
-              {dna.values.map((item, idx) => (
-                <button
-                  key={item}
-                  onClick={() => onOpenDrawer(item, "values")}
-                  className={`w-full flex items-center justify-between px-3 py-2 text-sm text-left text-slate-300 hover:bg-slate-700/60 transition-colors ${idx < dna.values!.length - 1 ? "border-b border-slate-700/50" : ""}`}
-                >
-                  <span className="capitalize">{item}</span>
-                  <ChevronRight className="h-3.5 w-3.5 text-slate-500 shrink-0" />
-                </button>
-              ))}
+            <div className="relative">
+              <div className="h-40 overflow-y-auto hide-scrollbar bg-slate-800/50 border border-slate-700 rounded-lg">
+                {dna.values.map((item, idx) => (
+                  <button
+                    key={item}
+                    onClick={() => onOpenDrawer(item, "values")}
+                    className={`w-full flex items-center justify-between px-3 py-2 text-sm text-left text-slate-300 hover:bg-slate-700/60 transition-colors ${idx < dna.values!.length - 1 ? "border-b border-slate-700/50" : ""}`}
+                  >
+                    <span className="capitalize">{item}</span>
+                    <ChevronRight className="h-3.5 w-3.5 text-slate-500 shrink-0" />
+                  </button>
+                ))}
+              </div>
+              <div className="pointer-events-none absolute bottom-0 left-0 right-0 h-8 rounded-b-lg bg-gradient-to-t from-slate-800/80 to-transparent" />
             </div>
           </div>
         )}
@@ -104,17 +107,20 @@ export function DNAPanel({ dna, clientId, onOpenDrawer, loading, error, onRetry,
         {dna.businessContext && dna.businessContext.length > 0 && (
           <div>
             <p className="text-xs font-medium text-slate-400 uppercase tracking-wide mb-1.5">Business Context</p>
-            <div className="h-40 overflow-y-auto bg-slate-800/50 border border-slate-700 rounded-lg">
-              {dna.businessContext.map((item, idx) => (
-                <button
-                  key={item}
-                  onClick={() => onOpenDrawer(item, "businessContext")}
-                  className={`w-full flex items-center justify-between px-3 py-2 text-sm text-left text-slate-300 hover:bg-slate-700/60 transition-colors ${idx < dna.businessContext!.length - 1 ? "border-b border-slate-700/50" : ""}`}
-                >
-                  <span className="capitalize">{item}</span>
-                  <ChevronRight className="h-3.5 w-3.5 text-slate-500 shrink-0" />
-                </button>
-              ))}
+            <div className="relative">
+              <div className="h-40 overflow-y-auto hide-scrollbar bg-slate-800/50 border border-slate-700 rounded-lg">
+                {dna.businessContext.map((item, idx) => (
+                  <button
+                    key={item}
+                    onClick={() => onOpenDrawer(item, "businessContext")}
+                    className={`w-full flex items-center justify-between px-3 py-2 text-sm text-left text-slate-300 hover:bg-slate-700/60 transition-colors ${idx < dna.businessContext!.length - 1 ? "border-b border-slate-700/50" : ""}`}
+                  >
+                    <span className="capitalize">{item}</span>
+                    <ChevronRight className="h-3.5 w-3.5 text-slate-500 shrink-0" />
+                  </button>
+                ))}
+              </div>
+              <div className="pointer-events-none absolute bottom-0 left-0 right-0 h-8 rounded-b-lg bg-gradient-to-t from-slate-800/80 to-transparent" />
             </div>
           </div>
         )}
@@ -123,17 +129,20 @@ export function DNAPanel({ dna, clientId, onOpenDrawer, loading, error, onRetry,
         {dna.riskSensitivities && dna.riskSensitivities.length > 0 && (
           <div>
             <p className="text-xs font-medium text-slate-400 uppercase tracking-wide mb-1.5">Risk Sensitivities</p>
-            <div className="h-40 overflow-y-auto bg-slate-800/50 border border-slate-700 rounded-lg">
-              {dna.riskSensitivities.map((item, idx) => (
-                <button
-                  key={item}
-                  onClick={() => onOpenDrawer(item, "riskSensitivities")}
-                  className={`w-full flex items-center justify-between px-3 py-2 text-sm text-left text-slate-300 hover:bg-slate-700/60 transition-colors ${idx < dna.riskSensitivities!.length - 1 ? "border-b border-slate-700/50" : ""}`}
-                >
-                  <span className="capitalize">{item}</span>
-                  <ChevronRight className="h-3.5 w-3.5 text-slate-500 shrink-0" />
-                </button>
-              ))}
+            <div className="relative">
+              <div className="h-40 overflow-y-auto hide-scrollbar bg-slate-800/50 border border-slate-700 rounded-lg">
+                {dna.riskSensitivities.map((item, idx) => (
+                  <button
+                    key={item}
+                    onClick={() => onOpenDrawer(item, "riskSensitivities")}
+                    className={`w-full flex items-center justify-between px-3 py-2 text-sm text-left text-slate-300 hover:bg-slate-700/60 transition-colors ${idx < dna.riskSensitivities!.length - 1 ? "border-b border-slate-700/50" : ""}`}
+                  >
+                    <span className="capitalize">{item}</span>
+                    <ChevronRight className="h-3.5 w-3.5 text-slate-500 shrink-0" />
+                  </button>
+                ))}
+              </div>
+              <div className="pointer-events-none absolute bottom-0 left-0 right-0 h-8 rounded-b-lg bg-gradient-to-t from-slate-800/80 to-transparent" />
             </div>
           </div>
         )}
@@ -142,17 +151,20 @@ export function DNAPanel({ dna, clientId, onOpenDrawer, loading, error, onRetry,
         {dna.personalPriorities && dna.personalPriorities.length > 0 && (
           <div>
             <p className="text-xs font-medium text-slate-400 uppercase tracking-wide mb-1.5">Personal Priorities</p>
-            <div className="h-40 overflow-y-auto bg-slate-800/50 border border-slate-700 rounded-lg">
-              {dna.personalPriorities.map((item, idx) => (
-                <button
-                  key={item}
-                  onClick={() => onOpenDrawer(item, "personalPriorities")}
-                  className={`w-full flex items-center justify-between px-3 py-2 text-sm text-left text-slate-300 hover:bg-slate-700/60 transition-colors ${idx < dna.personalPriorities!.length - 1 ? "border-b border-slate-700/50" : ""}`}
-                >
-                  <span className="capitalize">{item}</span>
-                  <ChevronRight className="h-3.5 w-3.5 text-slate-500 shrink-0" />
-                </button>
-              ))}
+            <div className="relative">
+              <div className="h-40 overflow-y-auto hide-scrollbar bg-slate-800/50 border border-slate-700 rounded-lg">
+                {dna.personalPriorities.map((item, idx) => (
+                  <button
+                    key={item}
+                    onClick={() => onOpenDrawer(item, "personalPriorities")}
+                    className={`w-full flex items-center justify-between px-3 py-2 text-sm text-left text-slate-300 hover:bg-slate-700/60 transition-colors ${idx < dna.personalPriorities!.length - 1 ? "border-b border-slate-700/50" : ""}`}
+                  >
+                    <span className="capitalize">{item}</span>
+                    <ChevronRight className="h-3.5 w-3.5 text-slate-500 shrink-0" />
+                  </button>
+                ))}
+              </div>
+              <div className="pointer-events-none absolute bottom-0 left-0 right-0 h-8 rounded-b-lg bg-gradient-to-t from-slate-800/80 to-transparent" />
             </div>
           </div>
         )}

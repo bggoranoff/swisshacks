@@ -1,7 +1,6 @@
 import React from "react";
 import type { AdvisoryMessage } from "../../types/api";
 import { Card, CardTitle } from "../shared/Card";
-import { ConfidenceBadge } from "../shared/ConfidenceBadge";
 import { ArrowLeftRight, X, Building2, Sparkles, ChevronRight } from "lucide-react";
 
 interface CompareViewProps {
@@ -66,7 +65,6 @@ export function CompareView({ generic, personalised, onClose }: CompareViewProps
               <span className="text-xs px-2 py-0.5 rounded-full bg-slate-700 text-slate-400 border border-slate-600">
                 {generic.tone}
               </span>
-              <ConfidenceBadge score={generic.confidence} />
             </div>
             <div className="text-sm text-slate-400 leading-relaxed">
               {highlightPersonalRefs(generic.body)}
@@ -97,7 +95,6 @@ export function CompareView({ generic, personalised, onClose }: CompareViewProps
               <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${personalStyle.badge}`}>
                 {personalised.tone}
               </span>
-              <ConfidenceBadge score={personalised.confidence} />
             </div>
             <div className="text-sm text-slate-200 leading-relaxed">
               {highlightPersonalRefs(personalised.body)}

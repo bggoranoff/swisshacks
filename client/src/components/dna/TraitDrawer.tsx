@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { X } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { X, Loader2 } from "lucide-react";
 
 interface EvidenceItem {
   trait: string;
@@ -14,7 +14,6 @@ interface TraitDrawerProps {
   evidence: EvidenceItem[];
   clientId: string;
   onClose: () => void;
-  rightOffset?: number;
 }
 
 const CATEGORY_LABELS: Record<string, string> = {
@@ -24,10 +23,11 @@ const CATEGORY_LABELS: Record<string, string> = {
   personalPriorities: "Personal Priority",
 };
 
-export function TraitDrawer({ open, trait, category, evidence, clientId, onClose, rightOffset = 0 }: TraitDrawerProps) {
+export function TraitDrawer({ open, trait, category, evidence, clientId, onClose }: TraitDrawerProps) {
   const [summary, setSummary] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [fetchError, setFetchError] = useState<string | null>(null);
+  const backdropRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!open || !trait || !clientId) return;
@@ -58,27 +58,30 @@ export function TraitDrawer({ open, trait, category, evidence, clientId, onClose
       .finally(() => setLoading(false));
   }, [open, trait, clientId]);
 
+  // Close on Escape
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
+    document.addEventListener("keydown", handler);
+    return () => document.removeEventListener("keydown", handler);
+  }, [open, onClose]);
+
   const traitEvidence = evidence.filter(
     (e) =>
       e.trait.toLowerCase().includes((trait || "").toLowerCase()) ||
       (trait || "").toLowerCase().includes(e.trait.toLowerCase())
   );
 
-  return (
-    <>
-      {open && (
-        <div
-          className="fixed inset-0 z-40 bg-black/30"
-          onClick={onClose}
-        />
-      )}
+  if (!open) return null;
 
-      <div
-        style={{ right: rightOffset }}
-        className={`fixed top-0 h-full w-96 z-50 bg-slate-900 border-l border-slate-700 shadow-2xl flex flex-col transition-transform duration-300 ${
-          open ? "translate-x-0" : "translate-x-full"
-        }`}
-      >
+  return (
+    <div
+      ref={backdropRef}
+      className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-black/50"
+      onClick={(e) => { if (e.target === backdropRef.current) onClose(); }}
+    >
+      <div className="relative w-full max-w-lg bg-slate-900 border border-slate-700 shadow-2xl rounded-lg flex flex-col max-h-[80vh]">
+        {/* Header */}
         <div className="flex items-start justify-between p-5 border-b border-slate-700 shrink-0">
           <div>
             <p className="text-xs font-medium text-slate-500 uppercase tracking-wide mb-1">
@@ -88,20 +91,21 @@ export function TraitDrawer({ open, trait, category, evidence, clientId, onClose
           </div>
           <button
             onClick={onClose}
-            className="text-slate-400 hover:text-white transition-colors mt-0.5"
+            className="text-slate-400 hover:text-white transition-colors mt-0.5 p-1"
           >
             <X className="h-5 w-5" />
           </button>
         </div>
 
-        <div className="flex-1 overflow-y-auto p-5 space-y-6">
+        {/* Body */}
+        <div className="flex-1 overflow-y-auto hide-scrollbar p-5 space-y-6">
           <div>
             <p className="text-xs font-medium text-slate-400 uppercase tracking-wide mb-3">
               Why this matters to client
             </p>
             {loading && (
               <div className="flex items-center gap-2 text-sm text-slate-400">
-                <span className="h-3 w-3 rounded-full border-2 border-slate-600 border-t-six-orange animate-spin inline-block" />
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
                 Generating insight…
               </div>
             )}
@@ -122,10 +126,7 @@ export function TraitDrawer({ open, trait, category, evidence, clientId, onClose
             ) : (
               <div className="space-y-2">
                 {traitEvidence.map((e, i) => (
-                  <div
-                    key={i}
-                    className="bg-slate-800 border border-slate-700 rounded-lg p-3"
-                  >
+                  <div key={i} className="bg-slate-800 border border-slate-700 rounded-lg p-3">
                     <p className="text-xs text-slate-500 mb-1">{e.crmDate}</p>
                     <p className="text-sm text-slate-300 italic">"{e.crmExcerpt}"</p>
                   </div>
@@ -135,6 +136,6 @@ export function TraitDrawer({ open, trait, category, evidence, clientId, onClose
           </div>
         </div>
       </div>
-    </>
+    </div>
   );
 }

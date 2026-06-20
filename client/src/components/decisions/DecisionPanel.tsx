@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import { Brain, ChevronDown, Database } from "lucide-react";
 import { Card, CardTitle } from "../shared/Card";
-import { ConfidenceBadge } from "../shared/ConfidenceBadge";
 import clsx from "clsx";
 
 interface ExplainableDecision {
@@ -85,7 +84,6 @@ export function DecisionPanel() {
                   {d.agent}
                 </span>
                 <span className="text-xs text-slate-400">{d.decisionType}</span>
-                <ConfidenceBadge score={d.reasoning.confidence} />
                 <span className="text-xs text-slate-500 ml-auto">
                   {new Date(d.timestamp).toLocaleTimeString()}
                 </span>
@@ -123,12 +121,6 @@ export function DecisionPanel() {
                       <div className="space-y-1">
                         {d.reasoning.alternatives.map((alt, i) => (
                           <div key={i} className="flex items-center gap-2 text-xs">
-                            <span className={clsx(
-                              "px-1.5 py-0.5 rounded",
-                              alt.score >= 0.7 ? "bg-green-900/30 text-green-300" : "bg-slate-600 text-slate-400"
-                            )}>
-                              {Math.round(alt.score * 100)}%
-                            </span>
                             <span className="text-slate-300">{alt.option}</span>
                             <span className="text-slate-500">— {alt.reason}</span>
                           </div>
