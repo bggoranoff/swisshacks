@@ -1,5 +1,11 @@
 import { useState, useCallback, useRef, useEffect } from "react";
-import { Briefcase } from "lucide-react";
+import { Briefcase, MessageCircle } from "lucide-react";
+
+interface ChatMessage {
+  role: "user" | "assistant";
+  content: string;
+  timestamp: string;
+}
 import { Sidebar } from "./components/layout/Sidebar";
 import { Header } from "./components/layout/Header";
 import { TraceDrawer } from "./components/traces/TraceDrawer";
@@ -34,6 +40,11 @@ function App() {
   const [demoStep, setDemoStep] = useState(0);
   const [approvedAlertId, setApprovedAlertId] = useState<string | null>(null);
   const [advisoryLanguage, setAdvisoryLanguage] = useState<string>("en");
+  const [chatHistories, setChatHistories] = useState<Record<string, ChatMessage[]>>({});
+
+  const handleChatHistoryChange = (clientId: string, msgs: ChatMessage[]) => {
+    setChatHistories(prev => ({ ...prev, [clientId]: msgs }));
+  };
   const advisoryRef = useRef<HTMLDivElement>(null);
 
   // Fetch clients list
@@ -193,7 +204,7 @@ function App() {
   const newsLoading = newsFetch.loading;
 
   return (
-    <div className="grid grid-cols-[260px_1fr] h-screen bg-slate-900 text-slate-100 font-sans">
+    <div className="grid grid-cols-[260px_1fr_360px] h-screen bg-slate-900 text-slate-100 font-sans">
       {(dnaLoading || portLoading || newsLoading) && (
         <div className="fixed top-0 left-0 right-0 h-0.5 bg-slate-800 z-[60]">
           <div className="h-full bg-six-orange animate-pulse" style={{ width: "60%", transition: "width 0.5s" }} />
@@ -266,6 +277,34 @@ function App() {
             </div>
           ) : (
             <div className="grid grid-cols-2 gap-6">
+              {/* Advisory — top of page */}
+              <div ref={advisoryRef} className="col-span-2">
+                {(() => {
+                  const firstNewsAlert = news?.alerts?.[0];
+                  let contextAlertTitle: string | undefined;
+                  if (approvedAlertId) {
+                    contextAlertTitle = news?.alerts?.find((a) => `news-${a.id}` === approvedAlertId)?.title
+                      ?? firstNewsAlert?.title;
+                  } else if (firstNewsAlert) {
+                    contextAlertTitle = firstNewsAlert.title;
+                  }
+                  return (
+                    <ErrorBoundary fallbackMessage="Failed to load advisory panel">
+                      <AdvisoryPanel
+                        advisory={advisory}
+                        loading={advisoryLoading}
+                        clientId={selectedId}
+                        contextAlertTitle={contextAlertTitle ?? null}
+                        onGenerate={handleGenerate}
+                        onRegenerate={handleRegenerate}
+                        language={advisoryLanguage}
+                        onLanguageChange={setAdvisoryLanguage}
+                      />
+                    </ErrorBoundary>
+                  );
+                })()}
+              </div>
+
               {/* Client Header */}
               <div className="col-span-2 bg-slate-800/50 border border-slate-700 rounded-xl p-4 flex items-center justify-between">
                 <div className="flex items-center gap-4">
@@ -359,42 +398,6 @@ function App() {
               <ErrorBoundary fallbackMessage="Failed to load knowledge graph">
                 <KnowledgeGraphPanel clientId={selectedId} />
               </ErrorBoundary>
-              <div ref={advisoryRef} className="col-span-2">
-                {(() => {
-                  // Resolve the alert title to show in the AdvisoryPanel banner.
-                  // Prefer the approved alert; fall back to the first news alert.
-                  const firstNewsAlert = news?.alerts?.[0];
-                  let contextAlertTitle: string | undefined;
-                  if (approvedAlertId) {
-                    contextAlertTitle = news?.alerts?.find((a) => `news-${a.id}` === approvedAlertId)?.title
-                      ?? firstNewsAlert?.title;
-                  } else if (firstNewsAlert) {
-                    contextAlertTitle = firstNewsAlert.title;
-                  }
-                  return (
-                    <ErrorBoundary fallbackMessage="Failed to load advisory panel">
-                      <AdvisoryPanel
-                        advisory={advisory}
-                        loading={advisoryLoading}
-                        clientId={selectedId}
-                        contextAlertTitle={contextAlertTitle ?? null}
-                        onGenerate={handleGenerate}
-                        onRegenerate={handleRegenerate}
-                        language={advisoryLanguage}
-                        onLanguageChange={setAdvisoryLanguage}
-                      />
-                    </ErrorBoundary>
-                  );
-                })()}
-              </div>
-
-              {/* RM Chat Assistant */}
-              <div className="col-span-2">
-                <ErrorBoundary fallbackMessage="Failed to load RM assistant">
-                  <ChatPanel clientId={selectedId} />
-                </ErrorBoundary>
-              </div>
-
               {/* AI Decision Log (NTT DATA Explainable AI) */}
               <div className="col-span-2">
                 <ErrorBoundary fallbackMessage="Failed to load AI decisions">
@@ -405,6 +408,26 @@ function App() {
           )}
         </main>
       </div>
+
+      {/* Right chat column */}
+      <div className="flex flex-col h-screen bg-slate-900 border-l border-slate-700 overflow-hidden">
+        {selectedId ? (
+          <ErrorBoundary fallbackMessage="Failed to load RM assistant">
+            <ChatPanel
+              clientId={selectedId}
+              clientName={clients?.find(c => c.id === selectedId)?.name ?? selectedId}
+              history={chatHistories[selectedId] ?? []}
+              onHistoryChange={(msgs) => handleChatHistoryChange(selectedId, msgs)}
+            />
+          </ErrorBoundary>
+        ) : (
+          <div className="flex flex-col items-center justify-center h-full text-center px-6">
+            <MessageCircle className="h-8 w-8 text-slate-600 mb-3" strokeWidth={1.5} />
+            <p className="text-sm text-slate-500">Select a client to start a conversation</p>
+          </div>
+        )}
+      </div>
+
       <TraceDrawer isOpen={tracesOpen} onClose={() => setTracesOpen(false)} />
       <AuditDrawer isOpen={auditOpen} onClose={() => setAuditOpen(false)} />
     </div>
