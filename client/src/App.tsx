@@ -183,6 +183,7 @@ function App() {
         selectedId={selectedId}
         onSelect={handleSelectClient}
         loading={clientsFetch.loading}
+        conflictCount={portfolio?.conflicts?.length}
       />
       <div className="flex flex-col h-screen overflow-hidden">
         <Header onDemo={handleDemo} onTracesClick={() => setTracesOpen(true)} onAuditClick={() => setAuditOpen(true)} />
@@ -278,16 +279,12 @@ function App() {
                   )}
                 </div>
               </div>
-              {selectedId && dna && portfolio && (
-                <div className="col-span-2 flex items-center gap-6 bg-slate-800/30 rounded-lg px-4 py-2 text-xs">
-                  <span className="text-slate-400">AUM: <span className="text-white font-medium">CHF {(portfolio.totalValueCHF / 1e6).toFixed(1)}M</span></span>
-                  <span className="text-slate-400">Strategy: <span className="text-white font-medium">{portfolio.strategy}</span></span>
-                  <span className="text-slate-400">Conflicts: <span className={portfolio.conflicts?.length > 0 ? "text-red-400 font-medium" : "text-green-400 font-medium"}>{portfolio.conflicts?.length || 0}</span></span>
-                  <span className="text-slate-400">Alerts: <span className={(news?.alerts?.length ?? 0) > 0 ? "text-amber-400 font-medium" : "text-green-400 font-medium"}>{news?.alerts?.length ?? 0}</span></span>
-                  <span className="text-slate-400">DNA Traits: <span className="text-white font-medium">{dna.values.length + dna.riskSensitivities.length}</span></span>
-                  <span className="text-slate-400">Style: <span className="text-white font-medium capitalize">{dna.communicationStyle}</span></span>
-                </div>
-              )}
+              <div className="col-span-2 flex items-center gap-6 text-xs text-slate-400">
+                <span>AUM: <span className="text-white font-medium">CHF {portfolio ? (portfolio.totalValueCHF / 1e6).toFixed(0) : '—'}M</span></span>
+                <span>Alerts: <span className="text-amber-400 font-medium">{news?.alerts?.length || 0}</span></span>
+                <span>Conflicts: <span className="text-red-400 font-medium">{portfolio?.conflicts?.length || 0}</span></span>
+                <span>DNA Traits: <span className="text-blue-400 font-medium">{dna ? dna.values.length + dna.riskSensitivities.length : 0}</span></span>
+              </div>
               <div id="dna-panel">
                 <ErrorBoundary fallbackMessage="Failed to load DNA profile">
                   <DNAPanel

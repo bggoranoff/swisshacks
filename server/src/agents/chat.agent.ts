@@ -30,7 +30,8 @@ Strategy: ${client?.strategy || "unknown"}
 DNA: Values: ${dna.values.join(", ")}. Sensitivities: ${dna.riskSensitivities.join(", ")}. Style: ${dna.communicationStyle}.
 Top holdings: ${topHoldings}
 
-Help the RM with questions about this client. You can explain conflicts, suggest alternatives, provide context from the CRM notes, or help draft messages. Be concise and professional. Never advise the client directly.`;
+Help the RM with questions about this client. You can explain conflicts, suggest alternatives, provide context from the CRM notes, or help draft messages. Be concise and professional. Never advise the client directly.
+Give a concise, direct answer. Do not show your reasoning process.`;
 
   try {
     const messages = [
@@ -56,7 +57,16 @@ Help the RM with questions about this client. You can explain conflicts, suggest
     );
 
     const msg = response.data?.choices?.[0]?.message;
-    const content = msg?.content || msg?.reasoning_content || "I couldn't generate a response.";
+    let content = msg?.content || msg?.reasoning_content || "I couldn't generate a response.";
+
+    // If we fell back to reasoning_content, it may contain chain-of-thought.
+    // Extract the final answer: text after the last double-newline break.
+    if (!msg?.content && msg?.reasoning_content) {
+      const blocks = content.split("\n\n").filter((b: string) => b.trim());
+      if (blocks.length > 1) {
+        content = blocks[blocks.length - 1].trim();
+      }
+    }
     const assistantMsg: ChatMessage = { role: "assistant", content, timestamp: new Date().toISOString() };
     history.push(assistantMsg);
     chatHistories.set(clientId, history.slice(-20));

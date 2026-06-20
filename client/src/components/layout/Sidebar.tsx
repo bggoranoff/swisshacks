@@ -27,6 +27,7 @@ interface SidebarProps {
   selectedId: string | null;
   onSelect: (id: string) => void;
   loading: boolean;
+  conflictCount?: number;
 }
 
 function SidebarSkeleton() {
@@ -45,7 +46,7 @@ function SidebarSkeleton() {
   );
 }
 
-export function Sidebar({ clients, selectedId, onSelect, loading }: SidebarProps) {
+export function Sidebar({ clients, selectedId, onSelect, loading, conflictCount }: SidebarProps) {
   return (
     <aside className="flex flex-col gap-1 p-4 bg-slate-900 border-r border-slate-700 overflow-y-auto shadow-lg shadow-black/20">
       {/* Logo / branding */}
@@ -81,13 +82,20 @@ export function Sidebar({ clients, selectedId, onSelect, loading }: SidebarProps
             >
               {INITIALS[client.id] ?? client.name.slice(0, 2).toUpperCase()}
             </div>
-            <div className="flex flex-col min-w-0">
-              <span className={clsx(
-                "font-medium block truncate transition-colors",
-                selectedId === client.id ? "text-white" : "text-slate-200 group-hover:text-white"
-              )}>
-                {client.name}
-              </span>
+            <div className="flex flex-col min-w-0 flex-1">
+              <div className="flex items-center gap-1.5">
+                <span className={clsx(
+                  "font-medium block truncate transition-colors",
+                  selectedId === client.id ? "text-white" : "text-slate-200 group-hover:text-white"
+                )}>
+                  {client.name}
+                </span>
+                {selectedId === client.id && conflictCount != null && conflictCount > 0 && (
+                  <span className="text-xs px-1.5 py-0.5 rounded-full bg-red-600 text-white ml-auto shrink-0 font-medium">
+                    {conflictCount}
+                  </span>
+                )}
+              </div>
               <span className="text-xs text-slate-400 block truncate leading-snug mt-0.5">
                 {client.description}
               </span>
