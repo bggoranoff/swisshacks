@@ -629,102 +629,6 @@ async function executeTool(
 }
 
 // ---------------------------------------------------------------------------
-// Regex-based fallback tool detection (used when LLM doesn't support native
-// function calling or chooses not to call tools)
-// ---------------------------------------------------------------------------
-function detectToolIntent(
-  message: string,
-  portfolio?: Portfolio,
-): { name: string; args: Record<string, any> }[] {
-  const lower = message.toLowerCase();
-
-  if (/conflict|misalign|violat|clash|against.*(value|dna|constraint|principle)/i.test(message))
-    return [{ name: "lookup_conflicts", args: {} }];
-
-  if (/\bnews\b|alert|headline|market.*(event|update|develop)/i.test(message))
-    return [{ name: "get_news_alerts", args: {} }];
-
-  if (
-    /\bdraft\b|compose|write.*(message|advisory|email|letter|note)|advisory.*message/i.test(
-      message,
-    )
-  )
-    return [{ name: "draft_advisory", args: {} }];
-
-  if (/drift|allocation.*drift|rebalanc|target.*actual|overweight|underweight/i.test(message))
-    return [{ name: "get_portfolio_drift", args: {} }];
-
-  if (/transaction|trade.*(history|recent)|bought|sold|when.*b[ou][uy]/i.test(message))
-    return [{ name: "get_transactions", args: {} }];
-
-  if (
-    /compare.*(advisory|message|version)|generic.*personal|personal.*generic|before.*after/i.test(
-      message,
-    )
-  )
-    return [{ name: "compare_advisory", args: {} }];
-
-  if (/knowledge.*graph|relationship.*map|connection.*between|how.*connect|semantic.*graph/i.test(message))
-    return [{ name: "get_knowledge_graph", args: {} }];
-
-  // Price query — try to extract the symbol/name
-  if (/price|trading at|trading for|what.*trading|how much|current value of/i.test(message)) {
-    let symbol = "";
-    if (portfolio) {
-      const match = portfolio.positions.find((p) => lower.includes(p.name.toLowerCase()));
-      if (match) symbol = match.name;
-    }
-    if (!symbol) {
-      const m =
-        message.match(/what(?:'s| is)\s+(.+?)\s+trading/i) ||
-        message.match(/price\s+(?:of|for)\s+(.+?)(?:\?|$)/i) ||
-        message.match(/how much\s+(?:is|does)\s+(.+?)\s+(?:cost|worth|trade)/i);
-      if (m) symbol = m[1].trim();
-    }
-    if (symbol) return [{ name: "get_live_price", args: { symbol } }];
-  }
-
-  // Instrument search
-  if (/find\s|search\s|look.*for|discover|any.*(?:etf|bond|stock|fund)/i.test(message)) {
-    const m = message.match(
-      /(?:find|search|look.*for|discover)\s+(?:me\s+)?(?:some\s+)?(.+?)(?:\?|$)/i,
-    );
-    if (m) return [{ name: "search_instrument", args: { query: m[1].trim() } }];
-  }
-
-  // Explain trait
-  if (/why\s+(?:does|is|do)|explain.*(?:trait|value|sensitivity|important)/i.test(message)) {
-    const m =
-      message.match(
-        /why\s+(?:is|does)\s+.*?\b([\w\s-]+?)\b\s+(?:important|matter|relevant|significant|key)/i,
-      ) ||
-      message.match(/explain\s+(?:the\s+)?(?:trait\s+)?["']?([^"'?]+?)["']?\s*(?:\?|$)/i);
-    if (m) return [{ name: "explain_trait", args: { trait: m[1].trim(), category: "values" } }];
-  }
-
-  // Swap simulation
-  if (/swap|replace|substitute|switch|what.*if.*(?:sell|replace|swap)/i.test(message)) {
-    if (portfolio) {
-      const namedPos = portfolio.positions.find((p) => lower.includes(p.name.toLowerCase()));
-      if (namedPos) {
-        const buy = portfolio.cioRecommendations.find(
-          (c) =>
-            c.rating === "BUY" &&
-            c.isin !== namedPos.isin &&
-            !portfolio.positions.some((p) => p.isin === c.isin),
-        );
-        if (buy)
-          return [{ name: "simulate_swap", args: { sellIsin: namedPos.isin, buyIsin: buy.isin } }];
-      }
-      // No specific position named — auto-select in executor
-      return [{ name: "simulate_swap", args: {} }];
-    }
-  }
-
-  return [];
-}
-
-// ---------------------------------------------------------------------------
 // LLM helpers
 // ---------------------------------------------------------------------------
 function extractContent(msg: any): string {
@@ -812,23 +716,11 @@ Give a concise, direct answer. Do not show your reasoning process.`;
       ...history.slice(-10).map((m) => ({ role: m.role, content: m.content })),
     ];
 
-    // Phase 1: Call LLM (try with tools, fall back to without)
-    let msg: any;
-    let nativeToolsSupported = true;
-    try {
-      msg = await callLLM(messages, true);
-    } catch {
-      nativeToolsSupported = false;
-      msg = await callLLM(messages, false);
-    }
+    // Call LLM with tools
+    let msg: any = await callLLM(messages, true);
 
-    // Phase 2a: Handle native tool calls
-    if (
-      nativeToolsSupported &&
-      msg?.tool_calls &&
-      Array.isArray(msg.tool_calls) &&
-      msg.tool_calls.length > 0
-    ) {
+    // Handle tool calls if the model made any
+    if (msg?.tool_calls && Array.isArray(msg.tool_calls) && msg.tool_calls.length > 0) {
       messages.push({
         role: "assistant",
         content: msg.content || null,
@@ -842,7 +734,7 @@ Give a concise, direct answer. Do not show your reasoning process.`;
           fnArgs = JSON.parse(tc.function?.arguments || "{}");
         } catch {}
 
-        console.log(`[ChatAgent] Native tool call: ${fnName}(${JSON.stringify(fnArgs)})`);
+        console.log(`[ChatAgent] Tool call: ${fnName}(${JSON.stringify(fnArgs)})`);
         let result: any;
         try {
           result = await executeTool(fnName, fnArgs, ctx);
@@ -860,35 +752,6 @@ Give a concise, direct answer. Do not show your reasoning process.`;
 
       // Get final response incorporating tool results
       msg = await callLLM(messages, false);
-    }
-    // Phase 2b: Regex fallback
-    else {
-      const detected = detectToolIntent(userMessage, portfolio);
-      if (detected.length > 0) {
-        for (const { name, args } of detected) {
-          console.log(`[ChatAgent] Fallback tool: ${name}(${JSON.stringify(args)})`);
-          try {
-            const result = await executeTool(name, args, ctx);
-            toolCalls.push({ name, result });
-          } catch (err) {
-            toolCalls.push({ name, result: { error: (err as Error).message } });
-          }
-        }
-
-        if (toolCalls.length > 0) {
-          const toolCtx = toolCalls
-            .map((tc) => `[Tool: ${tc.name}]\n${JSON.stringify(tc.result, null, 2)}`)
-            .join("\n\n");
-
-          messages.push({ role: "assistant", content: "Let me look that up for you." });
-          messages.push({
-            role: "user",
-            content: `Here is the data retrieved:\n\n${toolCtx}\n\nBased on this data, provide a concise answer to the user's original question. Reference specific data points.`,
-          });
-
-          msg = await callLLM(messages, false);
-        }
-      }
     }
 
     const content = extractContent(msg);

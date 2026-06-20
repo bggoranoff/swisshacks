@@ -8,6 +8,17 @@
  * Requires: server running on localhost:3000 (or $BASE_URL)
  */
 
+// Load .env from project root
+const fs = require("fs");
+const path = require("path");
+const envPath = path.resolve(__dirname, "..", ".env");
+if (fs.existsSync(envPath)) {
+  for (const line of fs.readFileSync(envPath, "utf8").split("\n")) {
+    const m = line.match(/^\s*([A-Z_]+)\s*=\s*(.+?)\s*$/);
+    if (m && !process.env[m[1]]) process.env[m[1]] = m[2];
+  }
+}
+
 const BASE = process.env.BASE_URL || "http://localhost:3000";
 const PHOENIQS_URL =
   (process.env.PHOENIQS_API_URL || "https://maas.phoeniqs.com/v1") +
@@ -149,19 +160,24 @@ function parseJsonRobust(text) {
   // Extract JSON object from text (handles reasoning chains)
   const matches = text.match(/\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}/g);
   if (matches) {
-    // Try each match, prefer ones with expected keys
     for (const m of matches) {
       try {
         const parsed = JSON.parse(m);
-        if (parsed.score !== undefined || parsed.toolTriggered !== undefined) return parsed;
+        if (parsed.score !== undefined) return parsed;
       } catch {}
     }
-    // Fall back to last match
-    for (const m of matches.reverse()) {
+    for (const m of [...matches].reverse()) {
       try {
         return JSON.parse(m);
       } catch {}
     }
+  }
+  // Last resort: extract score from text like "score": 4 or "Score: 4"
+  const scoreMatch = text.match(/["']?score["']?\s*[:=]\s*(\d)/i);
+  if (scoreMatch) {
+    const score = parseInt(scoreMatch[1], 10);
+    const reasonMatch = text.match(/["']?reasoning["']?\s*[:=]\s*["']([^"']+)["']/i);
+    return { score, reasoning: reasonMatch?.[1] || "extracted from reasoning chain" };
   }
   return null;
 }
