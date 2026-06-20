@@ -26,7 +26,6 @@ export function DNAPanel({ dna, onOpenDrawer, loading, error, onRetry, durationM
   if (!dna) return <Card><CardTitle icon={Dna}>Client DNA</CardTitle><EmptyState message="Select a client to view DNA profile" /></Card>;
 
   const communicationStyle = dna.communicationProfile?.style ?? dna.communicationStyle;
-  const investmentProfile = dna.investmentProfile;
 
   const timelineData = useMemo(() => {
     if (!dna.evidence || dna.evidence.length === 0) return [];
@@ -66,69 +65,6 @@ export function DNAPanel({ dna, onOpenDrawer, loading, error, onRetry, durationM
 
       {/* All categories — scrollable list boxes */}
       <div className="space-y-4">
-
-        {/* Investment Preferences */}
-        {investmentProfile && (
-          <div className="border border-slate-700 rounded-lg p-3 bg-slate-800/40">
-            <div className="flex items-center justify-between gap-3 mb-3">
-              <p className="text-xs font-medium text-slate-400 uppercase tracking-wide">Investment Preferences</p>
-              <div className="flex items-center gap-1.5 text-xs">
-                {investmentProfile.riskTolerance && (
-                  <span className="px-2 py-0.5 rounded-full bg-slate-700 text-slate-300 capitalize">
-                    Risk: {investmentProfile.riskTolerance}
-                  </span>
-                )}
-                {investmentProfile.reputationSensitivity && (
-                  <span className="px-2 py-0.5 rounded-full bg-slate-700 text-slate-300 capitalize">
-                    Reputation: {investmentProfile.reputationSensitivity}
-                  </span>
-                )}
-              </div>
-            </div>
-            <div className="space-y-3">
-              {investmentProfile.objectives && investmentProfile.objectives.length > 0 && (
-                <div>
-                  <p className="text-xs text-slate-500 mb-1">Objectives</p>
-                  <div className="flex flex-wrap gap-1.5">
-                    {investmentProfile.objectives.map((item) => (
-                      <span key={item} className="text-xs px-2 py-0.5 rounded-full bg-emerald-900/50 text-emerald-300 capitalize">{item}</span>
-                    ))}
-                  </div>
-                </div>
-              )}
-              {investmentProfile.hardConstraints && investmentProfile.hardConstraints.length > 0 && (
-                <div>
-                  <p className="text-xs text-slate-500 mb-1">Hard Constraints</p>
-                  <div className="flex flex-wrap gap-1.5">
-                    {investmentProfile.hardConstraints.map((item) => (
-                      <span key={item} className="text-xs px-2 py-0.5 rounded-full bg-red-900/50 text-red-300 capitalize">{item}</span>
-                    ))}
-                  </div>
-                </div>
-              )}
-              {investmentProfile.positiveScreens && investmentProfile.positiveScreens.length > 0 && (
-                <div>
-                  <p className="text-xs text-slate-500 mb-1">Positive Screens</p>
-                  <div className="flex flex-wrap gap-1.5">
-                    {investmentProfile.positiveScreens.map((item) => (
-                      <span key={item} className="text-xs px-2 py-0.5 rounded-full bg-green-900/50 text-green-300 capitalize">{item}</span>
-                    ))}
-                  </div>
-                </div>
-              )}
-              {investmentProfile.exclusions && investmentProfile.exclusions.length > 0 && (
-                <div>
-                  <p className="text-xs text-slate-500 mb-1">Exclusions</p>
-                  <div className="flex flex-wrap gap-1.5">
-                    {investmentProfile.exclusions.map((item) => (
-                      <span key={item} className="text-xs px-2 py-0.5 rounded-full bg-orange-900/50 text-orange-300 capitalize">{item}</span>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-        )}
 
         {/* Client Values */}
         {dna.values && dna.values.length > 0 && (

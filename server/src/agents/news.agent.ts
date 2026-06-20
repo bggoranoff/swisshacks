@@ -60,7 +60,7 @@ export class NewsAgent {
       const client = getClient(clientId);
       if (client) {
         try {
-          dna = await extractDNA(client.id, client.crmEntries, false);
+          dna = await extractDNA(client.id, client.crmEntries, false, client.pronouns);
           resolvedProfile = this.buildNewsProfileContext(dna);
         } catch (err) {
           console.warn(`[NewsAgent] Could not resolve CRM profile for ${clientId}:`, (err as Error).message);

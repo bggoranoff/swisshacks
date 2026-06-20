@@ -5,12 +5,12 @@ const DEMO_PROFILES: Record<string, ClientDNA> = {
     clientId: "schneider",
     profileSource: "demo-profile",
     summary:
-      "Hubertus Schneider is an emotionally driven private client whose investment decisions are deeply influenced by her family's experience with chronic illness. She runs a family foundation supporting neuro-degenerative research and expects her portfolio to reflect this mission. Purpose-alignment and transparency matter more to her than performance optimisation.",
+      "Hubertus Schneider is an emotionally driven private client whose investment decisions are deeply influenced by his family's experience with chronic illness. He runs a family foundation supporting neuro-degenerative research and expects his portfolio to reflect this mission. Purpose-alignment and transparency matter more to him than performance optimisation.",
     communicationStyle: "values-led",
     communicationProfile: {
       style: "values-led",
       rationale:
-        "Schneider responds best to narratives that connect investments to her foundation's mission. Lead with impact and alignment, not performance figures.",
+        "Schneider responds best to narratives that connect investments to his foundation's mission. Lead with impact and alignment, not performance figures.",
       confidence: 0.91,
       evidence: [],
     },

@@ -11,10 +11,10 @@ const AVATAR_COLORS: Record<string, string> = {
 };
 
 const INITIALS: Record<string, string> = {
-  schneider: "MS",
-  huber: "PH",
-  raeber: "RR",
-  ammann: "CA",
+  schneider: "HS",
+  huber: "MH",
+  raeber: "ER",
+  ammann: "JA",
 };
 
 const STRATEGY_STYLES: Record<string, string> = {

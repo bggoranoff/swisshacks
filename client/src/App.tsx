@@ -3,7 +3,6 @@ import { Briefcase, MessageCircle, ChevronLeft } from "lucide-react";
 import { Sidebar } from "./components/layout/Sidebar";
 import { TraitDrawer } from "./components/dna/TraitDrawer";
 import { Header } from "./components/layout/Header";
-import { TraceDrawer } from "./components/traces/TraceDrawer";
 import { AuditDrawer } from "./components/audit/AuditDrawer";
 import { DNAPanel } from "./components/dna/DNAPanel";
 import { PortfolioTable } from "./components/portfolio/PortfolioTable";
@@ -12,7 +11,6 @@ import { AlertsPanel } from "./components/alerts/AlertsPanel";
 import { AdvisoryPanel } from "./components/advisory/AdvisoryPanel";
 import { ErrorBoundary } from "./components/shared/ErrorBoundary";
 import { KnowledgeGraphPanel } from "./components/graph/KnowledgeGraphPanel";
-import { DecisionPanel } from "./components/decisions/DecisionPanel";
 import { ChatPanel } from "./components/chat/ChatPanel";
 import { useFetch } from "./hooks/useFetch";
 import { prefetchClients } from "./hooks/prefetchCache";
@@ -50,7 +48,6 @@ function ResizeHandle({ onMouseDown }: { onMouseDown: (e: React.MouseEvent) => v
 
 function App() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [tracesOpen, setTracesOpen] = useState(false);
   const [auditOpen, setAuditOpen] = useState(false);
   const [advisory, setAdvisory] = useState<AdvisoryMessage | null>(null);
   const [advisoryLoading, setAdvisoryLoading] = useState(false);
@@ -242,14 +239,11 @@ function App() {
         handleSelectClient(clientIds[parseInt(e.key) - 1]);
       } else if (e.key === "d" || e.key === "D") {
         handleDemo();
-      } else if (e.key === "t" || e.key === "T") {
-        setTracesOpen(prev => !prev);
       } else if (e.key === "a" || e.key === "A") {
         setAuditOpen(prev => !prev);
       } else if (e.key === "g" || e.key === "G") {
         if (selectedId) handleGenerate();
       } else if (e.key === "Escape") {
-        setTracesOpen(false);
         setAuditOpen(false);
       }
     };
@@ -296,7 +290,7 @@ function App() {
       />
       <ResizeHandle onMouseDown={startSidebarResize} />
       <div className="flex flex-col flex-1 min-w-0 h-screen overflow-hidden">
-        <Header onDemo={handleDemo} onTracesClick={() => setTracesOpen(true)} onAuditClick={() => setAuditOpen(true)} />
+        <Header onDemo={handleDemo} onAuditClick={() => setAuditOpen(true)} />
         {demoActive && (
           <div className="bg-six-orange/10 border-b border-six-orange/30 px-4 py-2 flex items-center justify-between">
             <div className="flex items-center gap-3">
@@ -392,9 +386,9 @@ function App() {
                     selectedId === "huber" ? "bg-six-blue" :
                     selectedId === "raeber" ? "bg-six-orange-dark" : "bg-six-blue-bright"
                   }`}>
-                    {selectedId === "schneider" ? "MS" :
-                     selectedId === "huber" ? "PH" :
-                     selectedId === "raeber" ? "RR" : "CA"}
+                    {selectedId === "schneider" ? "HS" :
+                     selectedId === "huber" ? "MH" :
+                     selectedId === "raeber" ? "ER" : "JA"}
                   </div>
                   <div>
                     <h2 className="text-lg font-semibold text-white">
@@ -476,9 +470,6 @@ function App() {
                   <KnowledgeGraphPanel clientId={selectedId} />
                 </ErrorBoundary>
               </div>
-              <ErrorBoundary fallbackMessage="Failed to load AI decisions">
-                <DecisionPanel />
-              </ErrorBoundary>
             </div>
           )}
         </main>
@@ -516,7 +507,6 @@ function App() {
         </button>
       )}
 
-      <TraceDrawer isOpen={tracesOpen} onClose={() => setTracesOpen(false)} />
       <AuditDrawer isOpen={auditOpen} onClose={() => setAuditOpen(false)} />
 
       {/* Trait drawer — rendered at root so it can be positioned relative to chat column */}

@@ -83,7 +83,7 @@ app.get("/api/clients/:id/dna", asyncHandler(async (req: Request, res: Response)
     return;
   }
   const forceRefresh = req.query.refresh === "true";
-  const dna = await extractDNA(client.id, client.crmEntries, forceRefresh);
+  const dna = await extractDNA(client.id, client.crmEntries, forceRefresh, client.pronouns);
   res.json({ success: true, data: dna });
 }));
 
@@ -222,7 +222,7 @@ app.get("/api/clients/:id/portfolio", asyncHandler(async (req: Request, res: Res
   // DNA-based conflict detection via LLM
   let conflicts: any[] = [];
   try {
-    const dna = await extractDNA(client.id, client.crmEntries, false);
+    const dna = await extractDNA(client.id, client.crmEntries, false, client.pronouns);
     const top20 = [...positionsWithCio].sort((a, b) => b.currentValueCHF - a.currentValueCHF).slice(0, 20);
     conflicts = await detectConflicts(client.id, top20, dna, portfolio.cioRecommendations);
     console.log(`[Portfolio] ${client.id}: ${conflicts.length} conflicts detected`);
@@ -346,7 +346,7 @@ app.get("/api/clients/:id/graph", asyncHandler(async (req: Request, res: Respons
     res.status(404).json({ success: false, error: "Client not found" });
     return;
   }
-  const dna = await extractDNA(client.id, client.crmEntries, false);
+  const dna = await extractDNA(client.id, client.crmEntries, false, client.pronouns);
   const portfolio = getPortfolio(client.strategy);
   const digest = await newsAgent.getNewsDigest(client.id);
   const graph = knowledgeGraphService.buildClientGraph(client.id, dna, portfolio, digest);
@@ -468,7 +468,7 @@ app.listen(port, () => {
   console.log(`[Warmup] Pre-warming DNA cache for ${clients.length} clients...`);
   Promise.all(
     clients.map(c =>
-      extractDNA(c.id, c.crmEntries, false)
+      extractDNA(c.id, c.crmEntries, false, c.pronouns)
         .then(() => console.log(`[Warmup] DNA cached for ${c.id}`))
         .catch(err => console.warn(`[Warmup] DNA failed for ${c.id}: ${(err as Error).message}`))
     )
@@ -491,7 +491,7 @@ app.listen(port, () => {
           // Trigger the portfolio endpoint logic to cache conflicts
           const portfolio = getPortfolio(c.strategy);
           if (!portfolio) return;
-          const dna = await extractDNA(c.id, c.crmEntries, false);
+          const dna = await extractDNA(c.id, c.crmEntries, false, c.pronouns);
           const top20 = [...portfolio.positions].sort((a, b) => b.currentValueCHF - a.currentValueCHF).slice(0, 20);
           await detectConflicts(c.id, top20, dna, portfolio.cioRecommendations);
           console.log(`[Warmup] Portfolio cached for ${c.id}`);

@@ -108,9 +108,10 @@ export function NewsFeed({ news, loading, error, onRetry, durationMs, fetchedAt 
           <div
             key={article.id}
             className={clsx(
-              "p-3 rounded-lg bg-slate-700/50 transition-all duration-200 hover:bg-slate-700",
-              article.isAlert && article.alertType === "conflict" && "border-l-2 border-red-400",
-              article.isAlert && article.alertType === "opportunity" && "border-l-2 border-green-400"
+              "p-3 rounded-lg bg-slate-700/50 transition-all duration-200 hover:bg-slate-700 border-l-2",
+              article.sentimentLabel === "BULLISH" && "border-green-400",
+              article.sentimentLabel === "BEARISH" && "border-red-400",
+              article.sentimentLabel === "NEUTRAL" && "border-slate-500"
             )}
           >
             {article.url && article.url !== "#" && article.url !== "#scenario" && article.url !== "#cio" ? (

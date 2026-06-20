@@ -554,6 +554,7 @@ export async function extractDNA(
   clientId: string,
   entries: CRMEntry[],
   forceRefresh = false,
+  pronouns = "they/them",
 ): Promise<ClientDNA> {
   if (!forceRefresh && dnaCache.has(clientId)) {
     return dnaCache.get(clientId)!;
@@ -563,7 +564,7 @@ export async function extractDNA(
     return inFlightExtractions.get(clientId)!;
   }
 
-  const extraction = extractDNAUncached(clientId, entries, forceRefresh)
+  const extraction = extractDNAUncached(clientId, entries, forceRefresh, pronouns)
     .finally(() => inFlightExtractions.delete(clientId));
   inFlightExtractions.set(clientId, extraction);
   return extraction;
@@ -572,7 +573,8 @@ export async function extractDNA(
 async function extractDNAUncached(
   clientId: string,
   entries: CRMEntry[],
-  forceRefresh: boolean
+  forceRefresh: boolean,
+  pronouns = "they/them",
 ): Promise<ClientDNA> {
   const startTime = Date.now();
 
@@ -604,7 +606,7 @@ async function extractDNAUncached(
 
   for (let i = 0; i < chunks.length; i++) {
     const chunk = chunks[i];
-    const userPrompt = `Analyze these CRM conversation logs and extract the client's investment profile and communication preference:\n\n${formatCRMEntries(chunk)}\n\nRemember: respond with ONLY the JSON object. No other text.`;
+    const userPrompt = `Analyze these CRM conversation logs and extract the client's investment profile and communication preference.\n\nCLIENT PRONOUNS: ${pronouns} — use these pronouns consistently throughout ALL text fields in your response.\n\n${formatCRMEntries(chunk)}\n\nRemember: respond with ONLY the JSON object. No other text.`;
 
     try {
       console.log(`[CRM Agent] Processing chunk ${i + 1}/${chunks.length} for ${clientId}...`);

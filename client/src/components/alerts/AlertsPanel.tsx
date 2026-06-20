@@ -204,7 +204,7 @@ export function AlertsPanel({
   return (
     <Card>
       <CardTitle icon={ShieldAlert}>Alerts &amp; Conflicts</CardTitle>
-      <div className="space-y-3">
+      <div className={`space-y-3 ${alerts.length + typedConflicts.length > 2 ? "max-h-[560px] overflow-y-auto hide-scrollbar pr-1" : ""}`}>
         {triggerEvent && (
           <div className="bg-slate-700/30 border border-slate-600/50 rounded-lg p-3 mb-3">
             <p className="text-xs text-slate-400 uppercase tracking-wide mb-1">Scenario Trigger</p>

@@ -10,6 +10,7 @@ export interface ClientProfile {
   crmTab: string;
   portfolioTab: string;
   triggerEvent: string;
+  pronouns: string;
   crmEntries: CRMEntry[];
 }
 

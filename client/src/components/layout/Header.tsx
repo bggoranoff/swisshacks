@@ -1,11 +1,10 @@
 import clsx from "clsx";
-import { Activity, ClipboardList, Keyboard, Play } from "lucide-react";
+import { ClipboardList, Keyboard, Play } from "lucide-react";
 import { useEffect, useState } from "react";
 import { StatusDot } from "../shared/StatusDot";
 
 interface HeaderProps {
   onDemo?: () => void;
-  onTracesClick?: () => void;
   onAuditClick?: () => void;
 }
 
@@ -24,7 +23,7 @@ const PROBE_LABEL_MAP: Record<string, keyof ProbeStatus> = {
 const DEFAULT_STATUS: ProbeStatus = { six: false, news: false, llm: false };
 const ALL_OK: ProbeStatus = { six: true, news: true, llm: true };
 
-export function Header({ onDemo, onTracesClick, onAuditClick }: HeaderProps) {
+export function Header({ onDemo, onAuditClick }: HeaderProps) {
   const [status, setStatus] = useState<ProbeStatus>(ALL_OK);
 
   useEffect(() => {
@@ -57,15 +56,6 @@ export function Header({ onDemo, onTracesClick, onAuditClick }: HeaderProps) {
         <span className="text-slate-500 font-normal ml-1.5 text-sm">AI</span>
       </h1>
       <div className="flex items-center gap-4">
-        {onTracesClick && (
-          <button
-            onClick={onTracesClick}
-            className="bg-slate-700 hover:bg-slate-600 text-slate-200 px-3 py-1.5 rounded text-sm font-medium flex items-center gap-2 transition-colors"
-          >
-            <Activity className="h-3.5 w-3.5" />
-            Traces
-          </button>
-        )}
         {onAuditClick && (
           <button
             onClick={onAuditClick}
@@ -93,7 +83,6 @@ export function Header({ onDemo, onTracesClick, onAuditClick }: HeaderProps) {
             <div className="space-y-1 text-xs text-slate-400">
               <div className="flex justify-between"><span>1-4</span><span>Select client</span></div>
               <div className="flex justify-between"><span>D</span><span>Demo mode</span></div>
-              <div className="flex justify-between"><span>T</span><span>Traces</span></div>
               <div className="flex justify-between"><span>A</span><span>Audit log</span></div>
               <div className="flex justify-between"><span>G</span><span>Generate advisory</span></div>
               <div className="flex justify-between"><span>Esc</span><span>Close drawer</span></div>

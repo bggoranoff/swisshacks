@@ -15,15 +15,16 @@ import { demoModeEnabled } from "../config/demo";
 
 const DATA_DIR = path.join(__dirname, "../../../data");
 
-const CRM_TAB_MAP: Record<string, { id: string; name: string; description: string; demoDescription: string; strategy: "Defensive" | "Balanced" | "Growth"; portfolioTab: string; triggerEvent: string }> = {
+const CRM_TAB_MAP: Record<string, { id: string; name: string; description: string; demoDescription: string; strategy: "Defensive" | "Balanced" | "Growth"; portfolioTab: string; triggerEvent: string; pronouns: string }> = {
   "CRM Schneider": {
     id: "schneider",
     name: "Hubertus Schneider",
-    description: "Emotionally driven private client running a family foundation for chronic-illness and neuro-degenerative research. Seeks purpose-aligned, balanced investments that reflect her family's health legacy.",
+    description: "Emotionally driven private client running a family foundation for chronic-illness and neuro-degenerative research. Seeks purpose-aligned, balanced investments that reflect his family's health legacy.",
     demoDescription: "The Personal Connection — emotional, purpose-driven; family foundation for chronic-illness research",
     strategy: "Balanced",
     portfolioTab: "Sample Portfolio Balanced",
     triggerEvent: "Pharma company shuts down its research division for that disease",
+    pronouns: "he/him",
   },
   "CRM Huber": {
     id: "huber",
@@ -33,6 +34,7 @@ const CRM_TAB_MAP: Record<string, { id: string; name: string; description: strin
     strategy: "Defensive",
     portfolioTab: "Sample Portfolio Defensive",
     triggerEvent: "Consumer goods company announces historic palm oil deforestation cut-off",
+    pronouns: "he/him",
   },
   "CRM Raeber": {
     id: "raeber",
@@ -42,15 +44,17 @@ const CRM_TAB_MAP: Record<string, { id: string; name: string; description: strin
     strategy: "Defensive",
     portfolioTab: "Sample Portfolio Defensive",
     triggerEvent: "CIO suggests rebalancing from blue chips into US AI stocks",
+    pronouns: "they/them",
   },
   "CRM Ammann": {
     id: "ammann",
     name: "Julian Ammann",
-    description: "Prominent Swiss entrepreneur for whom reputational risk is inseparable from financial risk. Any ESG controversy or supply-chain scandal in the portfolio is treated as a direct threat to personal brand and business standing.",
+    description: "Prominent Swiss entrepreneur for whom reputational risk is inseparable from financial risk. Any ESG controversy or supply-chain scandal in the portfolio is treated as a direct threat to his personal brand and business standing.",
     demoDescription: "The Corporate Reputation Case — prominent Swiss entrepreneur; reputational risk = financial risk",
     strategy: "Growth",
     portfolioTab: "Sample Portfolio Growth",
     triggerEvent: "Labour exploitation scandal hits a consumer brand in the portfolio",
+    pronouns: "he/him",
   },
 };
 
@@ -260,7 +264,7 @@ export function loadPortfolioData(): Portfolio[] {
 
     const totalTargetCHF = positions.reduce((sum, p) => sum + p.targetValueCHF, 0);
 
-    console.log(`[Loader] Portfolio ${cfg.strategy}: ${positions.length} positions, ${transactions.length} transactions, ${cashFlows.length} cash flows, target CHF ${totalTargetCHF.toLocaleString()}`);
+    console.log(`[Loader] Portfolio ${cfg.strategy}: ${positions.length} positions, ${transactions.length} transactions, ${cfg.strategy === "Defensive" ? cashFlows.length : cashFlows.length} cash flows, target CHF ${totalTargetCHF.toLocaleString()}`);
 
     portfolios.push({
       strategy: cfg.strategy,
@@ -294,6 +298,7 @@ export function buildClientProfiles(
       crmTab: sheetName,
       portfolioTab: meta.portfolioTab,
       triggerEvent: meta.triggerEvent,
+      pronouns: meta.pronouns,
       crmEntries: entries,
     });
   }
