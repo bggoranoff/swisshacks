@@ -1,4 +1,4 @@
-import { Activity, ClipboardList, Play } from "lucide-react";
+import { Activity, ClipboardList, Keyboard, Play } from "lucide-react";
 import { useEffect, useState } from "react";
 import { StatusDot } from "../shared/StatusDot";
 
@@ -81,6 +81,21 @@ export function Header({ onDemo, onTracesClick, onAuditClick }: HeaderProps) {
             Demo
           </button>
         )}
+        <div className="relative group">
+          <button className="text-slate-500 hover:text-slate-300 transition-colors">
+            <Keyboard className="h-4 w-4" />
+          </button>
+          <div className="absolute right-0 top-8 w-48 bg-slate-700 border border-slate-600 rounded-lg p-3 shadow-xl opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity z-50">
+            <p className="text-xs font-medium text-slate-300 mb-2">Keyboard Shortcuts</p>
+            <div className="space-y-1 text-xs text-slate-400">
+              <div className="flex justify-between"><span>1-4</span><span>Select client</span></div>
+              <div className="flex justify-between"><span>D</span><span>Demo mode</span></div>
+              <div className="flex justify-between"><span>T</span><span>Traces</span></div>
+              <div className="flex justify-between"><span>A</span><span>Audit log</span></div>
+              <div className="flex justify-between"><span>Esc</span><span>Close drawer</span></div>
+            </div>
+          </div>
+        </div>
         <div className="flex items-center gap-3">
           <StatusDot ok={status.six} label="SIX" />
           <StatusDot ok={status.news} label="News" />
