@@ -305,6 +305,7 @@ function App() {
                   loading={portfolioFetch.loading}
                   error={portfolioFetch.error && !portfolio ? portfolioFetch.error : null}
                   onRetry={portfolioFetch.refetch}
+                  durationMs={portfolioFetch.durationMs}
                 />
               </ErrorBoundary>
               <ErrorBoundary fallbackMessage="Failed to load news feed">
@@ -313,6 +314,7 @@ function App() {
                   loading={newsFetch.loading}
                   error={newsFetch.error && !news ? newsFetch.error : null}
                   onRetry={newsFetch.refetch}
+                  durationMs={newsFetch.durationMs}
                 />
               </ErrorBoundary>
               <div id="alerts-panel">
