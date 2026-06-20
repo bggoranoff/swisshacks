@@ -19,6 +19,7 @@ import type {
   HomeSourceArticle,
   HomeTodo,
   HomeTodoSeverity,
+  SeverityBand,
 } from "../types/api";
 
 interface HomePageProps {
@@ -46,6 +47,13 @@ const sourceStyles: Record<HomeNewsItem["sourceType"], string> = {
   scenario: "bg-violet-500/15 text-violet-200 border-violet-500/30",
 };
 
+const bandStyles: Record<SeverityBand, string> = {
+  none: "bg-slate-500/15 text-slate-300 border-slate-500/30",
+  watch: "bg-blue-500/15 text-blue-200 border-blue-500/40",
+  material: "bg-amber-500/15 text-amber-200 border-amber-500/40",
+  major: "bg-red-500/15 text-red-200 border-red-500/40",
+};
+
 function formatDate(value: string): string {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "Unknown date";
@@ -59,7 +67,15 @@ function formatDate(value: string): string {
 }
 
 function formatScore(score: number): string {
-  return `${Math.round(score * 100)}%`;
+  const pct = score * 100;
+  if (pct > 0 && pct < 1) return `${pct.toFixed(2)}%`;
+  if (pct < 10) return `${pct.toFixed(1)}%`;
+  return `${Math.round(pct)}%`;
+}
+
+function formatShare(score: number): string {
+  const pct = score * 100;
+  return `${pct < 10 ? pct.toFixed(1) : Math.round(pct)}%`;
 }
 
 function firstSentence(value: string): string {
@@ -68,8 +84,8 @@ function firstSentence(value: string): string {
   return sentence.length > 180 ? `${sentence.slice(0, 177).trim()}...` : sentence;
 }
 
-function maxTodoRelevance(todo: HomeTodo): number {
-  return Math.max(0, ...todo.affectedClients.map(client => client.relevanceScore));
+function maxTodoScore(todo: HomeTodo): number {
+  return Math.max(todo.globalNewsScore || 0, todo.clientNewsScore || 0, ...todo.affectedClients.map(client => client.clientNewsScore));
 }
 
 function topTodoSources(todo: HomeTodo, limit = 3): HomeSourceArticle[] {
@@ -94,7 +110,7 @@ function ClientPills({
     return <span className="text-xs text-slate-500">No affected clients detected</span>;
   }
 
-  const sortedClients = [...clients].sort((a, b) => b.relevanceScore - a.relevanceScore);
+  const sortedClients = [...clients].sort((a, b) => b.clientNewsScore - a.clientNewsScore);
   const maxVisible = showReason ? 6 : 10;
   const visibleClients = sortedClients.slice(0, maxVisible);
   const hiddenCount = sortedClients.length - visibleClients.length;
@@ -113,7 +129,15 @@ function ClientPills({
                 <Users className="h-3 w-3 flex-none text-blue-300" />
                 <span className="truncate">{client.name}</span>
               </span>
-              <span className="shrink-0 text-xs text-slate-500">{formatScore(client.relevanceScore)}</span>
+              <span className="shrink-0 text-xs text-slate-500">{formatScore(client.clientNewsScore)}</span>
+            </span>
+            <span className="mt-1 flex flex-wrap gap-1.5 text-[11px]">
+              <span className={`rounded-full border px-2 py-0.5 uppercase ${bandStyles[client.severityBand]}`}>
+                {client.severityBand}
+              </span>
+              <span className="rounded-full border border-slate-700 bg-slate-950/40 px-2 py-0.5 text-slate-400">
+                {formatShare(client.portfolioExposureShare)} exposed
+              </span>
             </span>
             <span className="mt-1 block text-xs leading-5 text-slate-400">{firstSentence(client.reason)}</span>
           </button>
@@ -138,7 +162,7 @@ function ClientPills({
         >
           <Users className="h-3 w-3 flex-none text-blue-300" />
           <span className="truncate">{client.name}</span>
-          <span className="text-slate-500">{formatScore(client.relevanceScore)}</span>
+          <span className="text-slate-500">{formatScore(client.clientNewsScore)}</span>
         </button>
       ))}
       {hiddenCount > 0 && (
@@ -163,6 +187,14 @@ function TodoItem({ todo, onSelectClient }: { todo: HomeTodo; onSelectClient: (i
             <span className={`rounded-full border px-2.5 py-1 text-[11px] font-semibold uppercase ${severityStyles[todo.severity]}`}>
               {severityLabels[todo.severity]}
             </span>
+            <span className="rounded-full border border-slate-600 bg-slate-950/40 px-2.5 py-1 text-[11px] font-medium uppercase text-slate-300">
+              {todo.scope}
+            </span>
+            {todo.severityBand && (
+              <span className={`rounded-full border px-2.5 py-1 text-[11px] font-medium uppercase ${bandStyles[todo.severityBand]}`}>
+                {todo.severityBand}
+              </span>
+            )}
             <span className={`rounded-full border px-2.5 py-1 text-[11px] font-medium uppercase ${sourceStyles[primarySource.sourceType]}`}>
               {primarySource.sourceType}
             </span>
@@ -185,6 +217,21 @@ function TodoItem({ todo, onSelectClient }: { todo: HomeTodo; onSelectClient: (i
       </div>
 
       <p className="mt-3 text-sm leading-6 text-slate-300">{todo.summary}</p>
+
+      <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-3">
+        <div className="rounded-lg border border-slate-700/80 bg-slate-950/35 px-3 py-2">
+          <p className="text-[11px] uppercase text-slate-500">Impact score</p>
+          <p className="mt-1 text-sm font-semibold text-white">{formatScore(todo.globalNewsScore || todo.clientNewsScore || maxTodoScore(todo))}</p>
+        </div>
+        <div className="rounded-lg border border-slate-700/80 bg-slate-950/35 px-3 py-2">
+          <p className="text-[11px] uppercase text-slate-500">Exposure</p>
+          <p className="mt-1 text-sm font-semibold text-white">{todo.portfolioExposureShare ? formatShare(todo.portfolioExposureShare) : `${todo.affectedClients.length} clients`}</p>
+        </div>
+        <div className="rounded-lg border border-slate-700/80 bg-slate-950/35 px-3 py-2">
+          <p className="text-[11px] uppercase text-slate-500">Direction</p>
+          <p className="mt-1 text-sm font-semibold capitalize text-white">{todo.effectDirection || "unknown"}</p>
+        </div>
+      </div>
 
       <div className="mt-3 rounded-lg border border-slate-700/80 bg-slate-800/40 px-3 py-2">
         <p className="text-xs font-medium uppercase text-slate-500">Suggested RM action</p>
@@ -243,8 +290,6 @@ function TodoItem({ todo, onSelectClient }: { todo: HomeTodo; onSelectClient: (i
 }
 
 function NewsItem({ item, onSelectClient }: { item: HomeNewsItem; onSelectClient: (id: string) => void }) {
-  const scoreWidth = `${Math.max(4, Math.round(item.relevanceScore * 100))}%`;
-
   return (
     <article className="rounded-lg border border-slate-700 bg-slate-900/30 p-4">
       <div className="flex items-start justify-between gap-3">
@@ -252,6 +297,9 @@ function NewsItem({ item, onSelectClient }: { item: HomeNewsItem; onSelectClient
           <div className="mb-2 flex flex-wrap items-center gap-2 text-xs text-slate-500">
             <span className={`rounded-full border px-2 py-0.5 text-[11px] font-medium uppercase ${sourceStyles[item.sourceType]}`}>
               {item.sourceType}
+            </span>
+            <span className={`rounded-full border px-2 py-0.5 text-[11px] font-medium uppercase ${bandStyles[item.severityBand]}`}>
+              {item.severityBand}
             </span>
             <span>{item.source}</span>
             <span>{formatDate(item.publishedAt)}</span>
@@ -273,13 +321,18 @@ function NewsItem({ item, onSelectClient }: { item: HomeNewsItem; onSelectClient
 
       <p className="mt-3 text-sm leading-6 text-slate-400">{item.summary}</p>
 
-      <div className="mt-4">
-        <div className="mb-1 flex items-center justify-between text-xs">
-          <span className="text-slate-500">Max client relevance</span>
-          <span className="font-medium text-slate-300">{formatScore(item.relevanceScore)}</span>
+      <div className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-3">
+        <div className="rounded-lg border border-slate-700/80 bg-slate-950/35 px-3 py-2">
+          <p className="text-[11px] uppercase text-slate-500">Global score</p>
+          <p className="mt-1 text-sm font-semibold text-white">{formatScore(item.globalNewsScore)}</p>
         </div>
-        <div className="h-1.5 overflow-hidden rounded-full bg-slate-700">
-          <div className="h-full rounded-full bg-blue-400" style={{ width: scoreWidth }} />
+        <div className="rounded-lg border border-slate-700/80 bg-slate-950/35 px-3 py-2">
+          <p className="text-[11px] uppercase text-slate-500">Max client score</p>
+          <p className="mt-1 text-sm font-semibold text-white">{formatScore(item.maxClientNewsScore)}</p>
+        </div>
+        <div className="rounded-lg border border-slate-700/80 bg-slate-950/35 px-3 py-2">
+          <p className="text-[11px] uppercase text-slate-500">Affected</p>
+          <p className="mt-1 text-sm font-semibold text-white">{item.affectedClientCount} clients</p>
         </div>
       </div>
 
@@ -328,7 +381,7 @@ export function HomePage({ data, loading, error, onRetry, onSelectClient }: Home
     );
   }
 
-  const sortedTodos = [...data.todos].sort((a, b) => maxTodoRelevance(b) - maxTodoRelevance(a));
+  const sortedTodos = [...data.todos].sort((a, b) => maxTodoScore(b) - maxTodoScore(a));
   const sortedNews = [...data.latestNews].sort((a, b) => b.relevanceScore - a.relevanceScore);
 
   return (
@@ -338,7 +391,7 @@ export function HomePage({ data, loading, error, onRetry, onSelectClient }: Home
           <div>
             <CardTitle icon={ListTodo}>Relationship Manager Todos</CardTitle>
             <p className="text-sm text-slate-400">
-              Aggregated from relevant news triggers and grouped by action for affected clients.
+              Generated from client-level portfolio exposure and LLM-scored company/news impact.
             </p>
           </div>
           <div className="grid grid-cols-3 gap-2 text-center">
@@ -373,7 +426,7 @@ export function HomePage({ data, loading, error, onRetry, onSelectClient }: Home
           <div>
             <CardTitle icon={Newspaper}>Latest News</CardTitle>
             <p className="text-sm text-slate-400">
-              Latest monitored articles with source type, relevance, and affected clients.
+              Monitored articles ranked by global impact score, affected clients, and effect band.
             </p>
           </div>
           <div className="flex items-center gap-2 rounded-lg border border-slate-700 bg-slate-900/40 px-3 py-2 text-xs text-slate-400">
