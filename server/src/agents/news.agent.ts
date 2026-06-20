@@ -6,6 +6,19 @@ import { extractDNA } from "./crm.agent";
 
 const CACHE_TTL_MS = 5 * 60 * 1000;
 
+function deduplicateArticles(articles: ScoredNewsArticle[]): ScoredNewsArticle[] {
+  const seen = new Set<string>();
+  return articles.filter(a => {
+    // Normalize title: lowercase, remove punctuation, trim
+    const normalized = a.title.toLowerCase().replace(/[^a-z0-9\s]/g, "").trim();
+    // Create a key from first 8 words
+    const key = normalized.split(/\s+/).slice(0, 8).join(" ");
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
 interface CacheEntry {
   digest: NewsDigest;
   cachedAt: number;
@@ -37,6 +50,7 @@ export class NewsAgent {
     const liveArticles = await this.fetchLiveNews(clientId);
     const mockTrigger = MOCK_TRIGGERS[clientId];
     const allArticles = mockTrigger ? [mockTrigger, ...liveArticles] : liveArticles;
+    const dedupedArticles = deduplicateArticles(allArticles);
 
     // Resolve DNA summary for LLM scoring
     let resolvedSummary = dnaSummary;
@@ -51,9 +65,9 @@ export class NewsAgent {
 
     let scored: ScoredNewsArticle[];
     if (resolvedSummary && this.llmKey) {
-      scored = await this.scoreWithLLM(allArticles, resolvedSummary, clientId);
+      scored = await this.scoreWithLLM(dedupedArticles, resolvedSummary, clientId);
     } else {
-      scored = allArticles;
+      scored = dedupedArticles;
     }
 
     scored.sort((a, b) => b.relevanceScore - a.relevanceScore);

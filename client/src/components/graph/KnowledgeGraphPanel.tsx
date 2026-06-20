@@ -50,6 +50,7 @@ export function KnowledgeGraphPanel({ clientId }: { clientId: string | null }) {
   const [graph, setGraph] = useState<KnowledgeGraph | null>(null);
   const [loading, setLoading] = useState(false);
   const [hoveredNode, setHoveredNode] = useState<string | null>(null);
+  const [selectedNode, setSelectedNode] = useState<string | null>(null);
 
   useEffect(() => {
     if (!clientId) return;
@@ -114,14 +115,21 @@ export function KnowledgeGraphPanel({ clientId }: { clientId: string | null }) {
         <EmptyState message="No graph data available" />
       ) : (
         <div>
-          <svg viewBox="0 0 520 400" className="w-full h-auto">
+          <svg
+            viewBox="0 0 520 400"
+            className="w-full h-auto"
+            onClick={(e) => {
+              if (e.target === e.currentTarget) setSelectedNode(null);
+            }}
+          >
             {/* Edges */}
             {graph.edges.map((e, i) => {
               const src = nodeMap[e.source];
               const tgt = nodeMap[e.target];
               if (!src || !tgt) return null;
+              const activeNode = hoveredNode || selectedNode;
               const isHighlighted =
-                hoveredNode === e.source || hoveredNode === e.target;
+                activeNode === e.source || activeNode === e.target;
               return (
                 <line
                   key={i}
@@ -131,7 +139,7 @@ export function KnowledgeGraphPanel({ clientId }: { clientId: string | null }) {
                   y2={tgt.y}
                   stroke={isHighlighted ? "#94a3b8" : "#334155"}
                   strokeWidth={isHighlighted ? 1.5 : 0.8}
-                  strokeOpacity={hoveredNode && !isHighlighted ? 0.15 : 0.6}
+                  strokeOpacity={activeNode && !isHighlighted ? 0.15 : 0.6}
                 />
               );
             })}
