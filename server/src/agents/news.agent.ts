@@ -2,6 +2,7 @@ import axios from "axios";
 import { ScoredNewsArticle, NewsDigest } from "../types/news";
 import { MOCK_TRIGGERS, PERSONA_KEYWORDS } from "../data/mock-triggers";
 import { auditService } from "../services/audit.service";
+import { extractDNA } from "./crm.agent";
 
 const CACHE_TTL_MS = 5 * 60 * 1000;
 
@@ -37,9 +38,20 @@ export class NewsAgent {
     const mockTrigger = MOCK_TRIGGERS[clientId];
     const allArticles = mockTrigger ? [mockTrigger, ...liveArticles] : liveArticles;
 
+    // Resolve DNA summary for LLM scoring
+    let resolvedSummary = dnaSummary;
+    if (!resolvedSummary && this.llmKey) {
+      try {
+        const dna = await extractDNA(clientId, [], false); // uses cache from warmup
+        resolvedSummary = dna.summary || dna.values.join(", ");
+      } catch {
+        // no DNA available — skip LLM scoring
+      }
+    }
+
     let scored: ScoredNewsArticle[];
-    if (dnaSummary && this.llmKey) {
-      scored = await this.scoreWithLLM(allArticles, dnaSummary, clientId);
+    if (resolvedSummary && this.llmKey) {
+      scored = await this.scoreWithLLM(allArticles, resolvedSummary, clientId);
     } else {
       scored = allArticles;
     }

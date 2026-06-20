@@ -194,6 +194,42 @@ export class SixService {
     };
   }
 
+  /**
+   * Fetch end-of-day snapshot for a listing.  Returns close price + timestamp,
+   * or undefined if the data isn't available for that listing.
+   */
+  async getEndOfDayPrice(
+    listingId: string
+  ): Promise<{ close: number; currency: string; timestamp: string } | undefined> {
+    if (!this.configured) return undefined;
+    try {
+      const [snapRows, listingRows] = await Promise.all([
+        this.callTool("end_of_day_snapshot", {
+          mode: "execute",
+          listing_ids: [listingId],
+          fields: ["close.value", "close.timestamp"],
+        }).then((t) => this.parseTable(t)),
+        this.callTool("listing_base", {
+          mode: "execute",
+          listing_ids: [listingId],
+          fields: ["listingCurrency"],
+        }).then((t) => this.parseTable(t)),
+      ]);
+      const snap = snapRows[0];
+      const listing = listingRows[0];
+      if (!snap) return undefined;
+      const close = parseFloat(snap["close.value"]);
+      if (!Number.isFinite(close)) return undefined;
+      return {
+        close,
+        currency: listing?.["listingCurrency"] || "CHF",
+        timestamp: snap["close.timestamp"] || "",
+      };
+    } catch {
+      return undefined;
+    }
+  }
+
   /** Liveness check that captures the full request/response for the status UI. */
   async ping(): Promise<IntegrationProbe> {
     const started = Date.now();

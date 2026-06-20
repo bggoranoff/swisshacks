@@ -10,6 +10,7 @@ import { NewsFeed } from "./components/news/NewsFeed";
 import { AlertsPanel } from "./components/alerts/AlertsPanel";
 import { AdvisoryPanel } from "./components/advisory/AdvisoryPanel";
 import { ErrorBoundary } from "./components/shared/ErrorBoundary";
+import { KnowledgeGraphPanel } from "./components/graph/KnowledgeGraphPanel";
 import { useFetch } from "./hooks/useFetch";
 import { mockClients, mockDNA, mockPortfolios, mockNews, mockAdvisory } from "./data/mock";
 import type {
@@ -308,6 +309,9 @@ function App() {
                   />
                 </ErrorBoundary>
               </div>
+              <ErrorBoundary fallbackMessage="Failed to load knowledge graph">
+                <KnowledgeGraphPanel clientId={selectedId} />
+              </ErrorBoundary>
               <div ref={advisoryRef} className="col-span-2">
                 {(() => {
                   // Resolve the alert title to show in the AdvisoryPanel banner.

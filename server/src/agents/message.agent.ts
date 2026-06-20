@@ -4,6 +4,7 @@ import { extractDNA } from "./crm.agent";
 import { NewsAgent } from "./news.agent";
 import { getClient, getPortfolio } from "../data/store";
 import { auditService } from "../services/audit.service";
+import { explainabilityService } from "../services/explainability.service";
 
 const messageStore = new Map<string, AdvisoryMessage>();
 const newsAgent = new NewsAgent();
@@ -193,6 +194,35 @@ export class MessageAgent {
         inputSummary: `alert=${alert?.id || "none"}, style=${dna.communicationStyle}, persona=${clientId.toLowerCase()}`,
         outputSummary: `subject="${msg.subject}", confidence=${msg.confidence}, tone=${msg.tone}`,
         durationMs: Date.now() - startTime,
+      });
+
+      explainabilityService.record({
+        agent: "message-agent",
+        decisionType: "advisory-generation",
+        input: { summary: `Advisory for ${clientId}, alert: ${alert?.id || "auto-selected"}` },
+        output: {
+          summary: `Generated ${msg.tone} advisory: "${msg.subject}"`,
+          details: { tone: msg.tone, confidence: msg.confidence },
+        },
+        reasoning: {
+          steps: [
+            `Client DNA indicates ${dna.communicationStyle} communication preference`,
+            `Selected tone: ${msg.tone} based on persona mapping`,
+            msg.proposedAction ? `Proposed action: ${msg.proposedAction}` : "No specific action proposed",
+            `Confidence: ${Math.round(msg.confidence * 100)}%`,
+          ],
+          confidence: msg.confidence,
+          alternatives: [
+            { option: "data-driven tone", reason: "Would emphasize numbers and metrics", score: msg.tone === "data-driven" ? 0.9 : 0.3 },
+            { option: "values-led tone", reason: "Would lead with personal values and mission", score: msg.tone === "values-led" ? 0.9 : 0.3 },
+            { option: "balanced tone", reason: "Would blend data and values", score: msg.tone === "balanced" ? 0.9 : 0.3 },
+          ],
+        },
+        dataSources: [
+          { name: "Client DNA", type: "crm", reference: clientId },
+          { name: "News Alerts", type: "news", reference: alert?.id || "auto" },
+          { name: "Phoeniqs LLM", type: "llm", reference: process.env.PHOENIQS_MODEL || "inference-gpt-oss-120b" },
+        ],
       });
 
       return msg;

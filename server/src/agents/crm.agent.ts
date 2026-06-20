@@ -3,6 +3,7 @@ import { CRMEntry } from "../types/data";
 import { ClientDNA } from "../types/dna";
 import { getFallbackDNA } from "../data/fallback-dna";
 import { auditService } from "../services/audit.service";
+import { explainabilityService } from "../services/explainability.service";
 
 const dnaCache = new Map<string, ClientDNA>();
 
@@ -244,6 +245,33 @@ export async function extractDNA(
     inputSummary: `${entries.length} CRM entries`,
     outputSummary: `${dna.values.length} values, style=${dna.communicationStyle}`,
     durationMs: Date.now() - startTime,
+  });
+
+  const avgConfidence = Object.values(dna.traitConfidence).length > 0
+    ? Object.values(dna.traitConfidence).reduce((a: number, b: number) => a + (b as number), 0) / Object.values(dna.traitConfidence).length
+    : 0.5;
+
+  explainabilityService.record({
+    agent: "crm-agent",
+    decisionType: "dna-extraction",
+    input: { summary: `${entries.length} CRM entries for ${clientId}` },
+    output: {
+      summary: `Extracted ${dna.values.length} values, style: ${dna.communicationStyle}`,
+      details: { values: dna.values, style: dna.communicationStyle },
+    },
+    reasoning: {
+      steps: [
+        `Processed ${entries.length} CRM entries in ${Math.ceil(entries.length / 15)} chunks`,
+        `Identified ${dna.values.length} core values and ${dna.riskSensitivities.length} risk sensitivities`,
+        `Communication style classified as ${dna.communicationStyle} based on language patterns`,
+        `Confidence based on ${dna.evidence.length} supporting evidence citations`,
+      ],
+      confidence: avgConfidence,
+    },
+    dataSources: [
+      { name: "CRM Logs", type: "crm", reference: `${entries.length} entries` },
+      { name: "Phoeniqs LLM", type: "llm", reference: process.env.PHOENIQS_MODEL || "inference-gpt-oss-120b" },
+    ],
   });
 
   return dna;

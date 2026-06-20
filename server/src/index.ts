@@ -16,6 +16,7 @@ import { SixService } from "./services/six.service";
 import { PhoeniqsService } from "./services/phoeniqs.service";
 import { NewsAIService } from "./services/newsai.service";
 import { generatePresentation } from "./utils/generate-pptx";
+import { knowledgeGraphService } from "./services/knowledge-graph.service";
 
 const app = express();
 const port = parseInt(process.env.PORT || "3000", 10);
@@ -92,7 +93,7 @@ app.get("/api/clients/:id/news", asyncHandler(async (req: Request, res: Response
   res.json({ success: true, data: digest });
 }));
 
-// Client Portfolio
+// Client Portfolio — enriched with live SIX MCP prices
 app.get("/api/clients/:id/portfolio", asyncHandler(async (req: Request, res: Response) => {
   const client = getClient(req.params.id);
   if (!client) {
@@ -106,9 +107,32 @@ app.get("/api/clients/:id/portfolio", asyncHandler(async (req: Request, res: Res
   }
   const positionsWithCio = portfolio.positions.map(p => {
     const cio = portfolio.cioRecommendations.find(c => c.isin === p.isin);
-    return { ...p, cioRating: cio?.rating || null };
+    return { ...p, cioRating: cio?.rating || null, livePrice: undefined as number | undefined, liveCurrency: undefined as string | undefined, livePriceDate: undefined as string | undefined, priceSource: "excel" as "live" | "excel" };
   });
-  res.json({ success: true, data: { clientId: client.id, strategy: portfolio.strategy, totalValueCHF: portfolio.totalTargetCHF, positions: positionsWithCio, driftBreaches: [], conflicts: [] } });
+
+  // Enrich with live SIX MCP prices in batches of 5
+  const batchSize = 5;
+  for (let i = 0; i < positionsWithCio.length; i += batchSize) {
+    const batch = positionsWithCio.slice(i, i + batchSize);
+    await Promise.all(
+      batch.map(async (p) => {
+        if (!p.valorNumber || !p.mic) return;
+        const listingId = `${p.valorNumber}_${p.mic}`;
+        const result = await sixService.getEndOfDayPrice(listingId);
+        if (result) {
+          p.livePrice = result.close;
+          p.liveCurrency = result.currency;
+          p.livePriceDate = result.timestamp;
+          p.priceSource = "live";
+        }
+      })
+    );
+  }
+
+  const liveCount = positionsWithCio.filter(p => p.priceSource === "live").length;
+  console.log(`[Portfolio] ${client.id}: ${liveCount}/${positionsWithCio.length} positions with live SIX prices`);
+
+  res.json({ success: true, data: { clientId: client.id, strategy: portfolio.strategy, totalValueCHF: portfolio.totalTargetCHF, positions: positionsWithCio, driftBreaches: [], conflicts: [], liveCount } });
 }));
 
 // Advisory (with tracing)
@@ -158,6 +182,20 @@ app.get("/api/traces/:traceId", (req, res) => {
   }
   res.json({ success: true, data: trace });
 });
+
+// Knowledge Graph (Noumena Digital)
+app.get("/api/clients/:id/graph", asyncHandler(async (req: Request, res: Response) => {
+  const client = getClient(req.params.id);
+  if (!client) {
+    res.status(404).json({ success: false, error: "Client not found" });
+    return;
+  }
+  const dna = await extractDNA(client.id, client.crmEntries, false);
+  const portfolio = getPortfolio(client.strategy);
+  const digest = await newsAgent.getNewsDigest(client.id);
+  const graph = knowledgeGraphService.buildClientGraph(client.id, dna, portfolio, digest);
+  res.json({ success: true, data: graph });
+}));
 
 // Presentation download
 app.get("/api/presentation", asyncHandler(async (_req: Request, res: Response) => {
