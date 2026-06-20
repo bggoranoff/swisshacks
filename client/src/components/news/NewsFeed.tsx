@@ -4,7 +4,7 @@ import { Card, CardTitle } from "../shared/Card";
 import { SkeletonBlock } from "../shared/SkeletonLoader";
 import { ErrorState } from "../shared/ErrorState";
 import { EmptyState } from "../shared/EmptyState";
-import { Newspaper } from "lucide-react";
+import { Newspaper, ExternalLink } from "lucide-react";
 import clsx from "clsx";
 
 interface NewsFeedProps {
@@ -12,6 +12,7 @@ interface NewsFeedProps {
   loading: boolean;
   error: string | null;
   onRetry: () => void;
+  durationMs?: number | null;
 }
 
 const sentimentStyles: Record<string, string> = {
@@ -32,7 +33,7 @@ function formatDate(dateStr: string): string {
   }
 }
 
-export function NewsFeed({ news, loading, error, onRetry }: NewsFeedProps) {
+export function NewsFeed({ news, loading, error, onRetry, durationMs }: NewsFeedProps) {
   const [filter, setFilter] = useState<"all" | "live" | "alerts">("all");
 
   if (loading) return <Card><CardTitle icon={Newspaper}>News Feed</CardTitle><SkeletonBlock lines={4} /></Card>;
@@ -52,7 +53,10 @@ export function NewsFeed({ news, loading, error, onRetry }: NewsFeedProps) {
 
   return (
     <Card>
-      <CardTitle icon={Newspaper}>News Feed</CardTitle>
+      <div className="flex items-center justify-between mb-4">
+        <CardTitle icon={Newspaper}>News Feed</CardTitle>
+        {durationMs != null && <span className="text-xs text-slate-600">{durationMs}ms</span>}
+      </div>
       {news && news.articles.length > 0 && (
         <div className="flex items-center gap-4 mb-3 text-xs">
           <span className="text-slate-400">{news.articles.length} articles</span>
@@ -103,14 +107,15 @@ export function NewsFeed({ news, loading, error, onRetry }: NewsFeedProps) {
               article.isAlert && article.alertType === "opportunity" && "border-l-2 border-green-400"
             )}
           >
-            {article.url ? (
+            {article.url && article.url !== "#" && article.url !== "#scenario" && article.url !== "#cio" ? (
               <a
                 href={article.url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="font-medium text-sm text-slate-100 hover:text-blue-400 transition-colors"
+                className="font-medium text-sm text-slate-100 hover:text-blue-300 transition-colors"
               >
                 {article.title}
+                {article.sourceType === "live" && <ExternalLink className="h-3 w-3 text-slate-500 inline ml-1" />}
               </a>
             ) : (
               <p className="font-medium text-sm text-slate-100">{article.title}</p>

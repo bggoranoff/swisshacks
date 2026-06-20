@@ -54,11 +54,13 @@ export function PortfolioTable({
   loading,
   error,
   onRetry,
+  durationMs,
 }: {
   portfolio: PortfolioAnalysis | null;
   loading: boolean;
   error: string | null;
   onRetry: () => void;
+  durationMs?: number | null;
 }) {
   const [sortField, setSortField] = useState<SortField>("value");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
@@ -126,7 +128,10 @@ export function PortfolioTable({
 
   return (
     <Card>
-      <CardTitle icon={Briefcase}>Portfolio Holdings</CardTitle>
+      <div className="flex items-center justify-between mb-4">
+        <CardTitle icon={Briefcase}>Portfolio Holdings</CardTitle>
+        {durationMs != null && <span className="text-xs text-slate-600">{durationMs}ms</span>}
+      </div>
 
       {loading && <SkeletonTable />}
       {error && <ErrorState message={error} onRetry={onRetry} />}

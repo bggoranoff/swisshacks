@@ -12,10 +12,11 @@ interface DNAPanelProps {
   loading: boolean;
   error: string | null;
   onRetry: () => void;
+  durationMs?: number | null;
 }
 
 
-export function DNAPanel({ dna, loading, error, onRetry }: DNAPanelProps) {
+export function DNAPanel({ dna, loading, error, onRetry, durationMs }: DNAPanelProps) {
   if (loading) return <Card><CardTitle icon={Dna}>Client DNA</CardTitle><SkeletonPills /><SkeletonBlock /></Card>;
   if (error) return <Card><CardTitle icon={Dna}>Client DNA</CardTitle><ErrorState message={error} onRetry={onRetry} /></Card>;
   if (!dna) return <Card><CardTitle icon={Dna}>Client DNA</CardTitle><EmptyState message="Select a client to view DNA profile" /></Card>;
@@ -76,7 +77,10 @@ export function DNAPanel({ dna, loading, error, onRetry }: DNAPanelProps) {
 
   return (
     <Card>
-      <CardTitle icon={Dna}>Client DNA</CardTitle>
+      <div className="flex items-center justify-between mb-4">
+        <CardTitle icon={Dna}>Client DNA</CardTitle>
+        {durationMs != null && <span className="text-xs text-slate-600">{durationMs}ms</span>}
+      </div>
 
       {/* Summary */}
       <p className="text-sm text-slate-300 mb-4 leading-relaxed">{dna.summary}</p>

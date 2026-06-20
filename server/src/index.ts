@@ -17,6 +17,8 @@ import { PhoeniqsService } from "./services/phoeniqs.service";
 import { NewsAIService } from "./services/newsai.service";
 import { generatePresentation } from "./utils/generate-pptx";
 import { knowledgeGraphService } from "./services/knowledge-graph.service";
+import { detectConflicts } from "./agents/conflict.agent";
+import { chat, getChatHistory } from "./agents/chat.agent";
 
 const app = express();
 const port = parseInt(process.env.PORT || "3000", 10);
@@ -114,11 +116,11 @@ app.get("/api/clients/:id/portfolio", asyncHandler(async (req: Request, res: Res
     return { ...p, cioRating: cio?.rating || null, livePrice: undefined as number | undefined, liveCurrency: undefined as string | undefined, livePriceDate: undefined as string | undefined, priceSource: "excel" as "live" | "excel" };
   });
 
-  // Enrich with live SIX MCP prices — top 15 positions by value, batches of 3 with delay
+  // Enrich with live SIX MCP prices — top 5 positions by value (keep fast for demo)
   const sortedByValue = [...positionsWithCio]
     .filter(p => p.valorNumber && p.mic)
     .sort((a, b) => b.currentValueCHF - a.currentValueCHF)
-    .slice(0, 15);
+    .slice(0, 5);
 
   const toFetch = sortedByValue.filter(p => {
     const listingId = `${p.valorNumber}_${p.mic}`;
@@ -157,7 +159,60 @@ app.get("/api/clients/:id/portfolio", asyncHandler(async (req: Request, res: Res
   const liveCount = positionsWithCio.filter(p => p.priceSource === "live").length;
   console.log(`[Portfolio] ${client.id}: ${liveCount}/${positionsWithCio.length} positions with live SIX prices`);
 
-  res.json({ success: true, data: { clientId: client.id, strategy: portfolio.strategy, totalValueCHF: portfolio.totalTargetCHF, positions: positionsWithCio, driftBreaches: [], conflicts: [], liveCount } });
+  // DNA-based conflict detection via LLM
+  let conflicts: any[] = [];
+  try {
+    const dna = await extractDNA(client.id, client.crmEntries, false);
+    conflicts = await detectConflicts(client.id, positionsWithCio, dna, portfolio.cioRecommendations);
+    console.log(`[Portfolio] ${client.id}: ${conflicts.length} conflicts detected`);
+  } catch (err) {
+    console.warn(`[Portfolio] Conflict detection failed for ${client.id}: ${(err as Error).message}`);
+  }
+
+  // Drift breach detection: compare actual allocation vs strategy targets (±2.0pp threshold)
+  const actualByClass: Record<string, number> = {};
+  const totalCurrent = positionsWithCio.reduce((sum, p) => sum + p.currentValueCHF, 0);
+  for (const p of positionsWithCio) {
+    const ac = p.sectorOrAssetClass || "Other";
+    actualByClass[ac] = (actualByClass[ac] || 0) + p.currentValueCHF;
+  }
+
+  const driftBreaches: { assetClass: string; targetPct: number; actualPct: number; driftPct: number }[] = [];
+  if (portfolio.strategyAllocations && portfolio.strategyAllocations.length > 0) {
+    for (const sa of portfolio.strategyAllocations) {
+      const actualValue = actualByClass[sa.assetClass] || 0;
+      const actualPct = totalCurrent > 0 ? (actualValue / totalCurrent) * 100 : 0;
+      const drift = actualPct - sa.targetPercent;
+      if (Math.abs(drift) > 2.0) {
+        driftBreaches.push({
+          assetClass: sa.assetClass,
+          targetPct: sa.targetPercent,
+          actualPct: parseFloat(actualPct.toFixed(2)),
+          driftPct: parseFloat(drift.toFixed(2)),
+        });
+      }
+    }
+  } else {
+    const totalTarget = portfolio.totalTargetCHF || 10_000_000;
+    const assetClassSums = new Map<string, { target: number; current: number }>();
+    for (const p of positionsWithCio) {
+      const ac = p.sectorOrAssetClass || "Other";
+      const existing = assetClassSums.get(ac) || { target: 0, current: 0 };
+      existing.target += p.targetValueCHF;
+      existing.current += p.currentValueCHF;
+      assetClassSums.set(ac, existing);
+    }
+    for (const [ac, sums] of assetClassSums) {
+      const targetPct = (sums.target / totalTarget) * 100;
+      const currentPct = (sums.current / totalTarget) * 100;
+      const drift = currentPct - targetPct;
+      if (Math.abs(drift) > 2.0) {
+        driftBreaches.push({ assetClass: ac, targetPct: parseFloat(targetPct.toFixed(2)), actualPct: parseFloat(currentPct.toFixed(2)), driftPct: parseFloat(drift.toFixed(2)) });
+      }
+    }
+  }
+
+  res.json({ success: true, data: { clientId: client.id, strategy: portfolio.strategy, totalValueCHF: portfolio.totalTargetCHF, positions: positionsWithCio, driftBreaches, conflicts, liveCount } });
 }));
 
 // Advisory (with tracing)
@@ -220,6 +275,22 @@ app.get("/api/clients/:id/graph", asyncHandler(async (req: Request, res: Respons
   const digest = await newsAgent.getNewsDigest(client.id);
   const graph = knowledgeGraphService.buildClientGraph(client.id, dna, portfolio, digest);
   res.json({ success: true, data: graph });
+}));
+
+// RM Chat (RM Interface Agent)
+app.post("/api/clients/:id/chat", asyncHandler(async (req: Request, res: Response) => {
+  const client = getClient(req.params.id);
+  if (!client) { res.status(404).json({ success: false, error: "Client not found" }); return; }
+  const { message } = req.body;
+  if (!message) { res.status(400).json({ success: false, error: "message required" }); return; }
+  const response = await chat(client.id, message);
+  res.json({ success: true, data: response });
+}));
+
+app.get("/api/clients/:id/chat", asyncHandler(async (req: Request, res: Response) => {
+  const client = getClient(req.params.id);
+  if (!client) { res.status(404).json({ success: false, error: "Client not found" }); return; }
+  res.json({ success: true, data: getChatHistory(client.id) });
 }));
 
 // Presentation download
@@ -297,7 +368,7 @@ try {
 app.listen(port, () => {
   console.log(`[Server] Running on http://localhost:${port}`);
 
-  // Pre-warm DNA cache for all clients (fire-and-forget)
+  // Pre-warm: DNA first, THEN news (news agent calls extractDNA internally — must not race)
   const clients = getAllClients();
   console.log(`[Warmup] Pre-warming DNA cache for ${clients.length} clients...`);
   Promise.all(
@@ -306,16 +377,16 @@ app.listen(port, () => {
         .then(() => console.log(`[Warmup] DNA cached for ${c.id}`))
         .catch(err => console.warn(`[Warmup] DNA failed for ${c.id}: ${(err as Error).message}`))
     )
-  ).then(() => console.log(`[Warmup] All DNA caches ready`));
-
-  // Pre-warm news cache after DNA is ready
-  Promise.all(
-    clients.map(c =>
-      newsAgent.getNewsDigest(c.id)
-        .then(() => console.log(`[Warmup] News cached for ${c.id}`))
-        .catch(err => console.warn(`[Warmup] News failed for ${c.id}: ${(err as Error).message}`))
-    )
-  ).then(() => console.log(`[Warmup] All news caches ready`));
+  ).then(() => {
+    console.log(`[Warmup] All DNA caches ready. Starting news warmup...`);
+    return Promise.all(
+      clients.map(c =>
+        newsAgent.getNewsDigest(c.id)
+          .then(() => console.log(`[Warmup] News cached for ${c.id}`))
+          .catch(err => console.warn(`[Warmup] News failed for ${c.id}: ${(err as Error).message}`))
+      )
+    );
+  }).then(() => console.log(`[Warmup] All caches ready`));
 });
 
 export default app;

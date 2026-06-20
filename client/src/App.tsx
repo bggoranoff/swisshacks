@@ -12,6 +12,7 @@ import { AdvisoryPanel } from "./components/advisory/AdvisoryPanel";
 import { ErrorBoundary } from "./components/shared/ErrorBoundary";
 import { KnowledgeGraphPanel } from "./components/graph/KnowledgeGraphPanel";
 import { DecisionPanel } from "./components/decisions/DecisionPanel";
+import { ChatPanel } from "./components/chat/ChatPanel";
 import { useFetch } from "./hooks/useFetch";
 import { mockClients, mockDNA, mockPortfolios, mockNews, mockAdvisory } from "./data/mock";
 import type {
@@ -279,6 +280,7 @@ function App() {
                     loading={dnaFetch.loading}
                     error={dnaFetch.error && !dna ? dnaFetch.error : null}
                     onRetry={dnaFetch.refetch}
+                    durationMs={dnaFetch.durationMs}
                   />
                 </ErrorBoundary>
               </div>
@@ -338,6 +340,13 @@ function App() {
                     </ErrorBoundary>
                   );
                 })()}
+              </div>
+
+              {/* RM Chat Assistant */}
+              <div className="col-span-2">
+                <ErrorBoundary fallbackMessage="Failed to load RM assistant">
+                  <ChatPanel clientId={selectedId} />
+                </ErrorBoundary>
               </div>
 
               {/* AI Decision Log (NTT DATA Explainable AI) */}
