@@ -95,21 +95,30 @@ function App() {
     setSelectedId("schneider");
     setAdvisory(null);
     setDemoActive(true);
+    setDemoStep(0);
 
-    // 2s: scroll DNA panel into view
+    // Step 1 (immediate): Select Client is active (step 0), then mark complete
     setTimeout(() => {
+      setDemoStep(1);
+    }, 1000);
+
+    // Step 2 (2s): scroll DNA panel into view
+    setTimeout(() => {
+      setDemoStep(1);
       const dnaEl = document.getElementById("dna-panel");
       if (dnaEl) dnaEl.scrollIntoView({ behavior: "smooth" });
     }, 2000);
 
-    // 4s: scroll alerts panel into view
+    // Step 3 (4s): scroll alerts panel into view
     setTimeout(() => {
+      setDemoStep(2);
       const alertsEl = document.getElementById("alerts-panel");
       if (alertsEl) alertsEl.scrollIntoView({ behavior: "smooth" });
     }, 4000);
 
-    // 6s: auto-click Generate Advisory
+    // Step 4 (6s): auto-click Generate Advisory
     setTimeout(() => {
+      setDemoStep(3);
       setAdvisoryLoading(true);
       fetch("/api/clients/schneider/advisory", {
         method: "POST",
@@ -123,12 +132,14 @@ function App() {
           } else {
             setAdvisory(mockAdvisory["schneider"] ?? null);
           }
+          setDemoStep(4);
           if (advisoryRef.current) {
             advisoryRef.current.scrollIntoView({ behavior: "smooth" });
           }
         })
         .catch(() => {
           setAdvisory(mockAdvisory["schneider"] ?? null);
+          setDemoStep(4);
           if (advisoryRef.current) {
             advisoryRef.current.scrollIntoView({ behavior: "smooth" });
           }
