@@ -13,6 +13,7 @@ import {
   ArrowLeftRight,
   ScanSearch,
   Bell,
+  Download,
 } from "lucide-react";
 
 interface AdvisoryPanelProps {
@@ -130,6 +131,37 @@ export function AdvisoryPanel({ advisory, loading, clientId, contextAlertTitle, 
   function handleSave() {
     setSavedBody(editedBody);
     setIsEditing(false);
+  }
+
+  function handleDownload() {
+    if (!advisory) return;
+    const content = [
+      `Subject: ${advisory.subject}`,
+      `Client: ${clientId}`,
+      `Tone: ${advisory.tone}`,
+      `Confidence: ${Math.round(advisory.confidence * 100)}%`,
+      `Date: ${new Date().toLocaleDateString()}`,
+      "",
+      "---",
+      "",
+      displayBody,
+      "",
+      "---",
+      "",
+      advisory.proposedAction ? `Proposed Action: ${advisory.proposedAction}` : "",
+      "",
+      advisory.reasoning ? `Reasoning: ${advisory.reasoning}` : "",
+      "",
+      advisory.disclaimer,
+    ].filter(Boolean).join("\n");
+
+    const blob = new Blob([content], { type: "text/plain" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `advisory-${clientId}-${Date.now()}.txt`;
+    a.click();
+    URL.revokeObjectURL(url);
   }
 
   const toneStyle = toneStyles[advisory?.tone ?? ""] ?? toneStyles.balanced;
@@ -283,6 +315,12 @@ export function AdvisoryPanel({ advisory, loading, clientId, contextAlertTitle, 
               <Copy className="h-4 w-4" /> Copy
             </button>
             {copied && <span className="text-xs text-green-400 ml-2 self-center">Copied to clipboard!</span>}
+            <button
+              onClick={handleDownload}
+              className="px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-colors bg-slate-700 hover:bg-slate-600 text-slate-200"
+            >
+              <Download className="h-4 w-4" /> Download
+            </button>
             {!isEditing ? (
               <button
                 onClick={handleEdit}
