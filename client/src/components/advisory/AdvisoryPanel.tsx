@@ -10,7 +10,6 @@ import {
   Sparkles,
   ChevronDown,
   ArrowLeftRight,
-  ScanSearch,
   Bell,
   Download,
   Check,
@@ -349,7 +348,7 @@ export function AdvisoryPanel({ advisory: advisoryProp, loading, clientId, conte
             <div className="flex items-center gap-2 px-3 py-2 mb-3 rounded-lg bg-amber-900/30 border border-amber-700/50 text-amber-200 text-xs">
               <Bell className="h-3.5 w-3.5 shrink-0 text-amber-400" />
               <span className="font-medium">Responding to:</span>
-              <span className="truncate">{contextAlertTitle}</span>
+              <span className="break-words">{contextAlertTitle}</span>
             </div>
           )}
 
@@ -362,15 +361,6 @@ export function AdvisoryPanel({ advisory: advisoryProp, loading, clientId, conte
               >
                 {advisory.tone}
               </span>
-              {advisory.traceId && (
-                <button
-                  title={`Trace ID: ${advisory.traceId}`}
-                  className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-slate-700 hover:bg-slate-600 text-slate-300 border border-slate-600/60 transition-colors"
-                >
-                  <ScanSearch className="h-3 w-3" />
-                  View Trace
-                </button>
-              )}
             </div>
           </div>
 
@@ -598,7 +588,7 @@ export function AdvisoryPanel({ advisory: advisoryProp, loading, clientId, conte
                       <span className="text-sm font-medium text-slate-300">{h.subject}</span>
                       <span className="text-xs px-2 py-0.5 rounded-full bg-slate-600 text-slate-400">{h.tone}</span>
                     </div>
-                    <p className="text-xs text-slate-400 line-clamp-2">{h.body}</p>
+                    <p className="text-xs text-slate-400">{h.body}</p>
                   </div>
                 ))}
               </div>

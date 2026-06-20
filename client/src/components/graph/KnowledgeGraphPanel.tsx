@@ -208,7 +208,7 @@ export function KnowledgeGraphPanel({ clientId }: { clientId: string | null }) {
               const lx = n.x + (dx / dist) * labelOffset;
               const ly = n.y + (dy / dist) * labelOffset;
               const anchor = dx > 10 ? "start" : dx < -10 ? "end" : "middle";
-              const truncated = n.label.length > 22 ? n.label.slice(0, 19) + "…" : n.label;
+              const truncated = n.label;
 
               return (
                 <g

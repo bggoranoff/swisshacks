@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 // drawer state is lifted to App.tsx
 import type { ClientDNA } from "../../types/api";
 import { Card, CardTitle } from "../shared/Card";
@@ -21,14 +21,10 @@ interface DNAPanelProps {
 
 
 export function DNAPanel({ dna, onOpenDrawer, loading, error, onRetry, durationMs, fetchedAt }: DNAPanelProps) {
-  if (loading) return <Card><CardTitle icon={Dna}>Client DNA</CardTitle><SkeletonPills /><SkeletonBlock /></Card>;
-  if (error) return <Card><CardTitle icon={Dna}>Client DNA</CardTitle><ErrorState message={error} onRetry={onRetry} /></Card>;
-  if (!dna) return <Card><CardTitle icon={Dna}>Client DNA</CardTitle><EmptyState message="Select a client to view DNA profile" /></Card>;
-
-  const communicationStyle = dna.communicationProfile?.style ?? dna.communicationStyle;
+  const [showAdditional, setShowAdditional] = useState(false);
 
   const timelineData = useMemo(() => {
-    if (!dna.evidence || dna.evidence.length === 0) return [];
+    if (!dna?.evidence || dna.evidence.length === 0) return [];
     const byYear: Record<string, { trait: string; date: string; excerpt: string }[]> = {};
     dna.evidence.forEach(e => {
       const year = e.crmDate?.slice(0, 4) || "Unknown";
@@ -36,7 +32,13 @@ export function DNAPanel({ dna, onOpenDrawer, loading, error, onRetry, durationM
       byYear[year].push({ trait: e.trait, date: e.crmDate, excerpt: e.crmExcerpt });
     });
     return Object.entries(byYear).sort((a, b) => a[0].localeCompare(b[0]));
-  }, [dna.evidence]);
+  }, [dna?.evidence]);
+
+  if (loading) return <Card><CardTitle icon={Dna}>Client DNA</CardTitle><SkeletonPills /><SkeletonBlock /></Card>;
+  if (error) return <Card><CardTitle icon={Dna}>Client DNA</CardTitle><ErrorState message={error} onRetry={onRetry} /></Card>;
+  if (!dna) return <Card><CardTitle icon={Dna}>Client DNA</CardTitle><EmptyState message="Select a client to view DNA profile" /></Card>;
+
+  const communicationStyle = dna.communicationProfile?.style ?? dna.communicationStyle;
 
   return (
     <Card>
@@ -88,93 +90,98 @@ export function DNAPanel({ dna, onOpenDrawer, loading, error, onRetry, durationM
           </div>
         )}
 
-        {/* Life Events — vertical timeline */}
-        {dna.lifeEvents && dna.lifeEvents.length > 0 && (
-          <div>
-            <p className="text-xs font-medium text-slate-400 uppercase tracking-wide mb-2">Life Events</p>
-            <div className="flex flex-col gap-0">
-              {dna.lifeEvents.map((item, idx) => (
-                <div key={item} className="flex items-stretch gap-3">
-                  <div className="flex flex-col items-center">
-                    <div className="h-2 w-2 rounded-full bg-purple-400 mt-1 shrink-0" />
-                    {idx < dna.lifeEvents!.length - 1 && (
-                      <div className="w-0.5 flex-1 bg-slate-700 mt-1" />
-                    )}
-                  </div>
-                  <p className="text-sm text-slate-300 pb-3">{item}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Business Context */}
-        {dna.businessContext && dna.businessContext.length > 0 && (
-          <div>
-            <p className="text-xs font-medium text-slate-400 uppercase tracking-wide mb-1.5">Business Context</p>
-            <div className="relative">
-              <div className="h-40 overflow-y-auto hide-scrollbar bg-slate-800/50 border border-slate-700 rounded-lg">
-                {dna.businessContext.map((item, idx) => (
-                  <button
-                    key={item}
-                    onClick={() => onOpenDrawer(item, "businessContext")}
-                    className={`w-full flex items-center justify-between px-3 py-2 text-sm text-left text-slate-300 hover:bg-slate-700/60 transition-colors ${idx < dna.businessContext!.length - 1 ? "border-b border-slate-700/50" : ""}`}
-                  >
-                    <span className="capitalize">{item}</span>
-                    <ChevronRight className="h-3.5 w-3.5 text-slate-500 shrink-0" />
-                  </button>
-                ))}
-              </div>
-              <div className="pointer-events-none absolute bottom-0 left-0 right-0 h-8 rounded-b-lg bg-gradient-to-t from-slate-800/80 to-transparent" />
-            </div>
-          </div>
-        )}
-
-        {/* Risk Sensitivities */}
-        {dna.riskSensitivities && dna.riskSensitivities.length > 0 && (
-          <div>
-            <p className="text-xs font-medium text-slate-400 uppercase tracking-wide mb-1.5">Risk Sensitivities</p>
-            <div className="relative">
-              <div className="h-40 overflow-y-auto hide-scrollbar bg-slate-800/50 border border-slate-700 rounded-lg">
-                {dna.riskSensitivities.map((item, idx) => (
-                  <button
-                    key={item}
-                    onClick={() => onOpenDrawer(item, "riskSensitivities")}
-                    className={`w-full flex items-center justify-between px-3 py-2 text-sm text-left text-slate-300 hover:bg-slate-700/60 transition-colors ${idx < dna.riskSensitivities!.length - 1 ? "border-b border-slate-700/50" : ""}`}
-                  >
-                    <span className="capitalize">{item}</span>
-                    <ChevronRight className="h-3.5 w-3.5 text-slate-500 shrink-0" />
-                  </button>
-                ))}
-              </div>
-              <div className="pointer-events-none absolute bottom-0 left-0 right-0 h-8 rounded-b-lg bg-gradient-to-t from-slate-800/80 to-transparent" />
-            </div>
-          </div>
-        )}
-
-        {/* Personal Priorities */}
-        {dna.personalPriorities && dna.personalPriorities.length > 0 && (
-          <div>
-            <p className="text-xs font-medium text-slate-400 uppercase tracking-wide mb-1.5">Personal Priorities</p>
-            <div className="relative">
-              <div className="h-40 overflow-y-auto hide-scrollbar bg-slate-800/50 border border-slate-700 rounded-lg">
-                {dna.personalPriorities.map((item, idx) => (
-                  <button
-                    key={item}
-                    onClick={() => onOpenDrawer(item, "personalPriorities")}
-                    className={`w-full flex items-center justify-between px-3 py-2 text-sm text-left text-slate-300 hover:bg-slate-700/60 transition-colors ${idx < dna.personalPriorities!.length - 1 ? "border-b border-slate-700/50" : ""}`}
-                  >
-                    <span className="capitalize">{item}</span>
-                    <ChevronRight className="h-3.5 w-3.5 text-slate-500 shrink-0" />
-                  </button>
-                ))}
-              </div>
-              <div className="pointer-events-none absolute bottom-0 left-0 right-0 h-8 rounded-b-lg bg-gradient-to-t from-slate-800/80 to-transparent" />
-            </div>
-          </div>
-        )}
-
       </div>
+
+      {/* Additional context — collapsed by default */}
+      {(
+        (dna.lifeEvents && dna.lifeEvents.length > 0) ||
+        (dna.businessContext && dna.businessContext.length > 0) ||
+        (dna.riskSensitivities && dna.riskSensitivities.length > 0) ||
+        (dna.personalPriorities && dna.personalPriorities.length > 0)
+      ) && (
+        <div className="mt-4 border-t border-slate-700 pt-3">
+          <button
+            onClick={() => setShowAdditional(v => !v)}
+            className="flex items-center gap-1.5 text-xs text-slate-400 hover:text-slate-300 transition-colors w-full"
+          >
+            <ChevronDown className={`h-3.5 w-3.5 transition-transform ${showAdditional ? "" : "-rotate-90"}`} />
+            Additional context
+          </button>
+
+          {showAdditional && (
+            <div className="mt-3 space-y-4">
+
+              {dna.lifeEvents && dna.lifeEvents.length > 0 && (
+                <div>
+                  <p className="text-xs font-medium text-slate-400 uppercase tracking-wide mb-2">Life Events</p>
+                  <div className="flex flex-col gap-0">
+                    {dna.lifeEvents.map((item, idx) => (
+                      <div key={item} className="flex items-stretch gap-3">
+                        <div className="flex flex-col items-center">
+                          <div className="h-2 w-2 rounded-full bg-purple-400 mt-1 shrink-0" />
+                          {idx < dna.lifeEvents!.length - 1 && (
+                            <div className="w-0.5 flex-1 bg-slate-700 mt-1" />
+                          )}
+                        </div>
+                        <p className="text-sm text-slate-400 pb-3">{item}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {dna.businessContext && dna.businessContext.length > 0 && (
+                <div>
+                  <p className="text-xs font-medium text-slate-400 uppercase tracking-wide mb-1.5">Business Context</p>
+                  <div className="bg-slate-800/50 border border-slate-700 rounded-lg">
+                    {dna.businessContext.map((item, idx) => (
+                      <div
+                        key={item}
+                        className={`px-3 py-2 text-sm text-slate-400 ${idx < dna.businessContext!.length - 1 ? "border-b border-slate-700/50" : ""}`}
+                      >
+                        <span className="capitalize">{item}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {dna.riskSensitivities && dna.riskSensitivities.length > 0 && (
+                <div>
+                  <p className="text-xs font-medium text-slate-400 uppercase tracking-wide mb-1.5">Risk Sensitivities</p>
+                  <div className="bg-slate-800/50 border border-slate-700 rounded-lg">
+                    {dna.riskSensitivities.map((item, idx) => (
+                      <div
+                        key={item}
+                        className={`px-3 py-2 text-sm text-slate-400 ${idx < dna.riskSensitivities!.length - 1 ? "border-b border-slate-700/50" : ""}`}
+                      >
+                        <span className="capitalize">{item}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {dna.personalPriorities && dna.personalPriorities.length > 0 && (
+                <div>
+                  <p className="text-xs font-medium text-slate-400 uppercase tracking-wide mb-1.5">Personal Priorities</p>
+                  <div className="bg-slate-800/50 border border-slate-700 rounded-lg">
+                    {dna.personalPriorities.map((item, idx) => (
+                      <div
+                        key={item}
+                        className={`px-3 py-2 text-sm text-slate-400 ${idx < dna.personalPriorities!.length - 1 ? "border-b border-slate-700/50" : ""}`}
+                      >
+                        <span className="capitalize">{item}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+            </div>
+          )}
+        </div>
+      )}
 
       {/* DNA Evolution Timeline */}
       {timelineData.length > 0 && (

@@ -231,7 +231,7 @@ export function PortfolioTable({
               <div className="space-y-2">
                 {portfolio.driftBreaches.map((b: any) => (
                   <div key={b.assetClass} className="flex items-center gap-3">
-                    <span className="text-xs text-slate-300 w-32 truncate">{b.assetClass}</span>
+                    <span className="text-xs text-slate-300 min-w-0 break-words">{b.assetClass}</span>
                     <div className="flex-1 h-2 rounded-full bg-slate-700 relative">
                       <div
                         className={`h-full rounded-full ${b.driftPct > 0 ? "bg-red-500" : "bg-amber-500"}`}

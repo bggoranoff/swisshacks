@@ -124,7 +124,7 @@ function SpanNode({ span, depth = 0 }: { span: Span; depth?: number }) {
             >
               {span.serviceName}
             </span>
-            <span className="text-sm text-slate-200 truncate">{span.operationName}</span>
+            <span className="text-sm text-slate-200 break-words">{span.operationName}</span>
           </div>
           {/* Duration */}
           <span className="text-xs text-slate-500 mt-0.5 block">
@@ -157,7 +157,7 @@ function TraceRow({ trace, onClick }: { trace: TraceSummary; onClick: () => void
 
       <div className="flex-1 min-w-0">
         <div className="flex items-center justify-between gap-2">
-          <span className="text-sm font-medium text-slate-200 truncate">
+          <span className="text-sm font-medium text-slate-200 break-words">
             {trace.serviceName}
           </span>
           <span className="text-xs text-slate-400 flex-shrink-0">
@@ -165,8 +165,8 @@ function TraceRow({ trace, onClick }: { trace: TraceSummary; onClick: () => void
           </span>
         </div>
         <div className="flex items-center justify-between gap-2 mt-0.5">
-          <span className="text-xs text-slate-500 truncate font-mono">
-            {trace.traceId.length > 20 ? `${trace.traceId.slice(0, 20)}…` : trace.traceId}
+          <span className="text-xs text-slate-500 font-mono break-all">
+            {trace.traceId}
           </span>
           <span className="text-xs text-slate-500 flex-shrink-0">
             {trace.spanCount} span{trace.spanCount !== 1 ? "s" : ""}
@@ -377,7 +377,7 @@ export function TraceDrawer({ isOpen, onClose }: TraceDrawerProps) {
                   {/* Trace summary bar */}
                   <div className="bg-slate-700/40 border border-slate-700 rounded-xl px-4 py-3 mb-4">
                     <div className="flex items-center justify-between">
-                      <span className="text-xs font-mono text-slate-400 truncate">
+                      <span className="text-xs font-mono text-slate-400 break-all">
                         {detail.traceId}
                       </span>
                       <span className="text-xs text-slate-300 font-medium flex-shrink-0 ml-2">

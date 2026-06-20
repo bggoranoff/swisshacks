@@ -152,7 +152,7 @@ export function NewsFeed({ news, loading, error, onRetry, durationMs, fetchedAt 
             </div>
 
             {article.summary && (
-              <p className="text-xs text-slate-400 mt-1 line-clamp-2">{article.summary}</p>
+              <p className="text-xs text-slate-400 mt-1">{article.summary}</p>
             )}
           </div>
         ))}

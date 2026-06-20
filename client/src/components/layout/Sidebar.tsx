@@ -90,7 +90,7 @@ export function Sidebar({ clients, selectedId, onSelect, onHome, loading, confli
             <div className="flex flex-col min-w-0 flex-1">
               <div className="flex items-center gap-1.5">
                 <span className={clsx(
-                  "font-medium block truncate transition-colors",
+                  "font-medium block break-words transition-colors",
                   selectedId === client.id ? "text-white" : "text-slate-200 group-hover:text-white"
                 )}>
                   {client.name}
@@ -101,9 +101,6 @@ export function Sidebar({ clients, selectedId, onSelect, onHome, loading, confli
                   </span>
                 )}
               </div>
-              <span className="text-xs text-slate-400 block truncate leading-snug mt-0.5">
-                {client.description}
-              </span>
               <div className="flex items-center gap-2 mt-1">
                 <span
                   className={clsx(

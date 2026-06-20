@@ -108,11 +108,13 @@ export class NewsAgent {
   }
 
   private getNewsQueries(clientId: string, dna: ClientDNA | null): string[] {
+    const personaKeywords = PERSONA_KEYWORDS[clientId] || [];
+
     if (demoModeEnabled()) {
-      return PERSONA_KEYWORDS[clientId] || [];
+      return personaKeywords;
     }
 
-    if (!dna) return [];
+    if (!dna) return personaKeywords;
 
     const candidateTerms = [
       ...(dna.investmentProfile?.hardConstraints || []),
@@ -123,14 +125,16 @@ export class NewsAgent {
       ...(dna.riskSensitivities || []),
     ];
 
-    const queries = candidateTerms
+    const dnaQueries = candidateTerms
       .map(term => term.replace(/[^\p{L}\p{N}\s-]/gu, " ").replace(/\s+/g, " ").trim())
       .filter(term => term.length >= 4)
       .map(term => term.split(/\s+/).slice(0, 8).join(" "))
       .filter((term, index, arr) => arr.indexOf(term) === index)
       .slice(0, 5);
 
-    return queries;
+    // Append persona keywords as fallback so they're tried if DNA-derived queries return nothing
+    const extra = personaKeywords.filter(k => !dnaQueries.includes(k));
+    return [...dnaQueries, ...extra];
   }
 
   private buildNewsProfileContext(dna: ClientDNA): string {
