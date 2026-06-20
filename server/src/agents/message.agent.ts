@@ -90,9 +90,18 @@ export class MessageAgent {
       ? `\nTRIGGER EVENT:\nTitle: ${alert.title}\nSummary: ${alert.summary}\nType: ${alert.alertType || "conflict"}\nRelevance: ${alert.relevanceScore}`
       : "\nNo specific trigger event — provide a general portfolio review note.";
 
+    const topHoldings = portfolio?.positions
+      .slice()
+      .sort((a, b) => b.currentValueCHF - a.currentValueCHF)
+      .slice(0, 10)
+      .map(p => `${p.name} (${p.isin}, CHF ${(p.currentValueCHF / 1000).toFixed(0)}K, ${p.sectorOrAssetClass})`)
+      .join("\n") || "No holdings data available";
+
     const portfolioSummary = portfolio
       ? `\nPORTFOLIO: ${portfolio.strategy} mandate, ${portfolio.positions.length} positions, CHF ${portfolio.totalTargetCHF.toLocaleString()} target`
       : "";
+
+    const holdingsSection = `\nTop 10 holdings in the ${portfolio?.strategy || "current"} portfolio:\n${topHoldings}`;
 
     const userPrompt =
       `Draft an advisory note for client ${client.name}.\n` +
@@ -102,6 +111,7 @@ export class MessageAgent {
       `Communication style: ${dna.communicationStyle}\n` +
       (personaContext ? `\nPERSONA: ${personaContext}\n` : "") +
       portfolioSummary +
+      holdingsSection +
       alertContext +
       `\n\nIMPORTANT: Return ONLY a JSON object (no markdown fences). Use \\n for newlines inside string values. Structure:\n` +
       `{"subject":"short subject","body":"the advisory message with \\n for paragraphs","proposedAction":"one sentence","reasoning":"2-3 sentences","confidence":0.85,"toneInfluences":[{"dnaValue":"value","effect":"effect"}]}`;
