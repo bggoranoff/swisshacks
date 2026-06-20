@@ -101,7 +101,10 @@ export function PortfolioTable({
     const avgDrift = positions.length > 0
       ? positions.reduce((sum, p) => sum + Math.abs(p.driftPercent), 0) / positions.length
       : 0;
-    return { totalValue, uniqueAssetClasses, avgDrift, positionCount: positions.length };
+    const buyCount = positions.filter(p => (p as any).cioRating === "BUY").length;
+    const holdCount = positions.filter(p => (p as any).cioRating === "HOLD").length;
+    const sellCount = positions.filter(p => (p as any).cioRating === "SELL").length;
+    return { totalValue, uniqueAssetClasses, avgDrift, positionCount: positions.length, buyCount, holdCount, sellCount };
   }, [portfolio]);
 
   function toggleSort(field: SortField) {
@@ -140,7 +143,7 @@ export function PortfolioTable({
           <AllocationChart positions={portfolio.positions} />
 
           {summaryStats && (
-            <div className="grid grid-cols-4 gap-3 mb-4">
+            <div className="grid grid-cols-5 gap-3 mb-4">
               <div className="bg-slate-700/50 rounded-lg p-3 text-center">
                 <p className="text-xs text-slate-400 uppercase tracking-wide">Total Value</p>
                 <p className="text-lg font-semibold text-white mt-1">CHF {(summaryStats.totalValue / 1e6).toFixed(1)}M</p>
@@ -164,6 +167,14 @@ export function PortfolioTable({
                 >
                   {summaryStats.avgDrift.toFixed(2)}%
                 </p>
+              </div>
+              <div className="bg-slate-700/50 rounded-lg p-3 text-center">
+                <p className="text-xs text-slate-400 uppercase tracking-wide">CIO Ratings</p>
+                <div className="flex items-center justify-center gap-2 mt-1">
+                  <span className="text-xs text-green-400">{summaryStats.buyCount} Buy</span>
+                  <span className="text-xs text-slate-400">{summaryStats.holdCount} Hold</span>
+                  <span className="text-xs text-red-400">{summaryStats.sellCount} Sell</span>
+                </div>
               </div>
             </div>
           )}
