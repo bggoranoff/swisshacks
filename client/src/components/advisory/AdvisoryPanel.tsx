@@ -95,6 +95,7 @@ export function AdvisoryPanel({ advisory, loading, clientId, contextAlertTitle, 
   const [savedBody, setSavedBody] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [currentStep, setCurrentStep] = useState(0);
+  const [history, setHistory] = useState<any[]>([]);
 
   useEffect(() => {
     if (loading) {
@@ -108,6 +109,16 @@ export function AdvisoryPanel({ advisory, loading, clientId, contextAlertTitle, 
       };
     }
   }, [loading]);
+
+  useEffect(() => {
+    if (advisory) {
+      setHistory(prev => [advisory, ...prev].slice(0, 5));
+    }
+  }, [advisory]);
+
+  useEffect(() => {
+    setHistory([]);
+  }, [clientId]);
 
   const displayBody = savedBody ?? advisory?.body ?? "";
 
@@ -354,6 +365,26 @@ export function AdvisoryPanel({ advisory, loading, clientId, contextAlertTitle, 
           <p className="text-xs text-slate-500 mt-4 border-t border-slate-700/60 pt-3 leading-relaxed">
             {advisory.disclaimer}
           </p>
+
+          {/* Previous advisories history */}
+          {history.length > 1 && (
+            <details className="mt-4 border-t border-slate-700 pt-3">
+              <summary className="text-xs text-slate-400 cursor-pointer">
+                Previous advisories ({history.length - 1})
+              </summary>
+              <div className="mt-2 space-y-3">
+                {history.slice(1).map((h, i) => (
+                  <div key={i} className="bg-slate-700/30 rounded-lg p-3">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="text-sm font-medium text-slate-300">{h.subject}</span>
+                      <span className="text-xs px-2 py-0.5 rounded-full bg-slate-600 text-slate-400">{h.tone}</span>
+                    </div>
+                    <p className="text-xs text-slate-400 line-clamp-2">{h.body}</p>
+                  </div>
+                ))}
+              </div>
+            </details>
+          )}
         </>
       )}
     </Card>
