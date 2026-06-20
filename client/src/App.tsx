@@ -1,5 +1,5 @@
 import { useState, useCallback, useRef, useEffect } from "react";
-import { Briefcase, MessageCircle, ChevronLeft, ChevronRight } from "lucide-react";
+import { MessageCircle, ChevronLeft, ChevronRight } from "lucide-react";
 import { Sidebar } from "./components/layout/Sidebar";
 import { TraitDrawer } from "./components/dna/TraitDrawer";
 import { Header } from "./components/layout/Header";
@@ -12,6 +12,8 @@ import { AdvisoryPanel } from "./components/advisory/AdvisoryPanel";
 import { ErrorBoundary } from "./components/shared/ErrorBoundary";
 import { StrategyRadarPanel } from "./components/strategy/StrategyRadarPanel";
 import { ChatPanel } from "./components/chat/ChatPanel";
+import { HomePage } from "./pages/HomePage";
+import { TodoPage } from "./pages/TodoPage";
 import { useFetch } from "./hooks/useFetch";
 import { prefetchClients } from "./hooks/prefetchCache";
 import { mockClients, mockDNA, mockPortfolios, mockAdvisory } from "./data/mock";
@@ -21,6 +23,7 @@ import type {
   PortfolioAnalysis,
   NewsDigest,
   AdvisoryMessage,
+  HomeDashboard,
 } from "./types/api";
 
 const DEMO_FALLBACKS_ENABLED = import.meta.env.VITE_DEMO_MODE === "true";
@@ -48,6 +51,7 @@ function ResizeHandle({ onMouseDown }: { onMouseDown: (e: React.MouseEvent) => v
 
 function App() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [selectedTodoId, setSelectedTodoId] = useState<string | null>(null);
   const [auditOpen, setAuditOpen] = useState(false);
   const [advisory, setAdvisory] = useState<AdvisoryMessage | null>(null);
   const [advisoryLoading, setAdvisoryLoading] = useState(false);
@@ -111,6 +115,7 @@ function App() {
 
   // Fetch clients list
   const clientsFetch = useFetch<ClientSummary[]>("/api/clients");
+  const homeFetch = useFetch<HomeDashboard>(DEMO_FALLBACKS_ENABLED ? "/api/home?demo=true" : "/api/home");
   const clients = clientsFetch.data ?? (DEMO_FALLBACKS_ENABLED ? mockClients : []);
 
   // Warm DNA / portfolio / news for every client in the background once the
@@ -275,7 +280,7 @@ function App() {
 
   return (
     <div className="flex h-screen bg-slate-900 text-slate-100 font-sans">
-      {(dnaLoading || portLoading || newsLoading) && (
+      {((!selectedId && homeFetch.loading) || dnaLoading || portLoading || newsLoading) && (
         <div className="fixed top-0 left-0 right-0 h-0.5 bg-slate-800 z-[60]">
           <div className="h-full bg-six-red animate-pulse" style={{ width: "60%", transition: "width 0.5s" }} />
         </div>
@@ -333,35 +338,25 @@ function App() {
           </div>
         )}
         <main className="flex-1 overflow-y-auto p-6">
-          {!selectedId ? (
-            <div className="flex flex-col items-center justify-center min-h-[70vh] text-center px-6">
-              <Briefcase className="h-10 w-10 text-six-red mb-6" strokeWidth={1.5} />
-              <h2 className="text-3xl sm:text-4xl font-semibold tracking-tight text-slate-50 mb-3">
-                Welcome to <span className="text-six-red">SIX</span> AI
-              </h2>
-              <p className="text-slate-400 text-sm max-w-lg mb-10 leading-relaxed">
-                Select a client from the sidebar to view their investment DNA, portfolio analysis,
-                news alerts, and generate personalised advisory messages.
-              </p>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-x-10 gap-y-6 max-w-2xl text-center">
-                <div>
-                  <p className="text-xs font-semibold uppercase tracking-wide text-six-red">Client DNA</p>
-                  <p className="text-xs text-slate-500 mt-1.5">AI-extracted values, priorities &amp; style</p>
-                </div>
-                <div>
-                  <p className="text-xs font-semibold uppercase tracking-wide text-six-blue-bright">Portfolio Analysis</p>
-                  <p className="text-xs text-slate-500 mt-1.5">Holdings, drift &amp; allocation charts</p>
-                </div>
-                <div>
-                  <p className="text-xs font-semibold uppercase tracking-wide text-six-red-bright">News Monitoring</p>
-                  <p className="text-xs text-slate-500 mt-1.5">Live news scored by relevance</p>
-                </div>
-                <div>
-                  <p className="text-xs font-semibold uppercase tracking-wide text-six-blue">Advisory Messages</p>
-                  <p className="text-xs text-slate-500 mt-1.5">Personalised RM communication</p>
-                </div>
-              </div>
-            </div>
+          {selectedTodoId ? (
+            <TodoPage
+              todo={homeFetch.data?.todos.find(t => t.id === selectedTodoId) ?? null}
+              language={advisoryLanguage}
+              onBack={() => setSelectedTodoId(null)}
+              onSelectClient={id => {
+                setSelectedTodoId(null);
+                handleSelectClient(id);
+              }}
+            />
+          ) : !selectedId ? (
+            <HomePage
+              data={homeFetch.data}
+              loading={homeFetch.loading}
+              error={homeFetch.error}
+              onRetry={homeFetch.refetch}
+              onSelectClient={handleSelectClient}
+              onOpenTodo={setSelectedTodoId}
+            />
           ) : (
             <div className="flex flex-col gap-6">
               {/* Advisory — top of page */}
@@ -509,9 +504,24 @@ function App() {
                 />
               </ErrorBoundary>
             ) : (
-              <div className="flex flex-col items-center justify-center h-full text-center px-6">
-                <MessageCircle className="h-8 w-8 text-slate-600 mb-3" strokeWidth={1.5} />
-                <p className="text-sm text-slate-500">Select a client to start a conversation</p>
+              <div className="flex h-full flex-col">
+                <div className="flex items-center justify-between border-b border-slate-700 px-4 py-3">
+                  <div className="flex items-center gap-2">
+                    <MessageCircle className="h-4 w-4 text-six-red/70" />
+                    <span className="text-sm font-semibold uppercase tracking-wide text-slate-300">RM Assistant</span>
+                  </div>
+                  <button
+                    onClick={() => setChatOpen(false)}
+                    title="Close chat (Ctrl+\)"
+                    className="text-slate-500 transition-colors hover:text-slate-300"
+                  >
+                    <ChevronRight className="h-4 w-4" />
+                  </button>
+                </div>
+                <div className="flex flex-1 flex-col items-center justify-center px-6 text-center">
+                  <MessageCircle className="mb-3 h-8 w-8 text-slate-600" strokeWidth={1.5} />
+                  <p className="text-sm text-slate-500">Select a client to start a conversation</p>
+                </div>
               </div>
             )}
           </div>

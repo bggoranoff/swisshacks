@@ -2,6 +2,16 @@ export interface CRMEntry {
   [key: string]: string;
 }
 
+export interface CrmLogEntry {
+  id: number;
+  date: string;
+  rawDate: string;
+  medium: string;
+  rmName: string;
+  clientContact: string;
+  note: string;
+}
+
 export interface ClientProfile {
   id: string;
   name: string;

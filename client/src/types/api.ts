@@ -113,6 +113,73 @@ export interface NewsDigest {
   generatedAt: string;
 }
 
+export type HomeTodoSeverity = "high" | "medium" | "low";
+export type HomeTriggerType = "news" | "crm" | "client-request" | "life-event";
+
+export interface HomeAffectedClient {
+  id: string;
+  name: string;
+  strategy: string;
+  reason: string;
+  relevanceScore: number;
+  alertType?: ScoredNewsArticle["alertType"];
+}
+
+export interface HomeSourceArticle {
+  id: string;
+  title: string;
+  url: string;
+  source: string;
+  sourceType: ScoredNewsArticle["sourceType"];
+  publishedAt: string;
+  relevanceScore: number;
+}
+
+export interface HomeTodo {
+  id: string;
+  title: string;
+  summary: string;
+  severity: HomeTodoSeverity;
+  triggerType: HomeTriggerType;
+  recommendedAction: string;
+  affectedClients: HomeAffectedClient[];
+  sourceArticle: HomeSourceArticle;
+  sourceArticles: HomeSourceArticle[];
+  createdAt: string;
+  riskTags: string[];
+}
+
+export interface HomeNewsItem {
+  id: string;
+  articleId: string;
+  title: string;
+  summary: string;
+  source: string;
+  sourceType: ScoredNewsArticle["sourceType"];
+  url: string;
+  publishedAt: string;
+  sentiment: number;
+  sentimentLabel: ScoredNewsArticle["sentimentLabel"];
+  relevanceScore: number;
+  affectedClients: HomeAffectedClient[];
+}
+
+export interface HomeDashboard {
+  todos: HomeTodo[];
+  latestNews: HomeNewsItem[];
+  generatedAt: string;
+}
+
+export interface CrmLogEntry {
+  id: number;
+  date: string;
+  rawDate: string;
+  medium: string;
+  rmName: string;
+  clientContact: string;
+  note: string;
+}
+
 export interface AdvisoryMessage {
   id: string;
   clientId: string;
