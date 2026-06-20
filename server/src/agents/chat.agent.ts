@@ -55,7 +55,8 @@ Help the RM with questions about this client. You can explain conflicts, suggest
       }
     );
 
-    const content = response.data?.choices?.[0]?.message?.content || "I couldn't generate a response.";
+    const msg = response.data?.choices?.[0]?.message;
+    const content = msg?.content || msg?.reasoning_content || "I couldn't generate a response.";
     const assistantMsg: ChatMessage = { role: "assistant", content, timestamp: new Date().toISOString() };
     history.push(assistantMsg);
     chatHistories.set(clientId, history.slice(-20));
