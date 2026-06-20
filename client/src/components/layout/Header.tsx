@@ -92,6 +92,7 @@ export function Header({ onDemo, onTracesClick, onAuditClick }: HeaderProps) {
               <div className="flex justify-between"><span>D</span><span>Demo mode</span></div>
               <div className="flex justify-between"><span>T</span><span>Traces</span></div>
               <div className="flex justify-between"><span>A</span><span>Audit log</span></div>
+              <div className="flex justify-between"><span>G</span><span>Generate advisory</span></div>
               <div className="flex justify-between"><span>Esc</span><span>Close drawer</span></div>
             </div>
           </div>

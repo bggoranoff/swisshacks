@@ -212,7 +212,8 @@ export class MessageAgent {
             timeout: 30000,
           }
         );
-        const genericContent = genericRes.data?.choices?.[0]?.message?.content || "";
+        const genericMsg = genericRes.data?.choices?.[0]?.message;
+        const genericContent = genericMsg?.content || genericMsg?.reasoning_content || "";
         if (genericContent.length > 20) {
           msg.genericAdvisory = genericContent.replace(/```json\n?|\n?```/g, "").trim();
         }

@@ -117,7 +117,7 @@ export function NewsFeed({ news, loading, error, onRetry, durationMs }: NewsFeed
                 className="font-medium text-sm text-slate-100 hover:text-blue-300 transition-colors"
               >
                 {article.title}
-                {article.sourceType === "live" && <ExternalLink className="h-3 w-3 text-slate-500 inline ml-1" />}
+                <ExternalLink className="inline h-3 w-3 ml-1 text-slate-500" />
               </a>
             ) : (
               <p className="font-medium text-sm text-slate-100">{article.title}</p>

@@ -76,7 +76,8 @@ Every holding MUST appear in the output. Set conflicts=false and severity="none"
         }
       );
 
-      const content = response.data?.choices?.[0]?.message?.content || "";
+      const msg = response.data?.choices?.[0]?.message;
+      const content = msg?.content || msg?.reasoning_content || "";
       const parsed = parseJson(content);
       if (Array.isArray(parsed)) {
         for (const item of parsed) {

@@ -192,7 +192,8 @@ export class NewsAgent {
           }
         );
 
-        const content = data?.choices?.[0]?.message?.content || "";
+        const msg = data?.choices?.[0]?.message;
+        const content = msg?.content || msg?.reasoning_content || "";
         const parsed = this.parseJson(content);
 
         if (Array.isArray(parsed)) {
