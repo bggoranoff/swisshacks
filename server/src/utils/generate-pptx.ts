@@ -51,28 +51,64 @@ export async function generatePresentation(): Promise<string> {
     { text: "Human-in-the-loop: RM approves every action, client always decides\n", options: { fontSize: 13, color: "FCD34D" } },
   ], { x: 0.5, y: 1.5, w: 9, h: 4 });
 
-  // Slide 5: Technology Stack
-  const slide5 = pptx.addSlide();
-  slide5.background = { color: "0F172A" };
-  slide5.addText("Technology Stack", { x: 0.5, y: 0.5, w: 9, h: 0.8, fontSize: 28, bold: true, color: "FFFFFF" });
-  slide5.addText([
-    { text: "• SIX Financial Information MCP", options: { fontSize: 14, bold: true, color: "2DD4BF" } },
-    { text: " — real-time market data, instrument enrichment and pricing\n", options: { fontSize: 14, color: "94A3B8" } },
-    { text: "• Event Registry", options: { fontSize: 14, bold: true, color: "2DD4BF" } },
-    { text: " — live global news monitoring with per-client relevance scoring\n", options: { fontSize: 14, color: "94A3B8" } },
-    { text: "• Phoeniqs LLM", options: { fontSize: 14, bold: true, color: "2DD4BF" } },
-    { text: " — AI-powered analysis and personalised narrative generation\n", options: { fontSize: 14, color: "94A3B8" } },
-    { text: "• Noumena Digital", options: { fontSize: 14, bold: true, color: "2DD4BF" } },
-    { text: " — knowledge graph modelling for client DNA and portfolio relationships\n", options: { fontSize: 14, color: "94A3B8" } },
-    { text: "• NTT DATA", options: { fontSize: 14, bold: true, color: "2DD4BF" } },
-    { text: " — explainable AI patterns, audit trails and enterprise-grade compliance\n", options: { fontSize: 14, color: "94A3B8" } },
+  // Slide 5: Four Client Personas
+  const slidePersonas = pptx.addSlide();
+  slidePersonas.background = { color: "0F172A" };
+  slidePersonas.addText("Four Client Personas", { x: 0.5, y: 0.5, w: 9, h: 0.8, fontSize: 28, bold: true, color: "FFFFFF" });
+  slidePersonas.addText([
+    { text: "Schneider — The Personal Connection\n", options: { fontSize: 14, bold: true, color: "3B82F6" } },
+    { text: "Family foundation for chronic-illness research. Balanced strategy.\n\n", options: { fontSize: 12, color: "94A3B8" } },
+    { text: "Huber — The Purpose-Driven Investor\n", options: { fontSize: 14, bold: true, color: "22C55E" } },
+    { text: "Environmentalist financing reforestation. Defensive strategy.\n\n", options: { fontSize: 12, color: "94A3B8" } },
+    { text: "Räber — The Defensive Value Investor\n", options: { fontSize: 14, bold: true, color: "F59E0B" } },
+    { text: "Conservative Swiss couple, averse to US tech. Defensive strategy.\n\n", options: { fontSize: 12, color: "94A3B8" } },
+    { text: "Ammann — The Corporate Reputation Case\n", options: { fontSize: 14, bold: true, color: "A855F7" } },
+    { text: "Prominent entrepreneur, reputational risk = financial risk. Growth strategy.\n", options: { fontSize: 12, color: "94A3B8" } },
   ], { x: 0.5, y: 1.5, w: 9, h: 4 });
 
-  // Slide 6: Demo
-  const slide6 = pptx.addSlide();
-  slide6.background = { color: "0F172A" };
-  slide6.addText("Live Demo", { x: 0.5, y: 0.5, w: 9, h: 0.8, fontSize: 28, bold: true, color: "FFFFFF" });
-  slide6.addText([
+  // Slide 6: Technology Stack
+  const slideTech = pptx.addSlide();
+  slideTech.background = { color: "0F172A" };
+  slideTech.addText("Technology Stack", { x: 0.5, y: 0.5, w: 9, h: 0.8, fontSize: 28, bold: true, color: "FFFFFF" });
+  slideTech.addText([
+    { text: "SIX Financial Information — ", options: { fontSize: 13, bold: true, color: "EF4444" } },
+    { text: "MCP server for live market data and prices\n", options: { fontSize: 13, color: "94A3B8" } },
+    { text: "Phoeniqs — ", options: { fontSize: 13, bold: true, color: "06B6D4" } },
+    { text: "LLM API for DNA extraction, conflict detection, advisory generation\n", options: { fontSize: 13, color: "94A3B8" } },
+    { text: "Event Registry — ", options: { fontSize: 13, bold: true, color: "EC4899" } },
+    { text: "Live news feed with sentiment scoring\n", options: { fontSize: 13, color: "94A3B8" } },
+    { text: "Noumena Digital — ", options: { fontSize: 13, bold: true, color: "A855F7" } },
+    { text: "Knowledge graph modeling client-asset-news relationships\n", options: { fontSize: 13, color: "94A3B8" } },
+    { text: "NTT DATA — ", options: { fontSize: 13, bold: true, color: "F97316" } },
+    { text: "Explainable AI patterns with decision audit trail\n\n", options: { fontSize: 13, color: "94A3B8" } },
+    { text: "Frontend: ", options: { fontSize: 12, color: "64748B" } },
+    { text: "React + TypeScript + TailwindCSS\n", options: { fontSize: 12, color: "94A3B8" } },
+    { text: "Backend: ", options: { fontSize: 12, color: "64748B" } },
+    { text: "Express + TypeScript + Multi-Agent Orchestration\n", options: { fontSize: 12, color: "94A3B8" } },
+  ], { x: 0.5, y: 1.5, w: 9, h: 4 });
+
+  // Slide 7: Judging Criteria Mapping
+  const slideJudging = pptx.addSlide();
+  slideJudging.background = { color: "0F172A" };
+  slideJudging.addText("How We Address the Judging Criteria", { x: 0.5, y: 0.5, w: 9, h: 0.8, fontSize: 28, bold: true, color: "FFFFFF" });
+  slideJudging.addText([
+    { text: "Creativity (25%) — ", options: { fontSize: 14, bold: true, color: "22D3EE" } },
+    { text: "RM chat agent, knowledge graph, DNA timeline, before/after comparison\n\n", options: { fontSize: 12, color: "94A3B8" } },
+    { text: "Trust & Explainability (25%) — ", options: { fontSize: 14, bold: true, color: "22D3EE" } },
+    { text: "Full tracing, audit trail, reasoning chains, evidence citations, human-in-the-loop\n\n", options: { fontSize: 12, color: "94A3B8" } },
+    { text: "Feasibility (20%) — ", options: { fontSize: 14, bold: true, color: "22D3EE" } },
+    { text: "SIX MCP live prices, multi-agent caching, error boundaries, graceful fallbacks\n\n", options: { fontSize: 12, color: "94A3B8" } },
+    { text: "Visual Design (15%) — ", options: { fontSize: 14, bold: true, color: "22D3EE" } },
+    { text: "Professional dark theme, responsive layout, allocation charts, drift indicators\n\n", options: { fontSize: 12, color: "94A3B8" } },
+    { text: "Presentation Quality (15%) — ", options: { fontSize: 14, bold: true, color: "22D3EE" } },
+    { text: "Demo Mode walkthrough, PPTX generation, multi-language support\n", options: { fontSize: 12, color: "94A3B8" } },
+  ], { x: 0.5, y: 1.5, w: 9, h: 4 });
+
+  // Slide 8: Demo
+  const slideDemo = pptx.addSlide();
+  slideDemo.background = { color: "0F172A" };
+  slideDemo.addText("Live Demo", { x: 0.5, y: 0.5, w: 9, h: 0.8, fontSize: 28, bold: true, color: "FFFFFF" });
+  slideDemo.addText([
     { text: "What you will see:\n\n", options: { fontSize: 16, bold: true, color: "E2E8F0" } },
     { text: "1. Client DNA extraction from CRM notes — live AI analysis\n", options: { fontSize: 14, color: "2DD4BF" } },
     { text: "2. Real-time news alert matched to a specific client's values\n", options: { fontSize: 14, color: "2DD4BF" } },
@@ -82,11 +118,11 @@ export async function generatePresentation(): Promise<string> {
     { text: "6. RM approval flow — human-in-the-loop before anything reaches the client\n", options: { fontSize: 14, color: "2DD4BF" } },
   ], { x: 0.5, y: 1.5, w: 9, h: 4 });
 
-  // Slide 7: Key Features
-  const slide7 = pptx.addSlide();
-  slide7.background = { color: "0F172A" };
-  slide7.addText("Key Features", { x: 0.5, y: 0.5, w: 9, h: 0.8, fontSize: 28, bold: true, color: "FFFFFF" });
-  slide7.addText([
+  // Slide 9: Key Features
+  const slideFeatures = pptx.addSlide();
+  slideFeatures.background = { color: "0F172A" };
+  slideFeatures.addText("Key Features", { x: 0.5, y: 0.5, w: 9, h: 0.8, fontSize: 28, bold: true, color: "FFFFFF" });
+  slideFeatures.addText([
     { text: "✓ Client DNA Profiling — AI reads CRM logs, builds investment identity\n", options: { fontSize: 14, color: "E2E8F0" } },
     { text: "✓ Smart Alerts — news and CIO conflicts matched against client DNA\n", options: { fontSize: 14, color: "E2E8F0" } },
     { text: "✓ DNA-Aware Swaps — replacements within mandate, BUY-rated by CIO\n", options: { fontSize: 14, color: "E2E8F0" } },
@@ -95,11 +131,11 @@ export async function generatePresentation(): Promise<string> {
     { text: "✓ Human-in-the-Loop — RM approves, client always decides\n", options: { fontSize: 14, color: "E2E8F0" } },
   ], { x: 0.5, y: 1.5, w: 9, h: 4 });
 
-  // Slide 8: Trust & Explainability
-  const slide8 = pptx.addSlide();
-  slide8.background = { color: "0F172A" };
-  slide8.addText("Trust & Explainability", { x: 0.5, y: 0.5, w: 9, h: 0.8, fontSize: 28, bold: true, color: "FFFFFF" });
-  slide8.addText([
+  // Slide 10: Trust & Explainability
+  const slideTrust = pptx.addSlide();
+  slideTrust.background = { color: "0F172A" };
+  slideTrust.addText("Trust & Explainability", { x: 0.5, y: 0.5, w: 9, h: 0.8, fontSize: 28, bold: true, color: "FFFFFF" });
+  slideTrust.addText([
     { text: "• Source attribution", options: { fontSize: 14, bold: true, color: "2DD4BF" } },
     { text: " — every AI output cites the exact data sources used\n", options: { fontSize: 14, color: "94A3B8" } },
     { text: "• Reasoning chains", options: { fontSize: 14, bold: true, color: "2DD4BF" } },
@@ -114,26 +150,11 @@ export async function generatePresentation(): Promise<string> {
     { text: " — full visibility into which agent ran, when, and why\n", options: { fontSize: 14, color: "94A3B8" } },
   ], { x: 0.5, y: 1.5, w: 9, h: 4 });
 
-  // Slide 9: Four Client Personas
-  const slide9 = pptx.addSlide();
-  slide9.background = { color: "0F172A" };
-  slide9.addText("Four Client Personas", { x: 0.5, y: 0.5, w: 9, h: 0.8, fontSize: 28, bold: true, color: "FFFFFF" });
-  slide9.addText([
-    { text: "• Schneider", options: { fontSize: 14, bold: true, color: "2DD4BF" } },
-    { text: " — family foundation, values-led: ESG screening applied across the full portfolio\n", options: { fontSize: 14, color: "94A3B8" } },
-    { text: "• Huber", options: { fontSize: 14, bold: true, color: "2DD4BF" } },
-    { text: " — environmentalist, sustainability: impact holdings prioritised, carbon intensity flagged\n", options: { fontSize: 14, color: "94A3B8" } },
-    { text: "• Räber", options: { fontSize: 14, bold: true, color: "2DD4BF" } },
-    { text: " — conservative, data-driven: quantitative rationale, low-volatility mandates enforced\n", options: { fontSize: 14, color: "94A3B8" } },
-    { text: "• Ammann", options: { fontSize: 14, bold: true, color: "2DD4BF" } },
-    { text: " — entrepreneur, reputational risk: exposure to sector controversies monitored in real time\n", options: { fontSize: 14, color: "94A3B8" } },
-  ], { x: 0.5, y: 1.5, w: 9, h: 4 });
-
-  // Slide 10: Team
-  const slide10 = pptx.addSlide();
-  slide10.background = { color: "0F172A" };
-  slide10.addText("Team", { x: 0.5, y: 0.5, w: 9, h: 0.8, fontSize: 28, bold: true, color: "FFFFFF" });
-  slide10.addText("[Team members here]", { x: 1, y: 2.5, w: 8, h: 1, fontSize: 16, color: "64748B", align: "center", italic: true });
+  // Slide 11: Team
+  const slideTeam = pptx.addSlide();
+  slideTeam.background = { color: "0F172A" };
+  slideTeam.addText("Team", { x: 0.5, y: 0.5, w: 9, h: 0.8, fontSize: 28, bold: true, color: "FFFFFF" });
+  slideTeam.addText("[Team members here]", { x: 1, y: 2.5, w: 8, h: 1, fontSize: 16, color: "64748B", align: "center", italic: true });
 
   const outputDir = path.resolve(__dirname, "../../../output");
   if (!fs.existsSync(outputDir)) fs.mkdirSync(outputDir, { recursive: true });
