@@ -2,7 +2,7 @@ import { useMemo } from "react";
 import { PieChart, Pie, Cell, Tooltip } from "recharts";
 import type { EnrichedPosition } from "../../types/api";
 
-const COLORS = ["#3b82f6", "#22c55e", "#f59e0b", "#ef4444", "#8b5cf6", "#06b6d4"];
+const COLORS = ["#ec6608", "#2e6fd6", "#22c55e", "#f59e0b", "#8b5cf6", "#06b6d4"];
 
 interface Slice {
   name: string;

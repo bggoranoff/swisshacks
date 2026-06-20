@@ -1,0 +1,35 @@
+# Fly.io configuration for WealthAdvisor AI
+# App name must be globally unique — change it before first deploy if taken.
+app = 'wealthadvisor-ai'
+primary_region = 'fra'
+
+[build]
+
+[env]
+  NODE_ENV = 'production'
+  PORT = '3000'
+  PHOENIQS_API_URL = 'https://maas.phoeniqs.com/v1'
+  PHOENIQS_MODEL = 'inference-gpt-oss-120b'
+  SIX_MCP_URL = 'https://ca-mcpwebapi-tools.nicepebble-599ed11f.westeurope.azurecontainerapps.io/mcp'
+  NEWSAI_API_URL = 'https://eventregistry.org/api/v1'
+  DEMO_MODE = 'false'
+  VITE_DEMO_MODE = 'false'
+  ENABLE_SCENARIO_NEWS = 'false'
+
+[http_service]
+  internal_port = 3000
+  force_https = true
+  auto_stop_machines = 'stop'
+  auto_start_machines = true
+  min_machines_running = 0
+
+  [[http_service.checks]]
+    grace_period = '15s'
+    interval = '30s'
+    method = 'GET'
+    timeout = '10s'
+    path = '/api/clients'
+
+[[vm]]
+  size = 'shared-cpu-1x'
+  memory = '512mb'

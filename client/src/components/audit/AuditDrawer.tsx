@@ -26,9 +26,9 @@ function formatTime(iso: string): string {
   }
 }
 
-function truncate(text: string | null | undefined, max = 120): string {
+function truncate(text: string | null | undefined): string {
   if (!text) return "";
-  return text.length > max ? `${text.slice(0, max)}…` : text;
+  return text;
 }
 
 // ── Agent badge colour map ────────────────────────────────────────────────────
@@ -69,7 +69,7 @@ function AuditEntryCard({ entry }: { entry: AuditEntry }) {
         >
           {entry.agent}
         </span>
-        <span className="text-sm text-slate-200 font-medium truncate">
+        <span className="text-sm text-slate-200 font-medium break-words">
           {entry.action}
         </span>
       </div>
@@ -206,7 +206,7 @@ export function AuditDrawer({ isOpen, onClose }: AuditDrawerProps) {
               <p className="text-sm text-red-300">{error}</p>
               <button
                 onClick={fetchAudit}
-                className="text-xs text-blue-400 hover:underline"
+                className="text-xs text-six-orange hover:underline"
               >
                 Retry
               </button>

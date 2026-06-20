@@ -11,41 +11,50 @@ import {
   CashFlow,
 } from "../types/data";
 import { setClients, setPortfolios, markLoaded } from "./store";
+import { demoModeEnabled } from "../config/demo";
 
 const DATA_DIR = path.join(__dirname, "../../../data");
 
-const CRM_TAB_MAP: Record<string, { id: string; name: string; description: string; strategy: "Defensive" | "Balanced" | "Growth"; portfolioTab: string; triggerEvent: string }> = {
+const CRM_TAB_MAP: Record<string, { id: string; name: string; description: string; demoDescription: string; strategy: "Defensive" | "Balanced" | "Growth"; portfolioTab: string; triggerEvent: string; pronouns: string }> = {
   "CRM Schneider": {
     id: "schneider",
-    name: "Schneider",
-    description: "The Personal Connection — emotional, purpose-driven; family foundation for chronic-illness research",
+    name: "Hubertus Schneider",
+    description: "Emotionally driven private client running a family foundation for chronic-illness and neuro-degenerative research. Seeks purpose-aligned, balanced investments that reflect his family's health legacy.",
+    demoDescription: "The Personal Connection — emotional, purpose-driven; family foundation for chronic-illness research",
     strategy: "Balanced",
     portfolioTab: "Sample Portfolio Balanced",
     triggerEvent: "Pharma company shuts down its research division for that disease",
+    pronouns: "he/him",
   },
   "CRM Huber": {
     id: "huber",
-    name: "Huber",
-    description: "The Purpose-Driven Investor — environmentalist financing South American reforestation",
+    name: "Marius Huber",
+    description: "Impact-first investor and environmentalist financing South American reforestation projects. Prioritises measurable ecological outcomes and holds biodiversity risk and greenwashing as hard red lines.",
+    demoDescription: "The Purpose-Driven Investor — environmentalist financing South American reforestation",
     strategy: "Defensive",
     portfolioTab: "Sample Portfolio Defensive",
     triggerEvent: "Consumer goods company announces historic palm oil deforestation cut-off",
+    pronouns: "he/him",
   },
   "CRM Raeber": {
     id: "raeber",
-    name: "Räber",
-    description: "The Defensive Value Investor — conservative Swiss couple; precision-engineering background; averse to US tech",
+    name: "Eugen Räber",
+    description: "Conservative Swiss couple with a precision-engineering background. Capital preservation and dividend income take priority; strongly averse to US tech concentration and emerging market exposure.",
+    demoDescription: "The Defensive Value Investor — conservative Swiss couple; precision-engineering background; averse to US tech",
     strategy: "Defensive",
     portfolioTab: "Sample Portfolio Defensive",
     triggerEvent: "CIO suggests rebalancing from blue chips into US AI stocks",
+    pronouns: "they/them",
   },
   "CRM Ammann": {
     id: "ammann",
-    name: "Ammann",
-    description: "The Corporate Reputation Case — prominent Swiss entrepreneur; reputational risk = financial risk",
+    name: "Julian Ammann",
+    description: "Prominent Swiss entrepreneur for whom reputational risk is inseparable from financial risk. Any ESG controversy or supply-chain scandal in the portfolio is treated as a direct threat to his personal brand and business standing.",
+    demoDescription: "The Corporate Reputation Case — prominent Swiss entrepreneur; reputational risk = financial risk",
     strategy: "Growth",
     portfolioTab: "Sample Portfolio Growth",
     triggerEvent: "Labour exploitation scandal hits a consumer brand in the portfolio",
+    pronouns: "he/him",
   },
 };
 
@@ -255,7 +264,7 @@ export function loadPortfolioData(): Portfolio[] {
 
     const totalTargetCHF = positions.reduce((sum, p) => sum + p.targetValueCHF, 0);
 
-    console.log(`[Loader] Portfolio ${cfg.strategy}: ${positions.length} positions, ${transactions.length} transactions, ${cashFlows.length} cash flows, target CHF ${totalTargetCHF.toLocaleString()}`);
+    console.log(`[Loader] Portfolio ${cfg.strategy}: ${positions.length} positions, ${transactions.length} transactions, ${cfg.strategy === "Defensive" ? cashFlows.length : cashFlows.length} cash flows, target CHF ${totalTargetCHF.toLocaleString()}`);
 
     portfolios.push({
       strategy: cfg.strategy,
@@ -276,6 +285,7 @@ export function buildClientProfiles(
   portfolios: Portfolio[]
 ): ClientProfile[] {
   const clients: ClientProfile[] = [];
+  const useDemoProfiles = demoModeEnabled();
 
   for (const [sheetName, meta] of Object.entries(CRM_TAB_MAP)) {
     const entries = crmData.get(meta.id) || [];
@@ -283,11 +293,12 @@ export function buildClientProfiles(
     clients.push({
       id: meta.id,
       name: meta.name,
-      description: meta.description,
+      description: useDemoProfiles ? meta.demoDescription : meta.description,
       strategy: meta.strategy,
       crmTab: sheetName,
       portfolioTab: meta.portfolioTab,
       triggerEvent: meta.triggerEvent,
+      pronouns: meta.pronouns,
       crmEntries: entries,
     });
   }

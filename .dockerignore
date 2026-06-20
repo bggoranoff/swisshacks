@@ -1,0 +1,15 @@
+node_modules/
+client/node_modules/
+server/node_modules/
+server/dist/
+client/dist/
+.env
+.env.*
+six-credentials/
+SIX-Noumena-NTT-Data/
+output/
+.git/
+.github/
+test/
+docs/
+benchmarks/

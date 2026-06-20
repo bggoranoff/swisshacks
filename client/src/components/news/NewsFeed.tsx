@@ -95,7 +95,7 @@ export function NewsFeed({ news, loading, error, onRetry, durationMs, fetchedAt 
             onClick={() => setFilter(f)}
             className={`text-xs px-3 py-1 rounded-full transition-colors ${
               filter === f
-                ? "bg-blue-600 text-white"
+                ? "bg-six-orange text-white"
                 : "bg-slate-700 text-slate-400 hover:text-slate-200"
             }`}
           >
@@ -108,9 +108,10 @@ export function NewsFeed({ news, loading, error, onRetry, durationMs, fetchedAt 
           <div
             key={article.id}
             className={clsx(
-              "p-3 rounded-lg bg-slate-700/50 transition-all duration-200 hover:bg-slate-700",
-              article.isAlert && article.alertType === "conflict" && "border-l-2 border-red-400",
-              article.isAlert && article.alertType === "opportunity" && "border-l-2 border-green-400"
+              "p-3 rounded-lg bg-slate-700/50 transition-all duration-200 hover:bg-slate-700 border-l-2",
+              article.sentimentLabel === "BULLISH" && "border-green-400",
+              article.sentimentLabel === "BEARISH" && "border-red-400",
+              article.sentimentLabel === "NEUTRAL" && "border-slate-500"
             )}
           >
             {article.url && article.url !== "#" && article.url !== "#scenario" && article.url !== "#cio" ? (
@@ -118,7 +119,7 @@ export function NewsFeed({ news, loading, error, onRetry, durationMs, fetchedAt 
                 href={article.url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="font-medium text-sm text-slate-100 hover:text-blue-300 transition-colors"
+                className="font-medium text-sm text-slate-100 hover:text-six-orange-bright transition-colors"
               >
                 {article.title}
                 <ExternalLink className="inline h-3 w-3 ml-1 text-slate-500" />
@@ -145,13 +146,13 @@ export function NewsFeed({ news, loading, error, onRetry, durationMs, fetchedAt 
 
             <div className="mt-2 h-1 rounded-full bg-slate-600">
               <div
-                className="h-full rounded-full bg-blue-500"
+                className="h-full rounded-full bg-six-orange"
                 style={{ width: `${Math.round(article.relevanceScore * 100)}%` }}
               />
             </div>
 
             {article.summary && (
-              <p className="text-xs text-slate-400 mt-1 line-clamp-2">{article.summary}</p>
+              <p className="text-xs text-slate-400 mt-1">{article.summary}</p>
             )}
           </div>
         ))}

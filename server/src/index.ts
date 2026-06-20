@@ -2,13 +2,14 @@ import dotenv from "dotenv";
 import path from "path";
 dotenv.config({ path: path.resolve(__dirname, "../../.env") });
 import express, { Request, Response, NextFunction } from "express";
+import axios from "axios";
 import cors from "cors";
 import helmet from "helmet";
 import morgan from "morgan";
 import { loadAllData } from "./data/loader";
 import { getAllClients, getClient, getPortfolio } from "./data/store";
 import { extractDNA } from "./agents/crm.agent";
-import { NewsAgent } from "./agents/news.agent";
+import { NewsAgent, scenarioNewsEnabled } from "./agents/news.agent";
 import { MessageAgent } from "./agents/message.agent";
 import { traceService } from "./services/trace.service";
 import { auditService } from "./services/audit.service";
@@ -47,13 +48,14 @@ app.get("/api/health", (_req, res) => {
 
 // Clients
 app.get("/api/clients", asyncHandler((_req: Request, res: Response) => {
+  const includeScenarioMetadata = scenarioNewsEnabled();
   const clients = getAllClients().map(c => ({
     id: c.id,
     name: c.name,
     description: c.description,
     strategy: c.strategy,
     crmEntryCount: c.crmEntries.length,
-    triggerEvent: c.triggerEvent,
+    triggerEvent: includeScenarioMetadata ? c.triggerEvent : undefined,
   }));
   res.json({ success: true, data: clients });
 }));
@@ -65,10 +67,12 @@ app.get("/api/clients/:id", asyncHandler((req: Request, res: Response) => {
     return;
   }
   const portfolio = getPortfolio(client.strategy);
+  const { triggerEvent, ...clientData } = client;
   res.json({
     success: true,
     data: {
-      ...client,
+      ...clientData,
+      ...(scenarioNewsEnabled() ? { triggerEvent } : {}),
       crmEntryCount: client.crmEntries.length,
       portfolioSummary: portfolio ? {
         strategy: portfolio.strategy,
@@ -88,8 +92,64 @@ app.get("/api/clients/:id/dna", asyncHandler(async (req: Request, res: Response)
     return;
   }
   const forceRefresh = req.query.refresh === "true";
-  const dna = await extractDNA(client.id, client.crmEntries, forceRefresh);
+  const dna = await extractDNA(client.id, client.crmEntries, forceRefresh, client.pronouns);
   res.json({ success: true, data: dna });
+}));
+
+// Trait summary — on-demand LLM explanation of a single DNA trait
+app.post("/api/clients/:id/trait-summary", asyncHandler(async (req: Request, res: Response) => {
+  const client = getClient(req.params.id);
+  if (!client) {
+    res.status(404).json({ success: false, error: "Client not found" });
+    return;
+  }
+  const { trait, category, evidence } = req.body || {};
+  if (!trait || typeof trait !== "string") {
+    res.status(400).json({ success: false, error: "trait is required" });
+    return;
+  }
+
+  const evidenceLines = Array.isArray(evidence) && evidence.length > 0
+    ? evidence.map((e: { crmDate: string; crmExcerpt: string }) =>
+        `- ${e.crmDate}: "${e.crmExcerpt}"`
+      ).join("\n")
+    : "No direct CRM citations available.";
+
+  const categoryLabel: Record<string, string> = {
+    values: "core investment value",
+    businessContext: "business context factor",
+    riskSensitivities: "risk sensitivity",
+    personalPriorities: "personal priority",
+  };
+  const label = categoryLabel[category] || "trait";
+
+  const systemPrompt = `You are a senior wealth management advisor writing a brief internal note. Explain in 2-3 sentences why a trait characterises a client's investment identity. Be specific to the evidence. Write in plain English, no bullet points.`;
+  const userPrompt = `Client: ${client.name}\nTrait: "${trait}" (${label})\n\nSupporting CRM evidence:\n${evidenceLines}\n\nExplain why "${trait}" is a defining ${label} for this client.`;
+
+  const llmUrl = (process.env.PHOENIQS_API_URL || "https://maas.phoeniqs.com/v1") + "/chat/completions";
+  const llmKey = process.env.PHOENIQS_API_KEY || "";
+  const llmModel = process.env.PHOENIQS_MODEL || "inference-gpt-oss-120b";
+
+  const resp = await axios.post(
+    llmUrl,
+    {
+      model: llmModel,
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: userPrompt },
+      ],
+      temperature: 0.3,
+      max_tokens: 200,
+    },
+    {
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${llmKey}` },
+      timeout: 30000,
+    }
+  );
+  const choice = resp.data?.choices?.[0];
+  const summary = choice?.message?.content || choice?.message?.reasoning_content || choice?.text || "";
+
+  res.json({ success: true, data: { summary: summary.trim() } });
 }));
 
 // Client News
@@ -425,7 +485,7 @@ app.get("/api/clients/:id/portfolio", asyncHandler(async (req: Request, res: Res
   // DNA-based conflict detection via LLM
   let conflicts: any[] = [];
   try {
-    const dna = await extractDNA(client.id, client.crmEntries, false);
+    const dna = await extractDNA(client.id, client.crmEntries, false, client.pronouns);
     const top20 = [...positionsWithCio].sort((a, b) => b.currentValueCHF - a.currentValueCHF).slice(0, 20);
     conflicts = await detectConflicts(client.id, top20, dna, portfolio.cioRecommendations);
     console.log(`[Portfolio] ${client.id}: ${conflicts.length} conflicts detected`);
@@ -549,7 +609,7 @@ app.get("/api/clients/:id/graph", asyncHandler(async (req: Request, res: Respons
     res.status(404).json({ success: false, error: "Client not found" });
     return;
   }
-  const dna = await extractDNA(client.id, client.crmEntries, false);
+  const dna = await extractDNA(client.id, client.crmEntries, false, client.pronouns);
   const portfolio = getPortfolio(client.strategy);
   const digest = await newsAgent.getNewsDigest(client.id);
   const graph = knowledgeGraphService.buildClientGraph(client.id, dna, portfolio, digest);
@@ -671,7 +731,7 @@ app.listen(port, () => {
   console.log(`[Warmup] Pre-warming DNA cache for ${clients.length} clients...`);
   Promise.all(
     clients.map(c =>
-      extractDNA(c.id, c.crmEntries, false)
+      extractDNA(c.id, c.crmEntries, false, c.pronouns)
         .then(() => console.log(`[Warmup] DNA cached for ${c.id}`))
         .catch(err => console.warn(`[Warmup] DNA failed for ${c.id}: ${(err as Error).message}`))
     )
@@ -694,7 +754,7 @@ app.listen(port, () => {
           // Trigger the portfolio endpoint logic to cache conflicts
           const portfolio = getPortfolio(c.strategy);
           if (!portfolio) return;
-          const dna = await extractDNA(c.id, c.crmEntries, false);
+          const dna = await extractDNA(c.id, c.crmEntries, false, c.pronouns);
           const top20 = [...portfolio.positions].sort((a, b) => b.currentValueCHF - a.currentValueCHF).slice(0, 20);
           await detectConflicts(c.id, top20, dna, portfolio.cioRecommendations);
           console.log(`[Warmup] Portfolio cached for ${c.id}`);

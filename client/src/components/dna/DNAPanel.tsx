@@ -1,15 +1,17 @@
-import { useState, useMemo } from "react";
+import { useMemo, useState } from "react";
+// drawer state is lifted to App.tsx
 import type { ClientDNA } from "../../types/api";
 import { Card, CardTitle } from "../shared/Card";
-import { ConfidenceBadge } from "../shared/ConfidenceBadge";
 import { SkeletonBlock, SkeletonPills } from "../shared/SkeletonLoader";
 import { ErrorState } from "../shared/ErrorState";
 import { EmptyState } from "../shared/EmptyState";
 import { FadeIn } from "../shared/FadeIn";
-import { Dna, ChevronDown, Clock } from "lucide-react";
+import { Dna, ChevronDown, ChevronRight, Clock } from "lucide-react";
 
 interface DNAPanelProps {
   dna: ClientDNA | null;
+  clientId: string;
+  onOpenDrawer: (trait: string, category: string) => void;
   loading: boolean;
   error: string | null;
   onRetry: () => void;
@@ -18,28 +20,11 @@ interface DNAPanelProps {
 }
 
 
-export function DNAPanel({ dna, loading, error, onRetry, durationMs, fetchedAt }: DNAPanelProps) {
-  if (loading) return <Card><CardTitle icon={Dna}>Client DNA</CardTitle><SkeletonPills /><SkeletonBlock /></Card>;
-  if (error) return <Card><CardTitle icon={Dna}>Client DNA</CardTitle><ErrorState message={error} onRetry={onRetry} /></Card>;
-  if (!dna) return <Card><CardTitle icon={Dna}>Client DNA</CardTitle><EmptyState message="Select a client to view DNA profile" /></Card>;
-
-  const [expandedTrait, setExpandedTrait] = useState<string | null>(null);
-
-  const avgConfidence = (() => {
-    const vals = Object.values(dna.traitConfidence || {});
-    return vals.length > 0 ? vals.reduce((a, b) => a + b, 0) / vals.length : 0;
-  })();
-
-  const traitEvidence = (trait: string) =>
-    (dna.evidence ?? []).filter(e =>
-      e.trait.toLowerCase().includes(trait.toLowerCase()) ||
-      trait.toLowerCase().includes(e.trait.toLowerCase())
-    );
-
-  const traitConfidence = dna.traitConfidence ?? {};
+export function DNAPanel({ dna, onOpenDrawer, loading, error, onRetry, durationMs, fetchedAt }: DNAPanelProps) {
+  const [showAdditional, setShowAdditional] = useState(false);
 
   const timelineData = useMemo(() => {
-    if (!dna.evidence || dna.evidence.length === 0) return [];
+    if (!dna?.evidence || dna.evidence.length === 0) return [];
     const byYear: Record<string, { trait: string; date: string; excerpt: string }[]> = {};
     dna.evidence.forEach(e => {
       const year = e.crmDate?.slice(0, 4) || "Unknown";
@@ -47,46 +32,13 @@ export function DNAPanel({ dna, loading, error, onRetry, durationMs, fetchedAt }
       byYear[year].push({ trait: e.trait, date: e.crmDate, excerpt: e.crmExcerpt });
     });
     return Object.entries(byYear).sort((a, b) => a[0].localeCompare(b[0]));
-  }, [dna.evidence]);
+  }, [dna?.evidence]);
 
-  function TraitPill({
-    item,
-    colorClass,
-  }: {
-    item: string;
-    colorClass: string;
-  }) {
-    const evidence = traitEvidence(item);
-    const isExpanded = expandedTrait === item;
-    return (
-      <div key={item}>
-        <span className="inline-flex items-center gap-1.5">
-          <button
-            onClick={() => setExpandedTrait(isExpanded ? null : item)}
-            className={`text-xs px-2.5 py-1 rounded-full ${colorClass} hover:opacity-80 transition-opacity cursor-pointer`}
-          >
-            {item}
-            {evidence.length > 0 && (
-              <span className="ml-1 opacity-60">📎</span>
-            )}
-          </button>
-          {traitConfidence[item] != null && (
-            <ConfidenceBadge score={traitConfidence[item]} />
-          )}
-        </span>
-        {isExpanded && evidence.length > 0 && (
-          <div className="mt-1 ml-2 mb-2">
-            {evidence.map((e, j) => (
-              <blockquote key={j} className="border-l-2 border-slate-600 pl-2 text-xs text-slate-400 italic my-1">
-                "{e.crmExcerpt}"
-                <span className="text-slate-500 block not-italic">{e.crmDate}</span>
-              </blockquote>
-            ))}
-          </div>
-        )}
-      </div>
-    );
-  }
+  if (loading) return <Card><CardTitle icon={Dna}>Client DNA</CardTitle><SkeletonPills /><SkeletonBlock /></Card>;
+  if (error) return <Card><CardTitle icon={Dna}>Client DNA</CardTitle><ErrorState message={error} onRetry={onRetry} /></Card>;
+  if (!dna) return <Card><CardTitle icon={Dna}>Client DNA</CardTitle><EmptyState message="Select a client to view DNA profile" /></Card>;
+
+  const communicationStyle = dna.communicationProfile?.style ?? dna.communicationStyle;
 
   return (
     <Card>
@@ -102,89 +54,134 @@ export function DNAPanel({ dna, loading, error, onRetry, durationMs, fetchedAt }
       {/* Summary */}
       <p className="text-sm text-slate-300 mb-4 leading-relaxed">{dna.summary}</p>
 
-      {/* Communication Style + Confidence */}
-      <div className="flex items-center gap-3 mb-4">
-        <span className="text-xs text-slate-400">Style</span>
+      {/* Communication profile */}
+      <div className="flex items-center gap-3 mb-2">
+        <span className="text-xs text-slate-400">Communication</span>
         <span className="text-sm font-medium px-3 py-1 rounded-full bg-slate-700 text-white capitalize">
-          {dna.communicationStyle}
+          {communicationStyle}
         </span>
-        <ConfidenceBadge score={avgConfidence} />
       </div>
+      {dna.communicationProfile?.rationale && (
+        <p className="text-xs text-slate-400 mb-4 leading-relaxed">{dna.communicationProfile.rationale}</p>
+      )}
 
-      {/* All categories */}
+      {/* All categories — scrollable list boxes */}
       <div className="space-y-4">
 
-        {/* Values */}
+        {/* Client Values */}
         {dna.values && dna.values.length > 0 && (
           <div>
-            <p className="text-xs font-medium text-slate-400 uppercase tracking-wide mb-1.5">Values</p>
-            <div className="flex flex-wrap gap-1.5">
-              {dna.values.map((item) => (
-                <TraitPill key={item} item={item} colorClass="bg-blue-900/50 text-blue-300" />
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Life Events — vertical timeline */}
-        {dna.lifeEvents && dna.lifeEvents.length > 0 && (
-          <div>
-            <p className="text-xs font-medium text-slate-400 uppercase tracking-wide mb-2">Life Events</p>
-            <div className="flex flex-col gap-0">
-              {dna.lifeEvents.map((item, idx) => (
-                <div key={item} className="flex items-stretch gap-3">
-                  {/* Dot + vertical line */}
-                  <div className="flex flex-col items-center">
-                    <div className="h-2 w-2 rounded-full bg-purple-400 mt-1 shrink-0" />
-                    {idx < dna.lifeEvents!.length - 1 && (
-                      <div className="w-0.5 flex-1 bg-slate-700 mt-1" />
-                    )}
-                  </div>
-                  {/* Text */}
-                  <p className="text-sm text-slate-300 pb-3">{item}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Business Context — pills */}
-        {dna.businessContext && dna.businessContext.length > 0 && (
-          <div>
-            <p className="text-xs font-medium text-slate-400 uppercase tracking-wide mb-1.5">Business Context</p>
-            <div className="flex flex-wrap gap-1.5">
-              {dna.businessContext.map((item) => (
-                <TraitPill key={item} item={item} colorClass="bg-cyan-900/50 text-cyan-300" />
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Risk Sensitivities — pills */}
-        {dna.riskSensitivities && dna.riskSensitivities.length > 0 && (
-          <div>
-            <p className="text-xs font-medium text-slate-400 uppercase tracking-wide mb-1.5">Risk Sensitivities</p>
-            <div className="flex flex-wrap gap-1.5">
-              {dna.riskSensitivities.map((item) => (
-                <TraitPill key={item} item={item} colorClass="bg-red-900/50 text-red-300" />
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Personal Priorities — pills */}
-        {dna.personalPriorities && dna.personalPriorities.length > 0 && (
-          <div>
-            <p className="text-xs font-medium text-slate-400 uppercase tracking-wide mb-1.5">Personal Priorities</p>
-            <div className="flex flex-wrap gap-1.5">
-              {dna.personalPriorities.map((item) => (
-                <TraitPill key={item} item={item} colorClass="bg-green-900/50 text-green-300" />
-              ))}
+            <p className="text-xs font-medium text-slate-400 uppercase tracking-wide mb-1.5">Client Values</p>
+            <div className="relative">
+              <div className="h-40 overflow-y-auto hide-scrollbar bg-slate-800/50 border border-slate-700 rounded-lg">
+                {dna.values.map((item, idx) => (
+                  <button
+                    key={item}
+                    onClick={() => onOpenDrawer(item, "values")}
+                    className={`w-full flex items-center justify-between px-3 py-2 text-sm text-left text-slate-300 hover:bg-slate-700/60 transition-colors ${idx < dna.values!.length - 1 ? "border-b border-slate-700/50" : ""}`}
+                  >
+                    <span className="capitalize">{item}</span>
+                    <ChevronRight className="h-3.5 w-3.5 text-slate-500 shrink-0" />
+                  </button>
+                ))}
+              </div>
+              <div className="pointer-events-none absolute bottom-0 left-0 right-0 h-8 rounded-b-lg bg-gradient-to-t from-slate-800/80 to-transparent" />
             </div>
           </div>
         )}
 
       </div>
+
+      {/* Additional context — collapsed by default */}
+      {(
+        (dna.lifeEvents && dna.lifeEvents.length > 0) ||
+        (dna.businessContext && dna.businessContext.length > 0) ||
+        (dna.riskSensitivities && dna.riskSensitivities.length > 0) ||
+        (dna.personalPriorities && dna.personalPriorities.length > 0)
+      ) && (
+        <div className="mt-4 border-t border-slate-700 pt-3">
+          <button
+            onClick={() => setShowAdditional(v => !v)}
+            className="flex items-center gap-1.5 text-xs text-slate-400 hover:text-slate-300 transition-colors w-full"
+          >
+            <ChevronDown className={`h-3.5 w-3.5 transition-transform ${showAdditional ? "" : "-rotate-90"}`} />
+            Additional context
+          </button>
+
+          {showAdditional && (
+            <div className="mt-3 space-y-4">
+
+              {dna.lifeEvents && dna.lifeEvents.length > 0 && (
+                <div>
+                  <p className="text-xs font-medium text-slate-400 uppercase tracking-wide mb-2">Life Events</p>
+                  <div className="flex flex-col gap-0">
+                    {dna.lifeEvents.map((item, idx) => (
+                      <div key={item} className="flex items-stretch gap-3">
+                        <div className="flex flex-col items-center">
+                          <div className="h-2 w-2 rounded-full bg-purple-400 mt-1 shrink-0" />
+                          {idx < dna.lifeEvents!.length - 1 && (
+                            <div className="w-0.5 flex-1 bg-slate-700 mt-1" />
+                          )}
+                        </div>
+                        <p className="text-sm text-slate-400 pb-3">{item}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {dna.businessContext && dna.businessContext.length > 0 && (
+                <div>
+                  <p className="text-xs font-medium text-slate-400 uppercase tracking-wide mb-1.5">Business Context</p>
+                  <div className="bg-slate-800/50 border border-slate-700 rounded-lg">
+                    {dna.businessContext.map((item, idx) => (
+                      <div
+                        key={item}
+                        className={`px-3 py-2 text-sm text-slate-400 ${idx < dna.businessContext!.length - 1 ? "border-b border-slate-700/50" : ""}`}
+                      >
+                        <span className="capitalize">{item}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {dna.riskSensitivities && dna.riskSensitivities.length > 0 && (
+                <div>
+                  <p className="text-xs font-medium text-slate-400 uppercase tracking-wide mb-1.5">Risk Sensitivities</p>
+                  <div className="bg-slate-800/50 border border-slate-700 rounded-lg">
+                    {dna.riskSensitivities.map((item, idx) => (
+                      <div
+                        key={item}
+                        className={`px-3 py-2 text-sm text-slate-400 ${idx < dna.riskSensitivities!.length - 1 ? "border-b border-slate-700/50" : ""}`}
+                      >
+                        <span className="capitalize">{item}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {dna.personalPriorities && dna.personalPriorities.length > 0 && (
+                <div>
+                  <p className="text-xs font-medium text-slate-400 uppercase tracking-wide mb-1.5">Personal Priorities</p>
+                  <div className="bg-slate-800/50 border border-slate-700 rounded-lg">
+                    {dna.personalPriorities.map((item, idx) => (
+                      <div
+                        key={item}
+                        className={`px-3 py-2 text-sm text-slate-400 ${idx < dna.personalPriorities!.length - 1 ? "border-b border-slate-700/50" : ""}`}
+                      >
+                        <span className="capitalize">{item}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+            </div>
+          )}
+        </div>
+      )}
 
       {/* DNA Evolution Timeline */}
       {timelineData.length > 0 && (
@@ -197,12 +194,12 @@ export function DNAPanel({ dna, loading, error, onRetry, durationMs, fetchedAt }
             <div className="absolute left-1 top-0 bottom-0 w-0.5 bg-slate-700" />
             {timelineData.map(([year, entries]) => (
               <div key={year} className="mb-4 relative">
-                <div className="absolute -left-3 top-0.5 h-2.5 w-2.5 rounded-full bg-blue-500 border-2 border-slate-800" />
+                <div className="absolute -left-3 top-0.5 h-2.5 w-2.5 rounded-full bg-six-orange border-2 border-slate-800" />
                 <p className="text-sm font-medium text-white ml-2">{year}</p>
                 <div className="ml-2 mt-1 space-y-1">
                   {entries.slice(0, 3).map((e, i) => (
                     <p key={i} className="text-xs text-slate-400">
-                      <span className="text-blue-300">{e.trait}</span> — {e.excerpt?.slice(0, 60)}...
+                      <span className="text-six-orange">{e.trait}</span> — {e.excerpt?.slice(0, 60)}...
                     </p>
                   ))}
                 </div>
@@ -231,6 +228,7 @@ export function DNAPanel({ dna, loading, error, onRetry, durationMs, fetchedAt }
           </div>
         </details>
       )}
+
       </FadeIn>
     </Card>
   );

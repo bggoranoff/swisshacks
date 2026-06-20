@@ -1,5 +1,42 @@
 @import "tailwindcss";
 
+/* ============================================================
+   SIX AI — Design tokens
+   Brand palette + sharp-corner radius scale.
+   Override the Tailwind v4 theme so every `rounded-*` utility
+   (except `rounded-full`, kept for avatars/dots/pills) renders
+   with minimal, professional roundedness app-wide.
+   ============================================================ */
+@theme {
+  /* SIX brand colors */
+  --color-six-orange: #ec6608;        /* signature SIX orange — primary accent */
+  --color-six-orange-bright: #ff7e29; /* hover / lighter accent */
+  --color-six-orange-dark: #c2530a;   /* pressed / darker accent */
+  --color-six-blue: #2e6fd6;          /* secondary accent blue */
+  --color-six-blue-bright: #4f8bf0;
+  --color-six-navy: #14233f;          /* deep brand navy */
+
+  /* Sharp corners: collapse the radius scale to minimal values.
+     `--radius-full` is intentionally left at its default (9999px)
+     so circular avatars, status dots and pills stay round. */
+  --radius-xs: 1px;
+  --radius-sm: 2px;
+  --radius-md: 2px;
+  --radius-lg: 3px;
+  --radius-xl: 3px;
+  --radius-2xl: 4px;
+  --radius-3xl: 4px;
+}
+
+/* Hide native scrollbars, keep scrollability */
+.hide-scrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
 @layer utilities {
   .animate-fadeIn {
     animation: fadeIn 0.3s ease-out forwards;
@@ -40,13 +77,13 @@
   animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
 
-/* Selection color */
+/* Selection color — SIX orange tint */
 ::selection {
-  background-color: rgba(59, 130, 246, 0.3);
+  background-color: rgba(236, 102, 8, 0.3);
 }
 
-/* Focus ring */
+/* Focus ring — SIX orange */
 *:focus-visible {
-  outline: 2px solid rgba(59, 130, 246, 0.5);
+  outline: 2px solid rgba(236, 102, 8, 0.5);
   outline-offset: 2px;
 }

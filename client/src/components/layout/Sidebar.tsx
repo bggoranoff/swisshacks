@@ -1,19 +1,20 @@
+import type { CSSProperties } from "react";
 import clsx from "clsx";
 import type { ClientSummary } from "../../types/api";
 import { Users } from "lucide-react";
 
 const AVATAR_COLORS: Record<string, string> = {
-  schneider: "bg-blue-600",
-  huber: "bg-green-600",
-  raeber: "bg-amber-600",
-  ammann: "bg-purple-600",
+  schneider: "bg-six-orange",
+  huber: "bg-six-blue",
+  raeber: "bg-six-orange-dark",
+  ammann: "bg-six-blue-bright",
 };
 
 const INITIALS: Record<string, string> = {
-  schneider: "MS",
-  huber: "PH",
-  raeber: "RR",
-  ammann: "CA",
+  schneider: "HS",
+  huber: "MH",
+  raeber: "ER",
+  ammann: "JA",
 };
 
 const STRATEGY_STYLES: Record<string, string> = {
@@ -26,8 +27,10 @@ interface SidebarProps {
   clients: ClientSummary[];
   selectedId: string | null;
   onSelect: (id: string) => void;
+  onHome?: () => void;
   loading: boolean;
   conflictCount?: number;
+  style?: CSSProperties;
 }
 
 function SidebarSkeleton() {
@@ -46,13 +49,15 @@ function SidebarSkeleton() {
   );
 }
 
-export function Sidebar({ clients, selectedId, onSelect, loading, conflictCount }: SidebarProps) {
+export function Sidebar({ clients, selectedId, onSelect, onHome, loading, conflictCount, style }: SidebarProps) {
   return (
-    <aside className="flex flex-col gap-1 p-4 bg-slate-900 border-r border-slate-700 overflow-y-auto shadow-lg shadow-black/20">
+    <aside style={style} className="flex flex-col gap-1 p-4 bg-slate-900 border-r border-slate-700 overflow-y-auto shadow-lg shadow-black/20 h-screen">
       {/* Logo / branding */}
       <div className="px-3 pb-3 mb-1">
-        <span className="text-sm font-bold tracking-tight text-white">WealthAdvisor</span>
-        <span className="text-sm font-bold tracking-tight text-blue-400"> AI</span>
+        <button onClick={onHome} className="hover:opacity-75 transition-opacity">
+          <span className="text-sm font-bold tracking-tight text-six-orange">SIX</span>
+          <span className="text-sm font-normal tracking-tight text-slate-500 ml-1">AI</span>
+        </button>
       </div>
       <div className="border-t border-slate-700/60 mb-3" />
       <div className="flex items-center gap-2 mb-3 px-3">
@@ -66,11 +71,11 @@ export function Sidebar({ clients, selectedId, onSelect, loading, conflictCount 
           <button
             key={client.id}
             onClick={() => onSelect(client.id)}
-            title={client.triggerEvent}
+            title={client.triggerEvent || client.description}
             className={clsx(
               "w-full text-left p-3 rounded-lg flex items-center gap-3 transition-all duration-200 group",
               selectedId === client.id
-                ? "bg-slate-800 border-l-2 border-blue-400 shadow-sm shadow-blue-500/10"
+                ? "bg-slate-800 border-l-2 border-six-orange shadow-sm shadow-six-orange/10"
                 : "hover:bg-slate-800/70 border-l-2 border-transparent"
             )}
           >
@@ -85,7 +90,7 @@ export function Sidebar({ clients, selectedId, onSelect, loading, conflictCount 
             <div className="flex flex-col min-w-0 flex-1">
               <div className="flex items-center gap-1.5">
                 <span className={clsx(
-                  "font-medium block truncate transition-colors",
+                  "font-medium block break-words transition-colors",
                   selectedId === client.id ? "text-white" : "text-slate-200 group-hover:text-white"
                 )}>
                   {client.name}
@@ -96,9 +101,6 @@ export function Sidebar({ clients, selectedId, onSelect, loading, conflictCount 
                   </span>
                 )}
               </div>
-              <span className="text-xs text-slate-400 block truncate leading-snug mt-0.5">
-                {client.description}
-              </span>
               <div className="flex items-center gap-2 mt-1">
                 <span
                   className={clsx(

@@ -173,7 +173,7 @@ export function PortfolioTable({
       {!loading && !error && portfolio && (
         <FadeIn>
           <div className="flex items-center gap-4 mb-4 text-sm text-slate-400">
-            <span>Strategy: <span className="text-white font-medium">{portfolio.strategy}</span></span>
+            <span>Mandate: <span className="text-white font-medium">{portfolio.strategy}</span></span>
             <span>Total: <span className="text-white font-medium">CHF {formatCHF(portfolio.totalValueCHF)}</span></span>
             <span>{portfolio.positions.length} positions</span>
           </div>
@@ -181,37 +181,39 @@ export function PortfolioTable({
           <AllocationChart positions={portfolio.positions} />
 
           {summaryStats && (
-            <div className="grid grid-cols-5 gap-3 mb-4">
-              <div className="bg-slate-700/50 rounded-lg p-3 text-center">
-                <p className="text-xs text-slate-400 uppercase tracking-wide">Total Value</p>
-                <p className="text-lg font-semibold text-white mt-1">CHF {(summaryStats.totalValue / 1e6).toFixed(1)}M</p>
-              </div>
-              <div className="bg-slate-700/50 rounded-lg p-3 text-center">
-                <p className="text-xs text-slate-400 uppercase tracking-wide">Positions</p>
-                <p className="text-lg font-semibold text-white mt-1">{summaryStats.positionCount}</p>
-              </div>
-              <div className="bg-slate-700/50 rounded-lg p-3 text-center">
-                <p className="text-xs text-slate-400 uppercase tracking-wide">Asset Classes</p>
-                <p className="text-lg font-semibold text-white mt-1">{summaryStats.uniqueAssetClasses}</p>
-              </div>
-              <div className="bg-slate-700/50 rounded-lg p-3 text-center">
-                <p className="text-xs text-slate-400 uppercase tracking-wide">Avg Drift</p>
-                <p
-                  className={clsx(
-                    "text-lg font-semibold mt-1",
-                    summaryStats.avgDrift < 1 ? "text-green-400" :
-                    summaryStats.avgDrift <= 2 ? "text-amber-400" : "text-red-400"
-                  )}
-                >
-                  {summaryStats.avgDrift.toFixed(2)}%
-                </p>
-              </div>
-              <div className="bg-slate-700/50 rounded-lg p-3 text-center">
-                <p className="text-xs text-slate-400 uppercase tracking-wide">CIO Ratings</p>
-                <div className="flex items-center justify-center gap-2 mt-1">
-                  <span className="text-xs text-green-400">{summaryStats.buyCount} Buy</span>
-                  <span className="text-xs text-slate-400">{summaryStats.holdCount} Hold</span>
-                  <span className="text-xs text-red-400">{summaryStats.sellCount} Sell</span>
+            <div className="overflow-x-auto mb-4">
+              <div className="flex gap-3 min-w-max">
+                <div className="bg-slate-700/50 rounded-lg p-3 text-center min-w-[130px]">
+                  <p className="text-xs text-slate-400 uppercase tracking-wide whitespace-nowrap">Total Value</p>
+                  <p className="text-lg font-semibold text-white mt-1 whitespace-nowrap">CHF {(summaryStats.totalValue / 1e6).toFixed(1)}M</p>
+                </div>
+                <div className="bg-slate-700/50 rounded-lg p-3 text-center min-w-[110px]">
+                  <p className="text-xs text-slate-400 uppercase tracking-wide whitespace-nowrap">Positions</p>
+                  <p className="text-lg font-semibold text-white mt-1">{summaryStats.positionCount}</p>
+                </div>
+                <div className="bg-slate-700/50 rounded-lg p-3 text-center min-w-[120px]">
+                  <p className="text-xs text-slate-400 uppercase tracking-wide whitespace-nowrap">Asset Classes</p>
+                  <p className="text-lg font-semibold text-white mt-1">{summaryStats.uniqueAssetClasses}</p>
+                </div>
+                <div className="bg-slate-700/50 rounded-lg p-3 text-center min-w-[110px]">
+                  <p className="text-xs text-slate-400 uppercase tracking-wide whitespace-nowrap">Avg Drift</p>
+                  <p
+                    className={clsx(
+                      "text-lg font-semibold mt-1 whitespace-nowrap",
+                      summaryStats.avgDrift < 1 ? "text-green-400" :
+                      summaryStats.avgDrift <= 2 ? "text-amber-400" : "text-red-400"
+                    )}
+                  >
+                    {summaryStats.avgDrift.toFixed(2)}%
+                  </p>
+                </div>
+                <div className="bg-slate-700/50 rounded-lg p-3 text-center min-w-[140px]">
+                  <p className="text-xs text-slate-400 uppercase tracking-wide whitespace-nowrap">CIO Ratings</p>
+                  <div className="flex items-center justify-center gap-3 mt-1">
+                    <span className="text-sm font-semibold text-green-400 whitespace-nowrap">{summaryStats.buyCount} <span className="font-normal text-xs">Buy</span></span>
+                    <span className="text-sm font-semibold text-slate-400 whitespace-nowrap">{summaryStats.holdCount} <span className="font-normal text-xs">Hold</span></span>
+                    <span className="text-sm font-semibold text-red-400 whitespace-nowrap">{summaryStats.sellCount} <span className="font-normal text-xs">Sell</span></span>
+                  </div>
                 </div>
               </div>
             </div>
@@ -229,7 +231,7 @@ export function PortfolioTable({
               <div className="space-y-2">
                 {portfolio.driftBreaches.map((b: any) => (
                   <div key={b.assetClass} className="flex items-center gap-3">
-                    <span className="text-xs text-slate-300 w-32 truncate">{b.assetClass}</span>
+                    <span className="text-xs text-slate-300 min-w-0 break-words">{b.assetClass}</span>
                     <div className="flex-1 h-2 rounded-full bg-slate-700 relative">
                       <div
                         className={`h-full rounded-full ${b.driftPct > 0 ? "bg-red-500" : "bg-amber-500"}`}
@@ -250,7 +252,7 @@ export function PortfolioTable({
             </div>
           )}
 
-          <div className="flex items-center gap-2 mb-2">
+          <div className="flex items-center gap-3 mt-4 mb-2">
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
               <input
@@ -258,13 +260,13 @@ export function PortfolioTable({
                 placeholder="Search positions..."
                 value={search}
                 onChange={e => setSearch(e.target.value)}
-                className="w-full bg-slate-700/50 border border-slate-600 rounded-lg pl-10 pr-4 py-2 text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:border-blue-500 transition-colors"
+                className="w-full h-9 bg-slate-700/50 border border-slate-600 rounded-lg pl-10 pr-4 text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:border-six-orange transition-colors"
               />
             </div>
             <select
               value={assetClassFilter}
               onChange={e => setAssetClassFilter(e.target.value)}
-              className="bg-slate-700/50 border border-slate-600 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-blue-500"
+              className="h-9 bg-slate-700/50 border border-slate-600 rounded-lg px-3 text-sm text-slate-200 focus:outline-none focus:border-six-orange"
             >
               {assetClasses.map(ac => (
                 <option key={ac} value={ac}>{ac === "all" ? "All Asset Classes" : ac}</option>
@@ -273,7 +275,7 @@ export function PortfolioTable({
             <button
               onClick={() => setShowConflictsOnly(!showConflictsOnly)}
               className={clsx(
-                "text-xs px-3 py-2 rounded-lg transition-colors whitespace-nowrap",
+                "h-9 px-4 text-sm rounded-lg transition-colors whitespace-nowrap",
                 showConflictsOnly ? "bg-red-600 text-white" : "bg-slate-700 text-slate-400 hover:text-slate-200"
               )}
             >
@@ -290,7 +292,7 @@ export function PortfolioTable({
                     <th
                       key={h.field}
                       onClick={() => toggleSort(h.field)}
-                      className="text-left text-xs font-medium text-slate-400 uppercase tracking-wide pb-3 border-b border-slate-700 cursor-pointer hover:text-white"
+                      className="text-left text-xs font-medium text-slate-400 uppercase tracking-wide pb-3 border-b border-slate-700 cursor-pointer hover:text-white whitespace-nowrap pr-4"
                     >
                       {h.label}
                       <ArrowUpDown className="h-3 w-3 inline ml-1" />

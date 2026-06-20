@@ -4,7 +4,7 @@ export interface ClientSummary {
   description: string;
   strategy: "Defensive" | "Balanced" | "Growth";
   crmEntryCount: number;
-  triggerEvent: string;
+  triggerEvent?: string;
 }
 
 export interface ClientDNA {
@@ -15,6 +15,26 @@ export interface ClientDNA {
   riskSensitivities: string[];
   personalPriorities: string[];
   communicationStyle: "data-driven" | "values-led" | "balanced";
+  communicationProfile?: {
+    style: "data-driven" | "values-led" | "balanced";
+    rationale: string;
+    evidence: { trait: string; crmDate: string; crmExcerpt: string }[];
+    confidence: number;
+  };
+  investmentProfile?: {
+    objectives: string[];
+    riskTolerance: "low" | "medium" | "high" | "unknown";
+    hardConstraints: string[];
+    softPreferences: string[];
+    exclusions: string[];
+    positiveScreens: string[];
+    valueThemes: string[];
+    liquidityNeeds: string[];
+    reputationSensitivity: "low" | "medium" | "high" | "unknown";
+    temporalChanges: string[];
+    evidence: { trait: string; crmDate: string; crmExcerpt: string }[];
+  };
+  profileSource?: "crm-inferred" | "crm-heuristic" | "demo-profile" | "unavailable";
   summary: string;
   evidence: { trait: string; crmDate: string; crmExcerpt: string }[];
   traitConfidence: Record<string, number>;

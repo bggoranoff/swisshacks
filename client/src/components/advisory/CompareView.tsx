@@ -1,7 +1,6 @@
 import React from "react";
 import type { AdvisoryMessage } from "../../types/api";
 import { Card, CardTitle } from "../shared/Card";
-import { ConfidenceBadge } from "../shared/ConfidenceBadge";
 import { ArrowLeftRight, X, Building2, Sparkles, ChevronRight } from "lucide-react";
 
 interface CompareViewProps {
@@ -66,7 +65,6 @@ export function CompareView({ generic, personalised, onClose }: CompareViewProps
               <span className="text-xs px-2 py-0.5 rounded-full bg-slate-700 text-slate-400 border border-slate-600">
                 {generic.tone}
               </span>
-              <ConfidenceBadge score={generic.confidence} />
             </div>
             <div className="text-sm text-slate-400 leading-relaxed">
               {highlightPersonalRefs(generic.body)}
@@ -83,10 +81,10 @@ export function CompareView({ generic, personalised, onClose }: CompareViewProps
         </div>
 
         {/* DNA-Personalised column */}
-        <div className="rounded-xl border border-blue-600/40 bg-blue-950/20 overflow-hidden">
-          <div className="flex items-center gap-2 px-4 py-3 bg-blue-900/30 border-b border-blue-700/40">
-            <Sparkles className="h-4 w-4 text-blue-400" />
-            <span className="text-sm font-semibold text-blue-200">DNA-Personalised</span>
+        <div className="rounded-xl border border-six-orange/40 bg-six-orange/5 overflow-hidden">
+          <div className="flex items-center gap-2 px-4 py-3 bg-six-orange/15 border-b border-six-orange/40">
+            <Sparkles className="h-4 w-4 text-six-orange" />
+            <span className="text-sm font-semibold text-six-orange-bright">DNA-Personalised</span>
             <span className={`ml-auto text-xs px-2 py-0.5 rounded-full font-medium ${personalStyle.badge}`}>
               {personalised.tone}
             </span>
@@ -97,14 +95,13 @@ export function CompareView({ generic, personalised, onClose }: CompareViewProps
               <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${personalStyle.badge}`}>
                 {personalised.tone}
               </span>
-              <ConfidenceBadge score={personalised.confidence} />
             </div>
             <div className="text-sm text-slate-200 leading-relaxed">
               {highlightPersonalRefs(personalised.body)}
             </div>
             {personalised.proposedAction && (
-              <div className="rounded-lg bg-blue-900/30 border border-blue-700/40 p-3">
-                <p className="text-xs font-semibold text-blue-300 uppercase tracking-wider mb-1">
+              <div className="rounded-lg bg-six-orange/15 border border-six-orange/40 p-3">
+                <p className="text-xs font-semibold text-six-orange uppercase tracking-wider mb-1">
                   Proposed Action
                 </p>
                 <p className="text-sm text-slate-200">{personalised.proposedAction}</p>
@@ -112,12 +109,12 @@ export function CompareView({ generic, personalised, onClose }: CompareViewProps
             )}
             {personalised.toneInfluences && personalised.toneInfluences.length > 0 && (
               <div className="mt-2">
-                <p className="text-xs text-blue-400 uppercase tracking-wide mb-1.5 font-medium">DNA Influences</p>
+                <p className="text-xs text-six-orange uppercase tracking-wide mb-1.5 font-medium">DNA Influences</p>
                 <div className="flex flex-wrap gap-1.5">
                   {personalised.toneInfluences.map((t, i) => (
-                    <div key={i} className="flex items-center gap-1 bg-blue-900/30 rounded-lg px-2.5 py-1 text-xs border border-blue-800/40">
-                      <span className="text-blue-300 font-medium">{t.dnaValue}</span>
-                      <ChevronRight className="h-3 w-3 text-blue-600" />
+                    <div key={i} className="flex items-center gap-1 bg-six-orange/15 rounded-lg px-2.5 py-1 text-xs border border-six-orange/40">
+                      <span className="text-six-orange font-medium">{t.dnaValue}</span>
+                      <ChevronRight className="h-3 w-3 text-six-orange/70" />
                       <span className="text-slate-300">{t.effect}</span>
                     </div>
                   ))}
