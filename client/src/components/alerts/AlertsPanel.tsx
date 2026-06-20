@@ -281,8 +281,8 @@ export function AlertsPanel({
                 {alert.alertType === "conflict" && (
                   <div className="mt-3 bg-slate-600/30 rounded-lg p-3 border border-slate-600/50">
                     <div className="flex items-center gap-2 mb-2">
-                      <ArrowLeftRight className="h-4 w-4 text-blue-400" />
-                      <span className="text-xs font-medium text-blue-300 uppercase tracking-wide">Suggested Swap</span>
+                      <ArrowLeftRight className="h-4 w-4 text-six-orange" />
+                      <span className="text-xs font-medium text-six-orange uppercase tracking-wide">Suggested Swap</span>
                     </div>
                     <div className="flex items-center gap-3">
                       <div className="flex-1">
@@ -387,8 +387,8 @@ export function AlertsPanel({
                   {conflict.suggestedSwap && (
                     <div className="mt-3 bg-slate-600/30 rounded-lg p-3 border border-slate-600/50">
                       <div className="flex items-center gap-2 mb-2">
-                        <ArrowLeftRight className="h-4 w-4 text-blue-400" />
-                        <span className="text-xs font-medium text-blue-300 uppercase tracking-wide">Suggested Swap</span>
+                        <ArrowLeftRight className="h-4 w-4 text-six-orange" />
+                        <span className="text-xs font-medium text-six-orange uppercase tracking-wide">Suggested Swap</span>
                       </div>
                       <div className="flex items-center gap-3">
                         <div className="flex-1">

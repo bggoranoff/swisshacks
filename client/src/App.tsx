@@ -14,6 +14,7 @@ import { KnowledgeGraphPanel } from "./components/graph/KnowledgeGraphPanel";
 import { DecisionPanel } from "./components/decisions/DecisionPanel";
 import { ChatPanel } from "./components/chat/ChatPanel";
 import { useFetch } from "./hooks/useFetch";
+import { prefetchClients } from "./hooks/prefetchCache";
 import { mockClients, mockDNA, mockPortfolios, mockNews, mockAdvisory } from "./data/mock";
 import type {
   ClientSummary,
@@ -38,6 +39,14 @@ function App() {
   // Fetch clients list
   const clientsFetch = useFetch<ClientSummary[]>("/api/clients");
   const clients = clientsFetch.data ?? mockClients;
+
+  // Warm DNA / portfolio / news for every client in the background once the
+  // list loads, so selecting a client renders instantly from cache.
+  useEffect(() => {
+    if (clientsFetch.data && clientsFetch.data.length > 0) {
+      prefetchClients(clientsFetch.data.map((c) => c.id));
+    }
+  }, [clientsFetch.data]);
 
   // Fetch client-specific data when a client is selected
   const dnaFetch = useFetch<ClientDNA>(selectedId ? `/api/clients/${selectedId}/dna` : null);
@@ -187,7 +196,7 @@ function App() {
     <div className="grid grid-cols-[260px_1fr] h-screen bg-slate-900 text-slate-100 font-sans">
       {(dnaLoading || portLoading || newsLoading) && (
         <div className="fixed top-0 left-0 right-0 h-0.5 bg-slate-800 z-[60]">
-          <div className="h-full bg-blue-500 animate-pulse" style={{ width: "60%", transition: "width 0.5s" }} />
+          <div className="h-full bg-six-orange animate-pulse" style={{ width: "60%", transition: "width 0.5s" }} />
         </div>
       )}
       <Sidebar
@@ -200,14 +209,14 @@ function App() {
       <div className="flex flex-col h-screen overflow-hidden">
         <Header onDemo={handleDemo} onTracesClick={() => setTracesOpen(true)} onAuditClick={() => setAuditOpen(true)} />
         {demoActive && (
-          <div className="bg-blue-900/30 border-b border-blue-600/30 px-4 py-2 flex items-center justify-between">
+          <div className="bg-six-orange/10 border-b border-six-orange/30 px-4 py-2 flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <span className="text-xs text-blue-400">Demo Mode</span>
+              <span className="text-xs text-six-orange">Demo Mode</span>
               <div className="flex items-center gap-1">
                 {["Select Client", "View DNA", "Check Alerts", "Generate Advisory"].map((step, i) => (
                   <span key={i} className={`text-xs px-2 py-0.5 rounded-full ${
                     i < demoStep ? "bg-green-900/50 text-green-300" :
-                    i === demoStep ? "bg-blue-600 text-white animate-pulse" :
+                    i === demoStep ? "bg-six-orange text-white animate-pulse" :
                     "bg-slate-700 text-slate-500"
                   }`}>
                     {i < demoStep ? "✓" : i + 1}. {step}
@@ -226,35 +235,31 @@ function App() {
         )}
         <main className="flex-1 overflow-y-auto p-6">
           {!selectedId ? (
-            <div className="grid grid-cols-2">
-              <div className="col-span-2 flex flex-col items-center justify-center h-96 text-center">
-                <div className="bg-slate-800 border border-slate-700 rounded-2xl p-8 max-w-lg">
-                  <div className="h-16 w-16 rounded-full bg-blue-600/20 flex items-center justify-center mx-auto mb-4">
-                    <Briefcase className="h-8 w-8 text-blue-400" />
-                  </div>
-                  <h2 className="text-xl font-semibold text-white mb-2">Welcome to WealthAdvisor AI</h2>
-                  <p className="text-slate-400 text-sm mb-4">
-                    Select a client from the sidebar to view their investment DNA, portfolio analysis,
-                    news alerts, and generate personalised advisory messages.
-                  </p>
-                  <div className="grid grid-cols-2 gap-3 text-left">
-                    <div className="bg-slate-700/50 rounded-lg p-3">
-                      <p className="text-xs text-blue-400 font-medium">Client DNA</p>
-                      <p className="text-xs text-slate-500 mt-1">AI-extracted values, priorities &amp; style</p>
-                    </div>
-                    <div className="bg-slate-700/50 rounded-lg p-3">
-                      <p className="text-xs text-green-400 font-medium">Portfolio Analysis</p>
-                      <p className="text-xs text-slate-500 mt-1">Holdings, drift &amp; allocation charts</p>
-                    </div>
-                    <div className="bg-slate-700/50 rounded-lg p-3">
-                      <p className="text-xs text-purple-400 font-medium">News Monitoring</p>
-                      <p className="text-xs text-slate-500 mt-1">Live news scored by relevance</p>
-                    </div>
-                    <div className="bg-slate-700/50 rounded-lg p-3">
-                      <p className="text-xs text-amber-400 font-medium">Advisory Messages</p>
-                      <p className="text-xs text-slate-500 mt-1">Personalised RM communication</p>
-                    </div>
-                  </div>
+            <div className="flex flex-col items-center justify-center min-h-[70vh] text-center px-6">
+              <Briefcase className="h-10 w-10 text-six-orange mb-6" strokeWidth={1.5} />
+              <h2 className="text-3xl sm:text-4xl font-semibold tracking-tight text-white mb-3">
+                Welcome to <span className="text-six-orange">SIX</span> AI
+              </h2>
+              <p className="text-slate-400 text-sm max-w-lg mb-10 leading-relaxed">
+                Select a client from the sidebar to view their investment DNA, portfolio analysis,
+                news alerts, and generate personalised advisory messages.
+              </p>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-x-10 gap-y-6 max-w-2xl text-center">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-wide text-six-orange">Client DNA</p>
+                  <p className="text-xs text-slate-500 mt-1.5">AI-extracted values, priorities &amp; style</p>
+                </div>
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-wide text-six-blue-bright">Portfolio Analysis</p>
+                  <p className="text-xs text-slate-500 mt-1.5">Holdings, drift &amp; allocation charts</p>
+                </div>
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-wide text-six-orange-bright">News Monitoring</p>
+                  <p className="text-xs text-slate-500 mt-1.5">Live news scored by relevance</p>
+                </div>
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-wide text-six-blue">Advisory Messages</p>
+                  <p className="text-xs text-slate-500 mt-1.5">Personalised RM communication</p>
                 </div>
               </div>
             </div>
@@ -264,9 +269,9 @@ function App() {
               <div className="col-span-2 bg-slate-800/50 border border-slate-700 rounded-xl p-4 flex items-center justify-between">
                 <div className="flex items-center gap-4">
                   <div className={`h-12 w-12 rounded-full flex items-center justify-center text-lg font-semibold text-white ${
-                    selectedId === "schneider" ? "bg-blue-600" :
-                    selectedId === "huber" ? "bg-green-600" :
-                    selectedId === "raeber" ? "bg-amber-600" : "bg-purple-600"
+                    selectedId === "schneider" ? "bg-six-orange" :
+                    selectedId === "huber" ? "bg-six-blue" :
+                    selectedId === "raeber" ? "bg-six-orange-dark" : "bg-six-blue-bright"
                   }`}>
                     {selectedId === "schneider" ? "MS" :
                      selectedId === "huber" ? "PH" :
@@ -302,7 +307,7 @@ function App() {
                 <span>AUM: <span className="text-white font-medium">CHF {portfolio ? (portfolio.totalValueCHF / 1e6).toFixed(0) : '—'}M</span></span>
                 <span>Alerts: <span className="text-amber-400 font-medium">{news?.alerts?.length || 0}</span></span>
                 <span>Conflicts: <span className="text-red-400 font-medium">{portfolio?.conflicts?.length || 0}</span></span>
-                <span>DNA Traits: <span className="text-blue-400 font-medium">{dna ? dna.values.length + dna.riskSensitivities.length : 0}</span></span>
+                <span>DNA Traits: <span className="text-six-orange font-medium">{dna ? dna.values.length + dna.riskSensitivities.length : 0}</span></span>
               </div>
               <div id="dna-panel">
                 <ErrorBoundary fallbackMessage="Failed to load DNA profile">

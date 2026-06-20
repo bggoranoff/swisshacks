@@ -18,7 +18,7 @@ export function DashboardLayout({ sidebar, header, children }: {
           </div>
           <footer className="mt-auto pt-6 pb-4 border-t border-slate-800">
             <div className="flex items-center justify-between text-xs text-slate-600">
-              <span>WealthAdvisor AI — SwissHacks 2026 | SIX, NTT Data & Noumena</span>
+              <span>SIX AI — SwissHacks 2026 | SIX, NTT Data & Noumena</span>
               <span>AI-generated insights for RM review only. Not financial advice.</span>
             </div>
           </footer>

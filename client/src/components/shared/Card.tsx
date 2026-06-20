@@ -16,7 +16,7 @@ export function Card({ children, className, colSpan2 }: { children: ReactNode; c
 export function CardTitle({ icon: Icon, children }: { icon?: any; children: ReactNode }) {
   return (
     <h2 className="text-sm font-semibold text-slate-300 uppercase tracking-wide mb-4 flex items-center gap-2">
-      {Icon && <Icon className="h-4 w-4 text-blue-400/70" />}
+      {Icon && <Icon className="h-4 w-4 text-six-orange/70" />}
       {children}
     </h2>
   );

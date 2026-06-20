@@ -206,7 +206,7 @@ export function AuditDrawer({ isOpen, onClose }: AuditDrawerProps) {
               <p className="text-sm text-red-300">{error}</p>
               <button
                 onClick={fetchAudit}
-                className="text-xs text-blue-400 hover:underline"
+                className="text-xs text-six-orange hover:underline"
               >
                 Retry
               </button>

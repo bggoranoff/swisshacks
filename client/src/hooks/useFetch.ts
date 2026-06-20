@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import { getCached } from "./prefetchCache";
 
 interface FetchState<T> {
   data: T | null;
@@ -25,6 +26,19 @@ export function useFetch<T>(url: string | null): FetchState<T> {
       setDurationMs(null);
       setFetchedAt(null);
       return;
+    }
+    // Serve instantly from the background prefetch cache when available
+    // (skip on explicit refetch so the user can force a fresh load).
+    if (trigger === 0) {
+      const cached = getCached(url);
+      if (cached) {
+        setData(cached.data as T);
+        setDurationMs(cached.durationMs);
+        setFetchedAt(cached.fetchedAt);
+        setError(null);
+        setLoading(false);
+        return;
+      }
     }
     setLoading(true);
     setError(null);

@@ -24,7 +24,7 @@ interface KnowledgeGraph {
 }
 
 const NODE_COLORS: Record<string, string> = {
-  client: "#3b82f6",
+  client: "#ec6608",
   asset: "#64748b",
   value: "#06b6d4",
   news: "#f59e0b",

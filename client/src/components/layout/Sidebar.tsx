@@ -3,10 +3,10 @@ import type { ClientSummary } from "../../types/api";
 import { Users } from "lucide-react";
 
 const AVATAR_COLORS: Record<string, string> = {
-  schneider: "bg-blue-600",
-  huber: "bg-green-600",
-  raeber: "bg-amber-600",
-  ammann: "bg-purple-600",
+  schneider: "bg-six-orange",
+  huber: "bg-six-blue",
+  raeber: "bg-six-orange-dark",
+  ammann: "bg-six-blue-bright",
 };
 
 const INITIALS: Record<string, string> = {
@@ -51,8 +51,8 @@ export function Sidebar({ clients, selectedId, onSelect, loading, conflictCount 
     <aside className="flex flex-col gap-1 p-4 bg-slate-900 border-r border-slate-700 overflow-y-auto shadow-lg shadow-black/20">
       {/* Logo / branding */}
       <div className="px-3 pb-3 mb-1">
-        <span className="text-sm font-bold tracking-tight text-white">WealthAdvisor</span>
-        <span className="text-sm font-bold tracking-tight text-blue-400"> AI</span>
+        <span className="text-sm font-bold tracking-tight text-six-orange">SIX</span>
+        <span className="text-sm font-normal tracking-tight text-slate-500 ml-1">AI</span>
       </div>
       <div className="border-t border-slate-700/60 mb-3" />
       <div className="flex items-center gap-2 mb-3 px-3">
@@ -70,7 +70,7 @@ export function Sidebar({ clients, selectedId, onSelect, loading, conflictCount 
             className={clsx(
               "w-full text-left p-3 rounded-lg flex items-center gap-3 transition-all duration-200 group",
               selectedId === client.id
-                ? "bg-slate-800 border-l-2 border-blue-400 shadow-sm shadow-blue-500/10"
+                ? "bg-slate-800 border-l-2 border-six-orange shadow-sm shadow-six-orange/10"
                 : "hover:bg-slate-800/70 border-l-2 border-transparent"
             )}
           >

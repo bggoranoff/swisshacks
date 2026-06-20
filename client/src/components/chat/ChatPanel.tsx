@@ -81,7 +81,7 @@ export function ChatPanel({ clientId }: { clientId: string }) {
           <div key={i} className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}>
             <div className={`max-w-[80%] px-3 py-2 rounded-lg text-sm ${
               m.role === "user"
-                ? "bg-blue-600 text-white"
+                ? "bg-six-orange text-white"
                 : "bg-slate-700 text-slate-200"
             }`}>
               {m.content}
@@ -103,13 +103,13 @@ export function ChatPanel({ clientId }: { clientId: string }) {
           onChange={e => setInput(e.target.value)}
           onKeyDown={e => { if (e.key === "Enter") handleSend(); }}
           placeholder="Ask about this client..."
-          className="flex-1 bg-slate-700/50 border border-slate-600 rounded-lg px-4 py-2 text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:border-blue-500 transition-colors"
+          className="flex-1 bg-slate-700/50 border border-slate-600 rounded-lg px-4 py-2 text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:border-six-orange transition-colors"
           disabled={sending}
         />
         <button
           onClick={() => handleSend()}
           disabled={sending || !input.trim()}
-          className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-colors"
+          className="bg-six-orange hover:bg-six-orange-bright disabled:opacity-50 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-colors"
         >
           <Send className="h-4 w-4" />
         </button>

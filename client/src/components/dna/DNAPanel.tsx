@@ -120,7 +120,7 @@ export function DNAPanel({ dna, loading, error, onRetry, durationMs, fetchedAt }
             <p className="text-xs font-medium text-slate-400 uppercase tracking-wide mb-1.5">Values</p>
             <div className="flex flex-wrap gap-1.5">
               {dna.values.map((item) => (
-                <TraitPill key={item} item={item} colorClass="bg-blue-900/50 text-blue-300" />
+                <TraitPill key={item} item={item} colorClass="bg-six-orange/15 text-six-orange" />
               ))}
             </div>
           </div>
@@ -197,12 +197,12 @@ export function DNAPanel({ dna, loading, error, onRetry, durationMs, fetchedAt }
             <div className="absolute left-1 top-0 bottom-0 w-0.5 bg-slate-700" />
             {timelineData.map(([year, entries]) => (
               <div key={year} className="mb-4 relative">
-                <div className="absolute -left-3 top-0.5 h-2.5 w-2.5 rounded-full bg-blue-500 border-2 border-slate-800" />
+                <div className="absolute -left-3 top-0.5 h-2.5 w-2.5 rounded-full bg-six-orange border-2 border-slate-800" />
                 <p className="text-sm font-medium text-white ml-2">{year}</p>
                 <div className="ml-2 mt-1 space-y-1">
                   {entries.slice(0, 3).map((e, i) => (
                     <p key={i} className="text-xs text-slate-400">
-                      <span className="text-blue-300">{e.trait}</span> — {e.excerpt?.slice(0, 60)}...
+                      <span className="text-six-orange">{e.trait}</span> — {e.excerpt?.slice(0, 60)}...
                     </p>
                   ))}
                 </div>

@@ -330,7 +330,7 @@ export function TraceDrawer({ isOpen, onClose }: TraceDrawerProps) {
                         .catch((e: Error) => setListError(e.message))
                         .finally(() => setListLoading(false));
                     }}
-                    className="text-xs text-blue-400 hover:underline"
+                    className="text-xs text-six-orange hover:underline"
                   >
                     Retry
                   </button>
@@ -366,7 +366,7 @@ export function TraceDrawer({ isOpen, onClose }: TraceDrawerProps) {
                 <div className="flex flex-col items-center gap-2 py-8">
                   <AlertTriangle className="h-6 w-6 text-red-400" />
                   <p className="text-sm text-red-300">{detailError}</p>
-                  <button onClick={goBack} className="text-xs text-blue-400 hover:underline">
+                  <button onClick={goBack} className="text-xs text-six-orange hover:underline">
                     Go back
                   </button>
                 </div>
