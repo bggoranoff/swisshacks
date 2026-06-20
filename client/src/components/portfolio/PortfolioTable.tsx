@@ -369,6 +369,25 @@ export function PortfolioTable({
                   </tr>
                 ))}
               </tbody>
+              <tfoot>
+                <tr className="border-t-2 border-slate-600 font-medium">
+                  <td className="py-3 pr-4 text-white">Total ({filtered.length} positions)</td>
+                  <td className="py-3 pr-4"></td>
+                  <td className="py-3 pr-4 text-white">
+                    CHF {formatCHF(filtered.reduce((sum, p) => sum + (p.livePrice ?? p.currentValueCHF), 0))}
+                  </td>
+                  <td className="py-3 pr-4"></td>
+                  <td className="py-3 pr-4"></td>
+                  <td className="py-3 pr-4">
+                    {(() => {
+                      const conflictCount = filtered.filter(p => conflictMap.has(p.isin) || conflictMap.has(p.name)).length;
+                      return conflictCount > 0 ? (
+                        <span className="text-xs px-2 py-0.5 rounded-full bg-red-900/50 text-red-300">{conflictCount} conflicts</span>
+                      ) : null;
+                    })()}
+                  </td>
+                </tr>
+              </tfoot>
             </table>
           </div>
 

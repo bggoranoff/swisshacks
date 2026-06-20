@@ -8,6 +8,14 @@ interface ChatMessage {
   timestamp: string;
 }
 
+const SUGGESTIONS = [
+  "What are the main conflicts in this portfolio?",
+  "Explain why this client is sensitive to pharma stocks",
+  "What alternative investments would align with this client's values?",
+  "Summarize this client's investment identity in 3 sentences",
+  "What CIO recommendations conflict with this client's DNA?",
+];
+
 export function ChatPanel({ clientId }: { clientId: string }) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
@@ -26,8 +34,8 @@ export function ChatPanel({ clientId }: { clientId: string }) {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
   }, [messages]);
 
-  const send = async () => {
-    const text = input.trim();
+  const handleSend = async (directText?: string) => {
+    const text = (directText ?? input).trim();
     if (!text || sending) return;
     setInput("");
     setMessages(prev => [...prev, { role: "user", content: text, timestamp: new Date().toISOString() }]);
@@ -54,9 +62,20 @@ export function ChatPanel({ clientId }: { clientId: string }) {
       <CardTitle icon={MessageCircle}>RM Assistant</CardTitle>
       <div ref={scrollRef} className="max-h-[300px] overflow-y-auto space-y-3 mb-3">
         {messages.length === 0 && !sending && (
-          <p className="text-sm text-slate-500 italic text-center py-4">
-            Ask questions about this client — conflicts, alternatives, context, or draft messages.
-          </p>
+          <div className="flex-1 flex flex-col items-center justify-center gap-3 p-4">
+            <p className="text-sm text-slate-400 mb-2">Ask the RM Assistant anything about this client:</p>
+            <div className="flex flex-wrap gap-2 justify-center max-w-md">
+              {SUGGESTIONS.map((q, i) => (
+                <button
+                  key={i}
+                  onClick={() => handleSend(q)}
+                  className="text-xs px-3 py-1.5 rounded-lg bg-slate-700 text-slate-300 hover:bg-slate-600 hover:text-white transition-colors text-left"
+                >
+                  {q}
+                </button>
+              ))}
+            </div>
+          </div>
         )}
         {messages.map((m, i) => (
           <div key={i} className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}>
@@ -82,13 +101,13 @@ export function ChatPanel({ clientId }: { clientId: string }) {
           type="text"
           value={input}
           onChange={e => setInput(e.target.value)}
-          onKeyDown={e => { if (e.key === "Enter") send(); }}
+          onKeyDown={e => { if (e.key === "Enter") handleSend(); }}
           placeholder="Ask about this client..."
           className="flex-1 bg-slate-700/50 border border-slate-600 rounded-lg px-4 py-2 text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:border-blue-500 transition-colors"
           disabled={sending}
         />
         <button
-          onClick={send}
+          onClick={() => handleSend()}
           disabled={sending || !input.trim()}
           className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-colors"
         >
