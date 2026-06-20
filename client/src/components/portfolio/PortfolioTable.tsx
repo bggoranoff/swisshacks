@@ -61,6 +61,7 @@ export function PortfolioTable({
   const [sortField, setSortField] = useState<SortField>("value");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
   const [search, setSearch] = useState("");
+  const [assetClassFilter, setAssetClassFilter] = useState<string>("all");
 
   const sorted = useMemo(() => {
     if (!portfolio) return [];
@@ -74,12 +75,20 @@ export function PortfolioTable({
     return list;
   }, [portfolio, sortField, sortDir]);
 
+  const assetClasses = useMemo(() => {
+    if (!portfolio) return ["all"];
+    const classes = new Set(portfolio.positions.map(p => p.sectorOrAssetClass).filter(Boolean));
+    return ["all", ...Array.from(classes).sort()];
+  }, [portfolio]);
+
   const filtered = sorted.filter(p => {
-    if (!search) return true;
     const q = search.toLowerCase();
-    return p.name.toLowerCase().includes(q) ||
-           p.isin.toLowerCase().includes(q) ||
-           (p.sectorOrAssetClass || "").toLowerCase().includes(q);
+    const matchesSearch = !search ||
+      p.name.toLowerCase().includes(q) ||
+      p.isin.toLowerCase().includes(q) ||
+      (p.sectorOrAssetClass || "").toLowerCase().includes(q);
+    const matchesClass = assetClassFilter === "all" || p.sectorOrAssetClass === assetClassFilter;
+    return matchesSearch && matchesClass;
   });
 
   const summaryStats = useMemo(() => {
@@ -157,15 +166,26 @@ export function PortfolioTable({
             </div>
           )}
 
-          <div className="relative mb-2">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
-            <input
-              type="text"
-              placeholder="Search positions..."
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-              className="w-full bg-slate-700/50 border border-slate-600 rounded-lg pl-10 pr-4 py-2 text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:border-blue-500 transition-colors"
-            />
+          <div className="flex items-center gap-2 mb-2">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
+              <input
+                type="text"
+                placeholder="Search positions..."
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                className="w-full bg-slate-700/50 border border-slate-600 rounded-lg pl-10 pr-4 py-2 text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:border-blue-500 transition-colors"
+              />
+            </div>
+            <select
+              value={assetClassFilter}
+              onChange={e => setAssetClassFilter(e.target.value)}
+              className="bg-slate-700/50 border border-slate-600 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-blue-500"
+            >
+              {assetClasses.map(ac => (
+                <option key={ac} value={ac}>{ac === "all" ? "All Asset Classes" : ac}</option>
+              ))}
+            </select>
           </div>
           <p className="text-xs text-slate-500 mb-2">{filtered.length} of {portfolio.positions.length} positions</p>
 
