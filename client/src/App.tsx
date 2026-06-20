@@ -137,7 +137,7 @@ function App() {
 
       const clientIds = ["schneider", "huber", "raeber", "ammann"];
       if (e.key >= "1" && e.key <= "4") {
-        setSelectedId(clientIds[parseInt(e.key) - 1]);
+        handleSelectClient(clientIds[parseInt(e.key) - 1]);
       } else if (e.key === "d" || e.key === "D") {
         handleDemo();
       } else if (e.key === "t" || e.key === "T") {
@@ -151,7 +151,13 @@ function App() {
     };
     window.addEventListener("keydown", handleKey);
     return () => window.removeEventListener("keydown", handleKey);
-  }, [handleDemo]);
+  }, [handleDemo, handleSelectClient]);
+
+  // Scroll main content to top when switching clients
+  useEffect(() => {
+    const main = document.querySelector("main");
+    if (main) main.scrollTo({ top: 0, behavior: "smooth" });
+  }, [selectedId]);
 
   const dnaLoading = dnaFetch.loading;
   const portLoading = portfolioFetch.loading;
