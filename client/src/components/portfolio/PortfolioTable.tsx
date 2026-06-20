@@ -173,7 +173,7 @@ export function PortfolioTable({
       {!loading && !error && portfolio && (
         <FadeIn>
           <div className="flex items-center gap-4 mb-4 text-sm text-slate-400">
-            <span>Strategy: <span className="text-white font-medium">{portfolio.strategy}</span></span>
+            <span>Mandate: <span className="text-white font-medium">{portfolio.strategy}</span></span>
             <span>Total: <span className="text-white font-medium">CHF {formatCHF(portfolio.totalValueCHF)}</span></span>
             <span>{portfolio.positions.length} positions</span>
           </div>

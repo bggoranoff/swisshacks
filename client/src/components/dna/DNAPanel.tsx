@@ -29,6 +29,9 @@ export function DNAPanel({ dna, loading, error, onRetry, durationMs, fetchedAt }
     const vals = Object.values(dna.traitConfidence || {});
     return vals.length > 0 ? vals.reduce((a, b) => a + b, 0) / vals.length : 0;
   })();
+  const communicationStyle = dna.communicationProfile?.style ?? dna.communicationStyle;
+  const communicationConfidence = dna.communicationProfile?.confidence ?? avgConfidence;
+  const investmentProfile = dna.investmentProfile;
 
   const traitEvidence = (trait: string) =>
     (dna.evidence ?? []).filter(e =>
@@ -102,17 +105,84 @@ export function DNAPanel({ dna, loading, error, onRetry, durationMs, fetchedAt }
       {/* Summary */}
       <p className="text-sm text-slate-300 mb-4 leading-relaxed">{dna.summary}</p>
 
-      {/* Communication Style + Confidence */}
-      <div className="flex items-center gap-3 mb-4">
-        <span className="text-xs text-slate-400">Style</span>
+      {/* Communication profile */}
+      <div className="flex items-center gap-3 mb-2">
+        <span className="text-xs text-slate-400">Communication</span>
         <span className="text-sm font-medium px-3 py-1 rounded-full bg-slate-700 text-white capitalize">
-          {dna.communicationStyle}
+          {communicationStyle}
         </span>
-        <ConfidenceBadge score={avgConfidence} />
+        <ConfidenceBadge score={communicationConfidence} />
+        {dna.profileSource && (
+          <span className="text-xs px-2 py-1 rounded-full bg-slate-800 text-slate-400 border border-slate-700">
+            {dna.profileSource}
+          </span>
+        )}
       </div>
+      {dna.communicationProfile?.rationale && (
+        <p className="text-xs text-slate-400 mb-4 leading-relaxed">{dna.communicationProfile.rationale}</p>
+      )}
 
       {/* All categories */}
       <div className="space-y-4">
+
+        {/* Investment Preferences */}
+        {investmentProfile && (
+          <div className="border border-slate-700 rounded-lg p-3 bg-slate-800/40">
+            <div className="flex items-center justify-between gap-3 mb-3">
+              <p className="text-xs font-medium text-slate-400 uppercase tracking-wide">Investment Preferences</p>
+              <div className="flex items-center gap-1.5 text-xs">
+                <span className="px-2 py-0.5 rounded-full bg-slate-700 text-slate-300 capitalize">
+                  Risk: {investmentProfile.riskTolerance}
+                </span>
+                <span className="px-2 py-0.5 rounded-full bg-slate-700 text-slate-300 capitalize">
+                  Reputation: {investmentProfile.reputationSensitivity}
+                </span>
+              </div>
+            </div>
+            <div className="space-y-3">
+              {investmentProfile.objectives?.length > 0 && (
+                <div>
+                  <p className="text-xs text-slate-500 mb-1">Objectives</p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {investmentProfile.objectives.map((item) => (
+                      <TraitPill key={item} item={item} colorClass="bg-emerald-900/50 text-emerald-300" />
+                    ))}
+                  </div>
+                </div>
+              )}
+              {investmentProfile.hardConstraints?.length > 0 && (
+                <div>
+                  <p className="text-xs text-slate-500 mb-1">Hard Constraints</p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {investmentProfile.hardConstraints.map((item) => (
+                      <TraitPill key={item} item={item} colorClass="bg-red-900/50 text-red-300" />
+                    ))}
+                  </div>
+                </div>
+              )}
+              {investmentProfile.positiveScreens?.length > 0 && (
+                <div>
+                  <p className="text-xs text-slate-500 mb-1">Positive Screens</p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {investmentProfile.positiveScreens.map((item) => (
+                      <TraitPill key={item} item={item} colorClass="bg-green-900/50 text-green-300" />
+                    ))}
+                  </div>
+                </div>
+              )}
+              {investmentProfile.exclusions?.length > 0 && (
+                <div>
+                  <p className="text-xs text-slate-500 mb-1">Exclusions</p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {investmentProfile.exclusions.map((item) => (
+                      <TraitPill key={item} item={item} colorClass="bg-orange-900/50 text-orange-300" />
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* Values */}
         {dna.values && dna.values.length > 0 && (

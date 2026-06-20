@@ -47,12 +47,17 @@ export async function detectConflicts(
   for (let i = 0; i < positions.length; i += batchSize) {
     const batch = positions.slice(i, i + batchSize);
     try {
-      const prompt = `Given this client's investment identity:
-Values: ${dna.values.join(", ")}
-Risk sensitivities: ${dna.riskSensitivities.join(", ")}
-Personal priorities: ${(dna.personalPriorities || []).join(", ")}
+	      const prompt = `Given this client's investment identity:
+    Values: ${dna.values.join(", ")}
+    Risk sensitivities: ${dna.riskSensitivities.join(", ")}
+    Personal priorities: ${(dna.personalPriorities || []).join(", ")}
+    Investment objectives: ${(dna.investmentProfile?.objectives || []).join(", ")}
+    Hard constraints: ${(dna.investmentProfile?.hardConstraints || []).join(", ")}
+    Exclusions: ${(dna.investmentProfile?.exclusions || []).join(", ")}
+    Positive screens: ${(dna.investmentProfile?.positiveScreens || []).join(", ")}
+    Reputation sensitivity: ${dna.investmentProfile?.reputationSensitivity || "unknown"}
 
-Analyze these portfolio holdings for conflicts with the client's DNA:
+    Analyze these portfolio holdings for conflicts with the client's DNA:
 ${batch.map((p, j) => `[${j}] ${p.name} (${p.sectorOrAssetClass || "unknown"}, CHF ${Math.round(p.currentValueCHF)})`).join("\n")}
 
 For EACH holding, determine if it conflicts with ANY of the client's values, sensitivities, or priorities. Be selective — only flag genuine conflicts, not vague associations.

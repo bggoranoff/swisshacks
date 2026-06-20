@@ -11,14 +11,16 @@ import {
   CashFlow,
 } from "../types/data";
 import { setClients, setPortfolios, markLoaded } from "./store";
+import { demoModeEnabled } from "../config/demo";
 
 const DATA_DIR = path.join(__dirname, "../../../data");
 
-const CRM_TAB_MAP: Record<string, { id: string; name: string; description: string; strategy: "Defensive" | "Balanced" | "Growth"; portfolioTab: string; triggerEvent: string }> = {
+const CRM_TAB_MAP: Record<string, { id: string; name: string; description: string; demoDescription: string; strategy: "Defensive" | "Balanced" | "Growth"; portfolioTab: string; triggerEvent: string }> = {
   "CRM Schneider": {
     id: "schneider",
     name: "Schneider",
-    description: "The Personal Connection — emotional, purpose-driven; family foundation for chronic-illness research",
+    description: "CRM-derived client profile with Balanced portfolio mandate.",
+    demoDescription: "The Personal Connection — emotional, purpose-driven; family foundation for chronic-illness research",
     strategy: "Balanced",
     portfolioTab: "Sample Portfolio Balanced",
     triggerEvent: "Pharma company shuts down its research division for that disease",
@@ -26,7 +28,8 @@ const CRM_TAB_MAP: Record<string, { id: string; name: string; description: strin
   "CRM Huber": {
     id: "huber",
     name: "Huber",
-    description: "The Purpose-Driven Investor — environmentalist financing South American reforestation",
+    description: "CRM-derived client profile with Defensive portfolio mandate.",
+    demoDescription: "The Purpose-Driven Investor — environmentalist financing South American reforestation",
     strategy: "Defensive",
     portfolioTab: "Sample Portfolio Defensive",
     triggerEvent: "Consumer goods company announces historic palm oil deforestation cut-off",
@@ -34,7 +37,8 @@ const CRM_TAB_MAP: Record<string, { id: string; name: string; description: strin
   "CRM Raeber": {
     id: "raeber",
     name: "Räber",
-    description: "The Defensive Value Investor — conservative Swiss couple; precision-engineering background; averse to US tech",
+    description: "CRM-derived client profile with Defensive portfolio mandate.",
+    demoDescription: "The Defensive Value Investor — conservative Swiss couple; precision-engineering background; averse to US tech",
     strategy: "Defensive",
     portfolioTab: "Sample Portfolio Defensive",
     triggerEvent: "CIO suggests rebalancing from blue chips into US AI stocks",
@@ -42,7 +46,8 @@ const CRM_TAB_MAP: Record<string, { id: string; name: string; description: strin
   "CRM Ammann": {
     id: "ammann",
     name: "Ammann",
-    description: "The Corporate Reputation Case — prominent Swiss entrepreneur; reputational risk = financial risk",
+    description: "CRM-derived client profile with Growth portfolio mandate.",
+    demoDescription: "The Corporate Reputation Case — prominent Swiss entrepreneur; reputational risk = financial risk",
     strategy: "Growth",
     portfolioTab: "Sample Portfolio Growth",
     triggerEvent: "Labour exploitation scandal hits a consumer brand in the portfolio",
@@ -276,6 +281,7 @@ export function buildClientProfiles(
   portfolios: Portfolio[]
 ): ClientProfile[] {
   const clients: ClientProfile[] = [];
+  const useDemoProfiles = demoModeEnabled();
 
   for (const [sheetName, meta] of Object.entries(CRM_TAB_MAP)) {
     const entries = crmData.get(meta.id) || [];
@@ -283,7 +289,7 @@ export function buildClientProfiles(
     clients.push({
       id: meta.id,
       name: meta.name,
-      description: meta.description,
+      description: useDemoProfiles ? meta.demoDescription : meta.description,
       strategy: meta.strategy,
       crmTab: sheetName,
       portfolioTab: meta.portfolioTab,

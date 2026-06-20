@@ -1,42 +1,94 @@
 import axios from "axios";
 import { CRMEntry } from "../types/data";
-import { ClientDNA } from "../types/dna";
-import { getFallbackDNA } from "../data/fallback-dna";
+import {
+  ClientDNA,
+  CommunicationProfile,
+  CommunicationStyle,
+  DNAEvidence,
+  InvestmentProfile,
+  ProfileSource,
+  RiskTolerance,
+  SensitivityLevel,
+} from "../types/dna";
+import { getDemoDNAProfile } from "../data/demo-profiles";
+import { demoModeEnabled } from "../config/demo";
 import { auditService } from "../services/audit.service";
 import { explainabilityService } from "../services/explainability.service";
 
 const dnaCache = new Map<string, ClientDNA>();
+const inFlightExtractions = new Map<string, Promise<ClientDNA>>();
 
 const LLM_URL = () => (process.env.PHOENIQS_API_URL || "https://maas.phoeniqs.com/v1") + "/chat/completions";
 const LLM_KEY = () => process.env.PHOENIQS_API_KEY || "";
 const LLM_MODEL = () => process.env.PHOENIQS_MODEL || "inference-gpt-oss-120b";
 
-const SYSTEM_PROMPT = `You are a wealth management analyst extracting a client's investment identity from CRM notes.
+const SYSTEM_PROMPT = `You are a wealth management analyst extracting an evidence-backed client profile from CRM notes.
+
+Separate these concepts:
+- Investment preferences: what the client wants the portfolio to optimize, avoid, or monitor.
+- Communication preference: how the relationship manager should explain recommendations after the investment analysis is done.
 
 OUTPUT RULES:
 - Your ENTIRE response must be a single JSON object.
-- Start with { and end with }. No other characters before or after.
-- No markdown fences. No explanation. No reasoning. Just JSON.
+- Start with { and end with }. No markdown fences. No explanation.
+- Only infer traits that are supported by CRM evidence.
 
 REQUIRED JSON SCHEMA:
-{"values":["string array of core values"],"lifeEvents":["significant life events"],"businessContext":["business/professional context"],"riskSensitivities":["investment risk sensitivities"],"personalPriorities":["personal priorities"],"communicationStyle":"data-driven"|"values-led"|"balanced","evidence":[{"trait":"which trait","crmDate":"date","crmExcerpt":"one-sentence quote"}],"traitConfidence":{"trait_name":0.9}}
+{
+  "values":["core values"],
+  "lifeEvents":["significant life or business events"],
+  "businessContext":["professional or wealth context"],
+  "riskSensitivities":["risk concerns or sensitivities"],
+  "personalPriorities":["personal priorities"],
+  "communicationStyle":"data-driven"|"values-led"|"balanced",
+  "communicationProfile":{
+    "style":"data-driven"|"values-led"|"balanced",
+    "rationale":"why this communication style fits",
+    "confidence":0.8,
+    "evidence":[{"trait":"communication preference","crmDate":"date","crmExcerpt":"short CRM excerpt"}]
+  },
+  "investmentProfile":{
+    "objectives":["investment objectives"],
+    "riskTolerance":"low"|"medium"|"high"|"unknown",
+    "hardConstraints":["must avoid or must do constraints"],
+    "softPreferences":["preferences that influence ranking"],
+    "exclusions":["sectors, themes, behaviors, or exposures to avoid"],
+    "positiveScreens":["themes, behaviors, or exposures to seek"],
+    "valueThemes":["ethical, mission, family, impact, or reputation themes"],
+    "liquidityNeeds":["cash-flow or liquidity needs"],
+    "reputationSensitivity":"low"|"medium"|"high"|"unknown",
+    "temporalChanges":["major changes in preference over time"],
+    "evidence":[{"trait":"investment preference","crmDate":"date","crmExcerpt":"short CRM excerpt"}]
+  },
+  "evidence":[{"trait":"which trait","crmDate":"date","crmExcerpt":"short CRM excerpt"}],
+  "traitConfidence":{"trait_name":0.9}
+}`;
 
-EXAMPLE OUTPUT:
-{"values":["family legacy","sustainable investing"],"lifeEvents":["daughter graduated 2024","relocated to Zurich 2023"],"businessContext":["owns manufacturing firm","exports to Asia"],"riskSensitivities":["currency risk","emerging market exposure"],"personalPriorities":["education funding","retirement planning"],"communicationStyle":"balanced","evidence":[{"trait":"family legacy","crmDate":"2024-03-15","crmExcerpt":"Discussed setting up trust for grandchildren"}],"traitConfidence":{"family legacy":0.9,"sustainable investing":0.7}}
+type PartialDNAResult = Partial<ClientDNA> & {
+  communicationProfile?: Partial<CommunicationProfile>;
+  investmentProfile?: Partial<InvestmentProfile>;
+};
 
-Extract at least 5 values, 2 life events, and 2 risk sensitivities. Be thorough.`;
+const ARRAY_FIELDS = ["values", "lifeEvents", "businessContext", "riskSensitivities", "personalPriorities"] as const;
+const INVESTMENT_ARRAY_FIELDS = [
+  "objectives",
+  "hardConstraints",
+  "softPreferences",
+  "exclusions",
+  "positiveScreens",
+  "valueThemes",
+  "liquidityNeeds",
+  "temporalChanges",
+] as const;
 
 function parseJson(content: string): any {
   const trimmed = content.trim();
-
-  // Step 1: Try direct JSON.parse
   try {
     return JSON.parse(trimmed);
   } catch (e1) {
     console.debug(`[CRM Agent] parseJson: direct parse failed (${(e1 as Error).message}), trying markdown strip...`);
   }
 
-  // Step 2: Strip markdown fences (```json ... ``` or ``` ... ```)
   const fenceStripped = trimmed
     .replace(/^```(?:json)?\s*/i, "")
     .replace(/\s*```\s*$/, "")
@@ -50,7 +102,6 @@ function parseJson(content: string): any {
     }
   }
 
-  // Step 3: Regex to find first { ... } (greedy)
   const objMatch = trimmed.match(/\{[\s\S]*\}/);
   if (objMatch) {
     try {
@@ -60,7 +111,6 @@ function parseJson(content: string): any {
     }
   }
 
-  // Step 4: Regex to find first [ ... ] (in case it's an array)
   const arrMatch = trimmed.match(/\[[\s\S]*\]/);
   if (arrMatch) {
     try {
@@ -74,17 +124,79 @@ function parseJson(content: string): any {
   return null;
 }
 
-function extractPartialFromText(text: string): any {
-  const partial: any = {
-    values: [], lifeEvents: [], businessContext: [],
-    riskSensitivities: [], personalPriorities: [], evidence: [], traitConfidence: {},
+function normalizeStyle(style: unknown): CommunicationStyle {
+  return style === "data-driven" || style === "values-led" || style === "balanced"
+    ? style
+    : "balanced";
+}
+
+function normalizeRiskTolerance(value: unknown): RiskTolerance {
+  return value === "low" || value === "medium" || value === "high" || value === "unknown"
+    ? value
+    : "unknown";
+}
+
+function normalizeSensitivity(value: unknown): SensitivityLevel {
+  return value === "low" || value === "medium" || value === "high" || value === "unknown"
+    ? value
+    : "unknown";
+}
+
+function clampConfidence(value: unknown, fallback = 0.5): number {
+  return typeof value === "number" && Number.isFinite(value)
+    ? Math.max(0, Math.min(1, value))
+    : fallback;
+}
+
+function dedup(arr: string[]): string[] {
+  return [...new Set(arr.map(s => String(s).trim()).filter(Boolean))];
+}
+
+function asStringArray(value: unknown): string[] {
+  return Array.isArray(value) ? dedup(value.map(v => String(v))) : [];
+}
+
+function asEvidenceArray(value: unknown): DNAEvidence[] {
+  if (!Array.isArray(value)) return [];
+  return value
+    .map((item): DNAEvidence | null => {
+      if (!item || typeof item !== "object") return null;
+      const record = item as Record<string, unknown>;
+      return {
+        trait: String(record.trait || "").trim(),
+        crmDate: String(record.crmDate || "").trim(),
+        crmExcerpt: String(record.crmExcerpt || "").trim(),
+      };
+    })
+    .filter((item): item is DNAEvidence => Boolean(item?.trait && item.crmExcerpt));
+}
+
+function createInvestmentProfile(partial?: Partial<InvestmentProfile>): InvestmentProfile {
+  return {
+    objectives: asStringArray(partial?.objectives),
+    riskTolerance: normalizeRiskTolerance(partial?.riskTolerance),
+    hardConstraints: asStringArray(partial?.hardConstraints),
+    softPreferences: asStringArray(partial?.softPreferences),
+    exclusions: asStringArray(partial?.exclusions),
+    positiveScreens: asStringArray(partial?.positiveScreens),
+    valueThemes: asStringArray(partial?.valueThemes),
+    liquidityNeeds: asStringArray(partial?.liquidityNeeds),
+    reputationSensitivity: normalizeSensitivity(partial?.reputationSensitivity),
+    temporalChanges: asStringArray(partial?.temporalChanges),
+    evidence: asEvidenceArray(partial?.evidence),
   };
-  const valPat = /(?:believes in|cares about|passionate about|committed to|values?)\s+["']?([^"'\n,.;]{4,60})/gi;
-  const riskPat = /(?:risk|averse|avoid|concern|worried|uncomfortable)\s+(?:about|with|to)?\s*([^.;\n]{4,60})/gi;
-  let m;
-  while ((m = valPat.exec(text)) !== null) partial.values.push(m[1].trim());
-  while ((m = riskPat.exec(text)) !== null) partial.riskSensitivities.push(m[1].trim());
-  return partial.values.length > 0 || partial.riskSensitivities.length > 0 ? partial : null;
+}
+
+function createCommunicationProfile(
+  style: CommunicationStyle,
+  partial?: Partial<CommunicationProfile>
+): CommunicationProfile {
+  return {
+    style,
+    rationale: String(partial?.rationale || `CRM evidence indicates a ${style} communication preference.`),
+    evidence: asEvidenceArray(partial?.evidence),
+    confidence: clampConfidence(partial?.confidence),
+  };
 }
 
 function chunkArray<T>(arr: T[], size: number): T[][] {
@@ -102,7 +214,7 @@ function formatCRMEntries(entries: CRMEntry[]): string {
   }).join("\n\n");
 }
 
-async function callLLM(systemPrompt: string, userPrompt: string, maxTokens = 3000): Promise<string> {
+async function callLLM(systemPrompt: string, userPrompt: string, maxTokens = 3500): Promise<string> {
   const resp = await axios.post(
     LLM_URL(),
     {
@@ -126,51 +238,316 @@ async function callLLM(systemPrompt: string, userPrompt: string, maxTokens = 300
   return choice?.message?.content || choice?.message?.reasoning_content || choice?.text || "";
 }
 
-function dedup(arr: string[]): string[] {
-  return [...new Set(arr.map(s => s.trim()).filter(Boolean))];
+function crmDate(entry: CRMEntry): string {
+  return entry.Date || entry.date || entry.DATE || "CRM";
 }
 
-function mergeChunkResults(results: any[]): any {
-  const merged: any = {
+function crmNote(entry: CRMEntry): string {
+  return entry.Note || entry.note || Object.values(entry).join(" ");
+}
+
+function makeEvidence(trait: string, entry: CRMEntry): DNAEvidence {
+  const note = crmNote(entry).replace(/\s+/g, " ").trim();
+  return {
+    trait,
+    crmDate: crmDate(entry),
+    crmExcerpt: note.slice(0, 220),
+  };
+}
+
+function collectSignals(entries: CRMEntry[]) {
+  const values: string[] = [];
+  const lifeEvents: string[] = [];
+  const businessContext: string[] = [];
+  const riskSensitivities: string[] = [];
+  const personalPriorities: string[] = [];
+  const investmentProfile = createInvestmentProfile();
+  const evidence: DNAEvidence[] = [];
+  const traitConfidence: Record<string, number> = {};
+
+  const add = (field: string[], trait: string, entry: CRMEntry, confidence = 0.65) => {
+    if (!field.includes(trait)) field.push(trait);
+    if (!traitConfidence[trait]) traitConfidence[trait] = confidence;
+    if (!evidence.some(e => e.trait === trait)) evidence.push(makeEvidence(trait, entry));
+  };
+
+  const addInvestment = (field: keyof Pick<InvestmentProfile, typeof INVESTMENT_ARRAY_FIELDS[number]>, trait: string, entry: CRMEntry) => {
+    const target = investmentProfile[field] as string[];
+    if (!target.includes(trait)) target.push(trait);
+    if (!investmentProfile.evidence.some(e => e.trait === trait)) {
+      investmentProfile.evidence.push(makeEvidence(trait, entry));
+    }
+  };
+
+  let analyticsScore = 0;
+  let valuesScore = 0;
+
+  for (const entry of entries) {
+    const text = crmNote(entry);
+    const lower = text.toLowerCase();
+
+    if (/(analytical|data-driven|metrics|stress[- ]?test|cost-of-capital|correlation|scenario|rigorous|report|audit|numbers|percentage|sharpe)/i.test(text)) {
+      analyticsScore += 1;
+    }
+    if (/(values|mission|philanthrop|ecolog|reforest|biodiversity|reputation|integrity|labor|labour|parkinson|disease|research|governance)/i.test(text)) {
+      valuesScore += 1;
+    }
+
+    if (/capital preservation|sleep at night|steady cash flow|predictable payouts/i.test(text)) {
+      add(values, "capital preservation", entry, 0.75);
+      add(riskSensitivities, "drawdown and volatility sensitivity", entry, 0.75);
+      add(personalPriorities, "steady cash flow", entry, 0.7);
+      addInvestment("objectives", "capital preservation", entry);
+      addInvestment("objectives", "steady cash flow", entry);
+      investmentProfile.riskTolerance = "low";
+    }
+
+    if (/reforest|ecosystem|biodiversity|deforestation|palm oil|greenwashing|ecological|sustainable agriculture/i.test(text)) {
+      add(values, "environmental sustainability", entry, 0.75);
+      add(personalPriorities, "measurable environmental impact", entry, 0.7);
+      addInvestment("objectives", "align capital with environmental impact", entry);
+      addInvestment("hardConstraints", "avoid companies tied to ecosystem destruction", entry);
+      addInvestment("valueThemes", "environmental sustainability", entry);
+      addInvestment("positiveScreens", "measurable ecological impact", entry);
+      addInvestment("exclusions", "deforestation-linked exposure", entry);
+    }
+
+    if (/\breputation\b|\bbrand\b|public scrutiny|\bpress\b|\bgovernance\b|sweatshop|wage theft|\blabor\b|\blabour\b|\bexploitation\b/i.test(text)) {
+      add(values, "reputation and governance", entry, 0.75);
+      add(riskSensitivities, "reputational risk", entry, 0.8);
+      addInvestment("hardConstraints", "avoid severe labor or governance controversies", entry);
+      addInvestment("valueThemes", "corporate reputation", entry);
+      addInvestment("exclusions", "labor exploitation scandals", entry);
+      investmentProfile.reputationSensitivity = "high";
+    }
+
+    if (/parkinson|neurodegenerative|chloe|clinical pipeline|medical research|disease/i.test(text)) {
+      add(values, "medical research mission", entry, 0.75);
+      add(personalPriorities, "healthcare research alignment", entry, 0.7);
+      addInvestment("objectives", "align healthcare exposure with medical research mission", entry);
+      addInvestment("valueThemes", "medical research and family mission", entry);
+      addInvestment("positiveScreens", "healthcare research commitment", entry);
+      if (/abandons|defunds|betrayal|shutdown|discontinue/i.test(text)) {
+        addInvestment("hardConstraints", "flag holdings that abandon relevant medical research", entry);
+      }
+    }
+
+    if (/speculative|high[- ]?beta|drawdown|us tech|silicon valley|ai stocks|growth equities|high[- ]?volatility|volatile growth|volatility[^.]{0,60}growth|growth[^.]{0,60}volatility/i.test(text)) {
+      add(riskSensitivities, "speculative growth exposure", entry, 0.7);
+      addInvestment("exclusions", "speculative high-volatility growth exposure", entry);
+    }
+
+    if (/foundation|grant|endowment|coupon|dividend|cash flow|liquidity/i.test(text)) {
+      add(personalPriorities, "foundation or cash-flow funding", entry, 0.65);
+      addInvestment("liquidityNeeds", "foundation, grant, coupon, or dividend funding", entry);
+    }
+
+    if (/owner|ceo|founder|entrepreneur|retail brand|engineering firm|automotive|agriculture exit|corporate enterprise/i.test(lower)) {
+      add(businessContext, "entrepreneurial or business-owner context", entry, 0.65);
+    }
+
+    if (/diagnosed|diagnosis|handover|retirement|strategy realigned|established a dedicated|reassigned|new rm/i.test(text)) {
+      add(lifeEvents, text.slice(0, 120).replace(/\s+/g, " "), entry, 0.6);
+      addInvestment("temporalChanges", text.slice(0, 140).replace(/\s+/g, " "), entry);
+    }
+  }
+
+  let style: CommunicationStyle = "balanced";
+  if (analyticsScore > valuesScore + 1) style = "data-driven";
+  if (valuesScore > analyticsScore + 1) style = "values-led";
+
+  return {
+    values: dedup(values),
+    lifeEvents: dedup(lifeEvents),
+    businessContext: dedup(businessContext),
+    riskSensitivities: dedup(riskSensitivities),
+    personalPriorities: dedup(personalPriorities),
+    communicationStyle: style,
+    communicationProfile: createCommunicationProfile(style, {
+      rationale: `CRM language contains ${analyticsScore} analytical signals and ${valuesScore} values/context signals.`,
+      confidence: Math.min(0.8, 0.45 + Math.abs(analyticsScore - valuesScore) * 0.08),
+      evidence: evidence.slice(0, 3),
+    }),
+    investmentProfile,
+    evidence: evidence.slice(0, 20),
+    traitConfidence,
+  };
+}
+
+function buildUnavailableDNA(clientId: string, entries: CRMEntry[], source: ProfileSource): ClientDNA {
+  return {
+    clientId,
     values: [],
     lifeEvents: [],
     businessContext: [],
     riskSensitivities: [],
     personalPriorities: [],
     communicationStyle: "balanced",
+    communicationProfile: createCommunicationProfile("balanced", {
+      rationale: "No reliable CRM-derived communication preference is available.",
+      confidence: 0.1,
+    }),
+    investmentProfile: createInvestmentProfile(),
+    profileSource: source,
+    summary: entries.length > 0
+      ? `No reliable profile could be inferred from ${entries.length} CRM entries.`
+      : "No CRM entries were supplied, so no client profile was inferred.",
+    evidence: [],
+    traitConfidence: {},
+  };
+}
+
+function buildHeuristicDNA(clientId: string, entries: CRMEntry[]): ClientDNA {
+  if (entries.length === 0) {
+    return buildUnavailableDNA(clientId, entries, "unavailable");
+  }
+
+  const signals = collectSignals(entries);
+  const summaryParts = [
+    signals.values.length ? `Values: ${signals.values.slice(0, 4).join(", ")}` : "",
+    signals.riskSensitivities.length ? `Risk sensitivities: ${signals.riskSensitivities.slice(0, 4).join(", ")}` : "",
+    signals.investmentProfile.hardConstraints.length ? `Hard constraints: ${signals.investmentProfile.hardConstraints.slice(0, 3).join(", ")}` : "",
+  ].filter(Boolean);
+
+  return {
+    clientId,
+    values: signals.values,
+    lifeEvents: signals.lifeEvents,
+    businessContext: signals.businessContext,
+    riskSensitivities: signals.riskSensitivities,
+    personalPriorities: signals.personalPriorities,
+    communicationStyle: signals.communicationStyle,
+    communicationProfile: signals.communicationProfile,
+    investmentProfile: signals.investmentProfile,
+    profileSource: "crm-heuristic",
+    summary: summaryParts.length > 0
+      ? `CRM-derived heuristic profile. ${summaryParts.join(". ")}.`
+      : `CRM-derived heuristic profile from ${entries.length} entries. No strong preference signals were detected.`,
+    evidence: signals.evidence,
+    traitConfidence: signals.traitConfidence,
+  };
+}
+
+function mergeChunkResults(results: PartialDNAResult[]): PartialDNAResult {
+  const merged: PartialDNAResult = {
+    values: [],
+    lifeEvents: [],
+    businessContext: [],
+    riskSensitivities: [],
+    personalPriorities: [],
+    communicationStyle: "balanced",
+    communicationProfile: createCommunicationProfile("balanced"),
+    investmentProfile: createInvestmentProfile(),
     evidence: [],
     traitConfidence: {},
   };
 
   const styleCounts: Record<string, number> = {};
+  const riskCounts: Record<string, number> = {};
+  const reputationCounts: Record<string, number> = {};
+  const communicationEvidence: DNAEvidence[] = [];
+  const investmentEvidence: DNAEvidence[] = [];
+  const rationales: string[] = [];
+  const communicationConfidences: number[] = [];
 
-  for (const r of results) {
-    if (!r) continue;
-    for (const key of ["values", "lifeEvents", "businessContext", "riskSensitivities", "personalPriorities"] as const) {
-      if (Array.isArray(r[key])) merged[key].push(...r[key]);
+  for (const result of results) {
+    if (!result) continue;
+
+    for (const key of ARRAY_FIELDS) {
+      (merged[key] as string[]).push(...asStringArray(result[key]));
     }
-    if (r.communicationStyle) {
-      styleCounts[r.communicationStyle] = (styleCounts[r.communicationStyle] || 0) + 1;
+
+    const style = normalizeStyle(result.communicationProfile?.style || result.communicationStyle);
+    styleCounts[style] = (styleCounts[style] || 0) + 1;
+
+    if (result.communicationProfile?.rationale) {
+      rationales.push(String(result.communicationProfile.rationale));
     }
-    if (Array.isArray(r.evidence)) merged.evidence.push(...r.evidence);
-    if (r.traitConfidence && typeof r.traitConfidence === "object") {
-      Object.assign(merged.traitConfidence, r.traitConfidence);
+    communicationConfidences.push(clampConfidence(result.communicationProfile?.confidence));
+    communicationEvidence.push(...asEvidenceArray(result.communicationProfile?.evidence));
+
+    const investment = createInvestmentProfile(result.investmentProfile);
+    for (const key of INVESTMENT_ARRAY_FIELDS) {
+      (merged.investmentProfile![key] as string[]).push(...investment[key]);
+    }
+    riskCounts[investment.riskTolerance] = (riskCounts[investment.riskTolerance] || 0) + 1;
+    reputationCounts[investment.reputationSensitivity] = (reputationCounts[investment.reputationSensitivity] || 0) + 1;
+    investmentEvidence.push(...investment.evidence);
+
+    merged.evidence!.push(...asEvidenceArray(result.evidence));
+    if (result.traitConfidence && typeof result.traitConfidence === "object") {
+      Object.assign(merged.traitConfidence!, result.traitConfidence);
     }
   }
 
-  for (const key of ["values", "lifeEvents", "businessContext", "riskSensitivities", "personalPriorities"] as const) {
-    merged[key] = dedup(merged[key]);
+  for (const key of ARRAY_FIELDS) {
+    merged[key] = dedup(merged[key] as string[]) as any;
+  }
+  for (const key of INVESTMENT_ARRAY_FIELDS) {
+    merged.investmentProfile![key] = dedup(merged.investmentProfile![key] as string[]) as any;
   }
 
-  let maxCount = 0;
-  for (const [style, count] of Object.entries(styleCounts)) {
-    if (count > maxCount) {
-      maxCount = count;
-      merged.communicationStyle = style;
-    }
-  }
+  const chosenStyle = chooseMostCommon(styleCounts, "balanced") as CommunicationStyle;
+  merged.communicationStyle = chosenStyle;
+  merged.communicationProfile = createCommunicationProfile(chosenStyle, {
+    rationale: rationales[0] || `Most CRM chunks indicated a ${chosenStyle} communication style.`,
+    evidence: communicationEvidence,
+    confidence: communicationConfidences.length > 0
+      ? communicationConfidences.reduce((sum, value) => sum + value, 0) / communicationConfidences.length
+      : 0.5,
+  });
+
+  merged.investmentProfile!.riskTolerance = normalizeRiskTolerance(chooseMostCommon(riskCounts, "unknown"));
+  merged.investmentProfile!.reputationSensitivity = normalizeSensitivity(chooseMostCommon(reputationCounts, "unknown"));
+  merged.investmentProfile!.evidence = investmentEvidence;
+  merged.evidence = asEvidenceArray(merged.evidence);
 
   return merged;
+}
+
+function chooseMostCommon(counts: Record<string, number>, fallback: string): string {
+  let chosen = fallback;
+  let maxCount = 0;
+  for (const [value, count] of Object.entries(counts)) {
+    if (value === "unknown") continue;
+    if (count > maxCount) {
+      chosen = value;
+      maxCount = count;
+    }
+  }
+  return chosen;
+}
+
+function supplementFromHeuristic(dna: ClientDNA, heuristic: ClientDNA): ClientDNA {
+  for (const key of ARRAY_FIELDS) {
+    if (dna[key].length === 0) {
+      dna[key] = heuristic[key] as any;
+    }
+  }
+  for (const key of INVESTMENT_ARRAY_FIELDS) {
+    if (dna.investmentProfile[key].length === 0) {
+      dna.investmentProfile[key] = heuristic.investmentProfile[key] as any;
+    }
+  }
+  if (dna.investmentProfile.riskTolerance === "unknown") {
+    dna.investmentProfile.riskTolerance = heuristic.investmentProfile.riskTolerance;
+  }
+  if (dna.investmentProfile.reputationSensitivity === "unknown") {
+    dna.investmentProfile.reputationSensitivity = heuristic.investmentProfile.reputationSensitivity;
+  }
+  if (dna.evidence.length === 0) dna.evidence = heuristic.evidence;
+  if (dna.communicationProfile.evidence.length === 0) {
+    dna.communicationProfile.evidence = heuristic.communicationProfile.evidence;
+  }
+  if (dna.communicationProfile.confidence < 0.2) {
+    dna.communicationProfile = heuristic.communicationProfile;
+    dna.communicationStyle = heuristic.communicationStyle;
+  }
+  return dna;
+}
+
+export function getCachedDNA(clientId: string): ClientDNA | null {
+  return dnaCache.get(clientId) || null;
 }
 
 export async function extractDNA(
@@ -178,27 +555,56 @@ export async function extractDNA(
   entries: CRMEntry[],
   forceRefresh = false,
 ): Promise<ClientDNA> {
-  const startTime = Date.now();
-
   if (!forceRefresh && dnaCache.has(clientId)) {
     return dnaCache.get(clientId)!;
   }
 
+  if (!forceRefresh && inFlightExtractions.has(clientId)) {
+    return inFlightExtractions.get(clientId)!;
+  }
+
+  const extraction = extractDNAUncached(clientId, entries, forceRefresh)
+    .finally(() => inFlightExtractions.delete(clientId));
+  inFlightExtractions.set(clientId, extraction);
+  return extraction;
+}
+
+async function extractDNAUncached(
+  clientId: string,
+  entries: CRMEntry[],
+  forceRefresh: boolean
+): Promise<ClientDNA> {
+  const startTime = Date.now();
+
+  if (demoModeEnabled()) {
+    const demoProfile = getDemoDNAProfile(clientId);
+    if (demoProfile) {
+      dnaCache.set(clientId, demoProfile);
+      console.log(`[CRM Agent] Demo mode enabled, using demo profile for ${clientId}`);
+      return demoProfile;
+    }
+  }
+
+  if (entries.length === 0) {
+    console.warn(`[CRM Agent] No CRM entries supplied for ${clientId}; not caching an inferred profile`);
+    return buildUnavailableDNA(clientId, entries, "unavailable");
+  }
+
   if (!LLM_KEY() || LLM_KEY().startsWith("your_")) {
-    console.warn(`[CRM Agent] No LLM key configured, returning fallback DNA for ${clientId}`);
-    const fallback = getFallbackDNA(clientId);
-    dnaCache.set(clientId, fallback);
-    return fallback;
+    console.warn(`[CRM Agent] No LLM key configured, using CRM-derived heuristic profile for ${clientId}`);
+    const heuristic = buildHeuristicDNA(clientId, entries);
+    dnaCache.set(clientId, heuristic);
+    return heuristic;
   }
 
   console.log(`[CRM Agent] Extracting DNA for ${clientId} from ${entries.length} CRM entries...`);
 
   const chunks = chunkArray(entries, 15);
-  const chunkResults: any[] = [];
+  const chunkResults: PartialDNAResult[] = [];
 
   for (let i = 0; i < chunks.length; i++) {
     const chunk = chunks[i];
-    const userPrompt = `Analyze these CRM conversation logs and extract the client's investment identity:\n\n${formatCRMEntries(chunk)}\n\nRemember: respond with ONLY the JSON object. No other text.`;
+    const userPrompt = `Analyze these CRM conversation logs and extract the client's investment profile and communication preference:\n\n${formatCRMEntries(chunk)}\n\nRemember: respond with ONLY the JSON object. No other text.`;
 
     try {
       console.log(`[CRM Agent] Processing chunk ${i + 1}/${chunks.length} for ${clientId}...`);
@@ -207,12 +613,8 @@ export async function extractDNA(
       if (!parsed) {
         console.log(`[CRM Agent] Retrying chunk ${i + 1} with stricter prompt...`);
         const retryPrompt = `OUTPUT ONLY JSON. Your response must start with { and end with }.\n\n${userPrompt}`;
-        const content2 = await callLLM(SYSTEM_PROMPT, retryPrompt, 3000);
+        const content2 = await callLLM(SYSTEM_PROMPT, retryPrompt, 3500);
         parsed = parseJson(content2);
-        if (!parsed) {
-          console.log(`[CRM Agent] Attempting partial extraction from raw text...`);
-          parsed = extractPartialFromText(content);
-        }
       }
       if (parsed) {
         chunkResults.push(parsed);
@@ -222,103 +624,109 @@ export async function extractDNA(
     } catch (err: any) {
       const status = err?.response?.status;
       if (status === 429 || err?.response?.data?.error?.type === "budget_exceeded") {
-        console.warn(`[CRM Agent] LLM rate limited/budget exceeded for ${clientId}, returning fallback`);
-        const fallback = getFallbackDNA(clientId);
-        dnaCache.set(clientId, fallback);
-        return fallback;
+        console.warn(`[CRM Agent] LLM rate limited/budget exceeded for ${clientId}, using CRM-derived heuristic profile`);
+        const heuristic = buildHeuristicDNA(clientId, entries);
+        dnaCache.set(clientId, heuristic);
+        return heuristic;
       }
       console.error(`[CRM Agent] LLM error for chunk ${i + 1}:`, err?.message || err);
     }
   }
 
   if (chunkResults.length === 0) {
-    console.warn(`[CRM Agent] No chunk results for ${clientId}, returning fallback DNA`);
-    const fallback = getFallbackDNA(clientId);
-    dnaCache.set(clientId, fallback);
-    return fallback;
+    console.warn(`[CRM Agent] No chunk results for ${clientId}, using CRM-derived heuristic profile`);
+    const heuristic = buildHeuristicDNA(clientId, entries);
+    dnaCache.set(clientId, heuristic);
+    return heuristic;
   }
 
   const merged = mergeChunkResults(chunkResults);
+  const heuristic = buildHeuristicDNA(clientId, entries);
 
-  // Consolidation call
   let summary = "";
   try {
     console.log(`[CRM Agent] Consolidating DNA for ${clientId}...`);
-    const consolidationPrompt = `Based on this extracted client profile, write a 2-3 sentence summary of this client's investment identity. Also refine the communication style classification.\n\nProfile:\n${JSON.stringify(merged, null, 2)}\n\nReturn ONLY valid JSON: {"summary": "...", "communicationStyle": "data-driven"|"values-led"|"balanced"}\n\nRemember: respond with ONLY the JSON object. No other text.`;
-    const content = await callLLM(SYSTEM_PROMPT, consolidationPrompt);
+    const consolidationPrompt = `Based on this extracted client profile, write a 2-3 sentence summary of the client's investment identity and communication preference. Refine only the communication style if the evidence supports it.
+
+Profile:
+${JSON.stringify(merged, null, 2)}
+
+Return ONLY valid JSON: {"summary":"...","communicationStyle":"data-driven"|"values-led"|"balanced","communicationProfile":{"style":"data-driven"|"values-led"|"balanced","rationale":"...","confidence":0.8}}
+
+Remember: respond with ONLY the JSON object. No other text.`;
+    const content = await callLLM(SYSTEM_PROMPT, consolidationPrompt, 1800);
     const parsed = parseJson(content);
     if (parsed) {
       summary = parsed.summary || "";
-      if (parsed.communicationStyle) {
-        merged.communicationStyle = parsed.communicationStyle;
+      if (parsed.communicationStyle || parsed.communicationProfile?.style) {
+        const style = normalizeStyle(parsed.communicationProfile?.style || parsed.communicationStyle);
+        merged.communicationStyle = style;
+        merged.communicationProfile = createCommunicationProfile(style, {
+          ...merged.communicationProfile,
+          ...parsed.communicationProfile,
+          style,
+        });
       }
     }
   } catch (err: any) {
     console.warn(`[CRM Agent] Consolidation call failed for ${clientId}:`, err?.message);
-    summary = `Client ${clientId} profile extracted from ${entries.length} CRM entries.`;
+    summary = heuristic.summary;
   }
 
+  const style = normalizeStyle(merged.communicationProfile?.style || merged.communicationStyle);
   const dna: ClientDNA = {
     clientId,
-    values: merged.values,
-    lifeEvents: merged.lifeEvents,
-    businessContext: merged.businessContext,
-    riskSensitivities: merged.riskSensitivities,
-    personalPriorities: merged.personalPriorities,
-    communicationStyle: merged.communicationStyle as ClientDNA["communicationStyle"],
-    summary: summary || `Client ${clientId} profile extracted from ${entries.length} CRM entries.`,
-    evidence: merged.evidence,
-    traitConfidence: merged.traitConfidence,
+    values: asStringArray(merged.values),
+    lifeEvents: asStringArray(merged.lifeEvents),
+    businessContext: asStringArray(merged.businessContext),
+    riskSensitivities: asStringArray(merged.riskSensitivities),
+    personalPriorities: asStringArray(merged.personalPriorities),
+    communicationStyle: style,
+    communicationProfile: createCommunicationProfile(style, merged.communicationProfile),
+    investmentProfile: createInvestmentProfile(merged.investmentProfile),
+    profileSource: "crm-inferred",
+    summary: summary || heuristic.summary || `Client ${clientId} profile extracted from ${entries.length} CRM entries.`,
+    evidence: asEvidenceArray(merged.evidence),
+    traitConfidence: merged.traitConfidence || {},
   };
 
-  // Validate minimums and supplement from fallback if too sparse
-  const fallback = getFallbackDNA(clientId);
-  if (dna.values.length < 3) {
-    for (const v of fallback.values) { if (!dna.values.includes(v)) dna.values.push(v); }
-  }
-  if (dna.lifeEvents.length < 1) {
-    for (const v of fallback.lifeEvents) { if (!dna.lifeEvents.includes(v)) dna.lifeEvents.push(v); }
-  }
-  if (dna.riskSensitivities.length < 1) {
-    for (const v of fallback.riskSensitivities) { if (!dna.riskSensitivities.includes(v)) dna.riskSensitivities.push(v); }
-  }
-  if (dna.personalPriorities.length < 1) {
-    for (const v of fallback.personalPriorities) { if (!dna.personalPriorities.includes(v)) dna.personalPriorities.push(v); }
-  }
-  if (dna.businessContext.length < 1) {
-    for (const v of fallback.businessContext) { if (!dna.businessContext.includes(v)) dna.businessContext.push(v); }
-  }
+  supplementFromHeuristic(dna, heuristic);
 
   dnaCache.set(clientId, dna);
-  console.log(`[CRM Agent] DNA extracted for ${clientId}: ${dna.values.length} values, style=${dna.communicationStyle}`);
+  console.log(`[CRM Agent] DNA extracted for ${clientId}: ${dna.values.length} values, style=${dna.communicationStyle}, source=${dna.profileSource}`);
 
   auditService.log({
     agent: "crm-agent",
     action: "extract-dna",
     clientId,
-    inputSummary: `${entries.length} CRM entries`,
-    outputSummary: `${dna.values.length} values, style=${dna.communicationStyle}`,
+    inputSummary: `${entries.length} CRM entries, forceRefresh=${forceRefresh}`,
+    outputSummary: `${dna.values.length} values, style=${dna.communicationStyle}, source=${dna.profileSource}`,
     durationMs: Date.now() - startTime,
   });
 
   const avgConfidence = Object.values(dna.traitConfidence).length > 0
     ? Object.values(dna.traitConfidence).reduce((a: number, b: number) => a + (b as number), 0) / Object.values(dna.traitConfidence).length
-    : 0.5;
+    : dna.communicationProfile.confidence;
 
   explainabilityService.record({
     agent: "crm-agent",
     decisionType: "dna-extraction",
     input: { summary: `${entries.length} CRM entries for ${clientId}` },
     output: {
-      summary: `Extracted ${dna.values.length} values, style: ${dna.communicationStyle}`,
-      details: { values: dna.values, style: dna.communicationStyle },
+      summary: `Extracted ${dna.values.length} values, style: ${dna.communicationStyle}, source: ${dna.profileSource}`,
+      details: {
+        values: dna.values,
+        communicationProfile: dna.communicationProfile,
+        investmentProfile: dna.investmentProfile,
+      },
     },
     reasoning: {
       steps: [
         `Processed ${entries.length} CRM entries in ${Math.ceil(entries.length / 15)} chunks`,
-        `Identified ${dna.values.length} core values and ${dna.riskSensitivities.length} risk sensitivities`,
-        `Communication style classified as ${dna.communicationStyle} based on language patterns`,
-        `Confidence based on ${dna.evidence.length} supporting evidence citations`,
+        `Identified ${dna.values.length} values and ${dna.riskSensitivities.length} risk sensitivities`,
+        `Separated investment preferences from communication style`,
+        `Communication style classified as ${dna.communicationStyle}`,
+        `Profile source: ${dna.profileSource}`,
       ],
       confidence: avgConfidence,
     },
