@@ -13,6 +13,7 @@ import { ErrorBoundary } from "./components/shared/ErrorBoundary";
 import { KnowledgeGraphPanel } from "./components/graph/KnowledgeGraphPanel";
 import { ChatPanel } from "./components/chat/ChatPanel";
 import { HomePage } from "./pages/HomePage";
+import { TodoPage } from "./pages/TodoPage";
 import { useFetch } from "./hooks/useFetch";
 import { prefetchClients } from "./hooks/prefetchCache";
 import { mockClients, mockDNA, mockPortfolios, mockAdvisory } from "./data/mock";
@@ -50,6 +51,7 @@ function ResizeHandle({ onMouseDown }: { onMouseDown: (e: React.MouseEvent) => v
 
 function App() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [selectedTodoId, setSelectedTodoId] = useState<string | null>(null);
   const [auditOpen, setAuditOpen] = useState(false);
   const [advisory, setAdvisory] = useState<AdvisoryMessage | null>(null);
   const [advisoryLoading, setAdvisoryLoading] = useState(false);
@@ -322,13 +324,24 @@ function App() {
           </div>
         )}
         <main className="flex-1 overflow-y-auto p-6">
-          {!selectedId ? (
+          {selectedTodoId ? (
+            <TodoPage
+              todo={homeFetch.data?.todos.find(t => t.id === selectedTodoId) ?? null}
+              language={advisoryLanguage}
+              onBack={() => setSelectedTodoId(null)}
+              onSelectClient={id => {
+                setSelectedTodoId(null);
+                handleSelectClient(id);
+              }}
+            />
+          ) : !selectedId ? (
             <HomePage
               data={homeFetch.data}
               loading={homeFetch.loading}
               error={homeFetch.error}
               onRetry={homeFetch.refetch}
               onSelectClient={handleSelectClient}
+              onOpenTodo={setSelectedTodoId}
             />
           ) : (
             <div className="flex flex-col gap-6">

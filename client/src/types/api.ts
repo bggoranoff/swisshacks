@@ -170,6 +170,16 @@ export interface HomeDashboard {
   generatedAt: string;
 }
 
+export interface CrmLogEntry {
+  id: number;
+  date: string;
+  rawDate: string;
+  medium: string;
+  rmName: string;
+  clientContact: string;
+  note: string;
+}
+
 export interface AdvisoryMessage {
   id: string;
   clientId: string;

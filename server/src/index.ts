@@ -20,7 +20,7 @@ import { generatePresentation } from "./utils/generate-pptx";
 import { knowledgeGraphService } from "./services/knowledge-graph.service";
 import { detectConflicts } from "./agents/conflict.agent";
 import { chat, getChatHistory } from "./agents/chat.agent";
-import type { ClientProfile } from "./types/data";
+import type { ClientProfile, CrmLogEntry } from "./types/data";
 import type { ScoredNewsArticle } from "./types/news";
 import type {
   HomeAffectedClient,
@@ -41,6 +41,15 @@ app.use(express.json());
 
 const asyncHandler = (fn: Function) => (req: Request, res: Response, next: NextFunction) =>
   Promise.resolve(fn(req, res, next)).catch(next);
+
+// Excel stores dates as serial numbers (days since 1899-12-30). Convert to ISO
+// when the value is a plain number; otherwise pass the original string through.
+function excelSerialToISO(value: string): string {
+  const trimmed = (value || "").trim();
+  if (!trimmed || !/^\d+(\.\d+)?$/.test(trimmed)) return trimmed;
+  const serial = Number(trimmed);
+  return new Date(Math.round((serial - 25569) * 86400000)).toISOString();
+}
 
 // Health check
 app.get("/api/health", (_req, res) => {
@@ -95,6 +104,30 @@ app.get("/api/clients/:id/dna", asyncHandler(async (req: Request, res: Response)
   const forceRefresh = req.query.refresh === "true";
   const dna = await extractDNA(client.id, client.crmEntries, forceRefresh, client.pronouns);
   res.json({ success: true, data: dna });
+}));
+
+// Raw CRM log entries — used to expand a citation to its full note content
+app.get("/api/clients/:id/crm", asyncHandler((req: Request, res: Response) => {
+  const client = getClient(req.params.id);
+  if (!client) {
+    res.status(404).json({ success: false, error: "Client not found" });
+    return;
+  }
+
+  const entries: CrmLogEntry[] = client.crmEntries.map((entry, index) => {
+    const rawDate = entry.Date || entry.date || entry.DATE || "";
+    return {
+      id: index,
+      date: excelSerialToISO(rawDate),
+      rawDate,
+      medium: entry.Medium || entry.medium || "",
+      rmName: entry["RM Name"] || entry["RM name"] || entry.rmName || "",
+      clientContact: entry["Client Contact"] || entry["Client contact"] || entry.clientContact || "",
+      note: (entry.Note || entry.note || Object.values(entry).join(" ")).replace(/\s+/g, " ").trim(),
+    };
+  });
+
+  res.json({ success: true, data: entries });
 }));
 
 // Trait summary — on-demand LLM explanation of a single DNA trait

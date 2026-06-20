@@ -16,10 +16,18 @@ import type {
   HomeAffectedClient,
   HomeDashboard,
   HomeNewsItem,
-  HomeSourceArticle,
   HomeTodo,
-  HomeTodoSeverity,
 } from "../types/api";
+import {
+  firstSentence,
+  formatDate,
+  formatScore,
+  maxTodoRelevance,
+  severityLabels,
+  severityStyles,
+  sourceStyles,
+  topTodoSources,
+} from "./home.helpers";
 
 interface HomePageProps {
   data: HomeDashboard | null;
@@ -27,58 +35,7 @@ interface HomePageProps {
   error: string | null;
   onRetry: () => void;
   onSelectClient: (id: string) => void;
-}
-
-const severityStyles: Record<HomeTodoSeverity, string> = {
-  high: "bg-red-500/15 text-red-200 border-red-500/40",
-  medium: "bg-amber-500/15 text-amber-200 border-amber-500/40",
-  low: "bg-blue-500/15 text-blue-200 border-blue-500/40",
-};
-
-const severityLabels: Record<HomeTodoSeverity, string> = {
-  high: "High",
-  medium: "Medium",
-  low: "Low",
-};
-
-const sourceStyles: Record<HomeNewsItem["sourceType"], string> = {
-  live: "bg-emerald-500/15 text-emerald-200 border-emerald-500/30",
-  scenario: "bg-violet-500/15 text-violet-200 border-violet-500/30",
-};
-
-function formatDate(value: string): string {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "Unknown date";
-
-  return new Intl.DateTimeFormat(undefined, {
-    month: "short",
-    day: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  }).format(date);
-}
-
-function formatScore(score: number): string {
-  return `${Math.round(score * 100)}%`;
-}
-
-function firstSentence(value: string): string {
-  const normalized = value.replace(/\s+/g, " ").trim();
-  const sentence = normalized.match(/^(.+?[.!?])(\s|$)/)?.[1] ?? normalized;
-  return sentence.length > 180 ? `${sentence.slice(0, 177).trim()}...` : sentence;
-}
-
-function maxTodoRelevance(todo: HomeTodo): number {
-  return Math.max(0, ...todo.affectedClients.map(client => client.relevanceScore));
-}
-
-function topTodoSources(todo: HomeTodo, limit = 3): HomeSourceArticle[] {
-  const sourceArticles = todo.sourceArticles?.length ? todo.sourceArticles : [todo.sourceArticle];
-
-  return [...sourceArticles]
-    .filter(Boolean)
-    .sort((a, b) => b.relevanceScore - a.relevanceScore || new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime())
-    .slice(0, limit);
+  onOpenTodo: (id: string) => void;
 }
 
 function ClientPills({
@@ -150,15 +107,22 @@ function ClientPills({
   );
 }
 
-function TodoItem({ todo, onSelectClient }: { todo: HomeTodo; onSelectClient: (id: string) => void }) {
-  const firstClient = todo.affectedClients[0];
+function TodoItem({
+  todo,
+  onSelectClient,
+  onOpenTodo,
+}: {
+  todo: HomeTodo;
+  onSelectClient: (id: string) => void;
+  onOpenTodo: (id: string) => void;
+}) {
   const sourceArticles = todo.triggerType === "news" ? topTodoSources(todo) : [];
   const primarySource = sourceArticles[0] ?? todo.sourceArticle;
 
   return (
-    <article className="rounded-lg border border-slate-700 bg-slate-900/35 p-4">
+    <article className="rounded-lg border border-slate-700 bg-slate-900/35 p-4 transition-colors hover:border-slate-600">
       <div className="flex flex-wrap items-start justify-between gap-3">
-        <div className="min-w-0">
+        <button onClick={() => onOpenTodo(todo.id)} className="min-w-0 text-left">
           <div className="mb-2 flex flex-wrap items-center gap-2">
             <span className={`rounded-full border px-2.5 py-1 text-[11px] font-semibold uppercase ${severityStyles[todo.severity]}`}>
               {severityLabels[todo.severity]}
@@ -171,17 +135,15 @@ function TodoItem({ todo, onSelectClient }: { todo: HomeTodo; onSelectClient: (i
               {formatDate(primarySource.publishedAt)}
             </span>
           </div>
-          <h3 className="text-sm font-semibold leading-5 text-white">{todo.title}</h3>
-        </div>
-        {firstClient && (
-          <button
-            onClick={() => onSelectClient(firstClient.id)}
-            className="inline-flex items-center gap-1.5 rounded-lg border border-blue-500/40 bg-blue-500/10 px-3 py-1.5 text-xs font-medium text-blue-100 transition-colors hover:bg-blue-500/20"
-          >
-            Open client
-            <ArrowRight className="h-3 w-3" />
-          </button>
-        )}
+          <h3 className="text-sm font-semibold leading-5 text-white transition-colors hover:text-blue-200">{todo.title}</h3>
+        </button>
+        <button
+          onClick={() => onOpenTodo(todo.id)}
+          className="inline-flex items-center gap-1.5 rounded-lg border border-blue-500/40 bg-blue-500/10 px-3 py-1.5 text-xs font-medium text-blue-100 transition-colors hover:bg-blue-500/20"
+        >
+          View details
+          <ArrowRight className="h-3 w-3" />
+        </button>
       </div>
 
       <p className="mt-3 text-sm leading-6 text-slate-300">{todo.summary}</p>
@@ -290,7 +252,7 @@ function NewsItem({ item, onSelectClient }: { item: HomeNewsItem; onSelectClient
   );
 }
 
-export function HomePage({ data, loading, error, onRetry, onSelectClient }: HomePageProps) {
+export function HomePage({ data, loading, error, onRetry, onSelectClient, onOpenTodo }: HomePageProps) {
   const highCount = data?.todos.filter(todo => todo.severity === "high").length ?? 0;
   const mediumCount = data?.todos.filter(todo => todo.severity === "medium").length ?? 0;
   const lowCount = data?.todos.filter(todo => todo.severity === "low").length ?? 0;
@@ -362,7 +324,7 @@ export function HomePage({ data, loading, error, onRetry, onSelectClient }: Home
         ) : (
           <div className="space-y-4">
             {sortedTodos.map(todo => (
-              <TodoItem key={todo.id} todo={todo} onSelectClient={onSelectClient} />
+              <TodoItem key={todo.id} todo={todo} onSelectClient={onSelectClient} onOpenTodo={onOpenTodo} />
             ))}
           </div>
         )}
