@@ -18,7 +18,7 @@ export function TodoPage({ todo, language, onBack, onSelectClient }: TodoPagePro
       <Card colSpan2>
         <button
           onClick={onBack}
-          className="mb-4 inline-flex items-center gap-1.5 text-xs font-medium text-slate-400 transition-colors hover:text-white"
+          className="mb-4 inline-flex items-center gap-1.5 text-xs font-medium text-slate-400 transition-colors hover:text-slate-50"
         >
           <ArrowLeft className="h-3.5 w-3.5" />
           Back to home
@@ -38,7 +38,7 @@ export function TodoPage({ todo, language, onBack, onSelectClient }: TodoPagePro
       <Card>
         <button
           onClick={onBack}
-          className="mb-4 inline-flex items-center gap-1.5 text-xs font-medium text-slate-400 transition-colors hover:text-white"
+          className="mb-4 inline-flex items-center gap-1.5 text-xs font-medium text-slate-400 transition-colors hover:text-slate-50"
         >
           <ArrowLeft className="h-3.5 w-3.5" />
           Back to home
@@ -61,7 +61,7 @@ export function TodoPage({ todo, language, onBack, onSelectClient }: TodoPagePro
           </span>
         </div>
 
-        <h1 className="text-lg font-semibold leading-6 text-white">{todo.title}</h1>
+        <h1 className="text-lg font-semibold leading-6 text-slate-50">{todo.title}</h1>
         <p className="mt-2 text-sm leading-6 text-slate-300">{todo.summary}</p>
 
         {todo.riskTags.length > 0 && (
@@ -102,7 +102,7 @@ export function TodoPage({ todo, language, onBack, onSelectClient }: TodoPagePro
                     href={article.url}
                     target="_blank"
                     rel="noreferrer"
-                    className="flex items-center gap-2 text-xs text-slate-300 transition-colors hover:text-white"
+                    className="flex items-center gap-2 text-xs text-slate-300 transition-colors hover:text-slate-50"
                   >
                     {content}
                   </a>

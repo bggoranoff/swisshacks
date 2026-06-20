@@ -8,8 +8,8 @@ import { CrmCitationModal, type CrmCitation } from "./CrmCitationModal";
 import { DraftEmail } from "./DraftEmail";
 
 const alertStyles: Record<string, string> = {
-  conflict: "bg-red-500/15 text-red-200 border-red-500/40",
-  opportunity: "bg-emerald-500/15 text-emerald-200 border-emerald-500/40",
+  conflict: "bg-red-500/15 text-red-500 border-red-500/40",
+  opportunity: "bg-emerald-500/15 text-emerald-500 border-emerald-500/40",
 };
 
 function actionSuggestions(alertType?: HomeAffectedClient["alertType"]): string[] {
@@ -85,7 +85,7 @@ export function TodoClientCard({
         <div className="min-w-0">
           <div className="flex items-center gap-2">
             <Users className="h-4 w-4 flex-none text-blue-300" />
-            <h3 className="text-sm font-semibold text-white">{client.name}</h3>
+            <h3 className="text-sm font-semibold text-slate-50">{client.name}</h3>
             <ConfidenceBadge score={client.relevanceScore} />
             {client.alertType && (
               <span className={`rounded-full border px-2 py-0.5 text-[11px] font-medium uppercase ${alertStyles[client.alertType] ?? ""}`}>
@@ -97,7 +97,7 @@ export function TodoClientCard({
         </div>
         <button
           onClick={() => onSelectClient(client.id)}
-          className="inline-flex items-center gap-1.5 rounded-lg border border-blue-500/40 bg-blue-500/10 px-3 py-1.5 text-xs font-medium text-blue-100 transition-colors hover:bg-blue-500/20"
+          className="inline-flex items-center gap-1.5 rounded-lg border border-blue-500/40 bg-blue-500/10 px-3 py-1.5 text-xs font-medium text-blue-500 transition-colors hover:bg-blue-500/20"
         >
           Open client
           <ArrowRight className="h-3 w-3" />

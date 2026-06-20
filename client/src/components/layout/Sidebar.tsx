@@ -3,6 +3,7 @@ import clsx from "clsx";
 import type { ClientSummary } from "../../types/api";
 import { Users, ChevronLeft, Search } from "lucide-react";
 import { useState } from "react";
+import { useTheme } from "../../ThemeContext";
 
 const AVATAR_COLORS: Record<string, string> = {
   schneider: "bg-six-red",
@@ -18,10 +19,16 @@ const INITIALS: Record<string, string> = {
   ammann: "JA",
 };
 
-const STRATEGY_STYLES: Record<string, string> = {
+const STRATEGY_STYLES_DARK: Record<string, string> = {
   Defensive: "bg-blue-900/50 text-blue-300 border border-blue-800/30",
   Balanced: "bg-amber-900/50 text-amber-300 border border-amber-800/30",
   Growth: "bg-green-900/50 text-green-300 border border-green-800/30",
+};
+
+const STRATEGY_STYLES_LIGHT: Record<string, string> = {
+  Defensive: "bg-blue-100 text-blue-800 border border-blue-200",
+  Balanced: "bg-amber-100 text-amber-800 border border-amber-200",
+  Growth: "bg-green-100 text-green-800 border border-green-200",
 };
 
 interface SidebarProps {
@@ -52,6 +59,8 @@ function SidebarSkeleton() {
 }
 
 export function Sidebar({ clients, selectedId, onSelect, onHome, onClose, loading, conflictCount, style }: SidebarProps) {
+  const { theme } = useTheme();
+  const STRATEGY_STYLES = theme === "light" ? STRATEGY_STYLES_LIGHT : STRATEGY_STYLES_DARK;
   const [search, setSearch] = useState("");
   const filtered = search
     ? clients.filter(c => c.name.toLowerCase().includes(search.toLowerCase()))

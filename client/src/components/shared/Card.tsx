@@ -1,13 +1,16 @@
 import type { ReactNode } from "react";
 import clsx from "clsx";
 
-export function Card({ children, className, colSpan2 }: { children: ReactNode; className?: string; colSpan2?: boolean }) {
+export function Card({ children, className, colSpan2, style }: { children: ReactNode; className?: string; colSpan2?: boolean; style?: React.CSSProperties }) {
   return (
-    <div className={clsx(
-      "bg-slate-800 border border-slate-700 rounded-xl p-5 shadow-sm shadow-black/10 transition-shadow duration-300 hover:shadow-md hover:shadow-black/20",
-      colSpan2 && "col-span-2",
-      className
-    )}>
+    <div
+      className={clsx(
+        "bg-slate-800 border border-slate-700 rounded-xl p-5 shadow-sm shadow-black/10 transition-shadow duration-300 hover:shadow-md hover:shadow-black/20",
+        colSpan2 && "col-span-2",
+        className
+      )}
+      style={style}
+    >
       {children}
     </div>
   );

@@ -91,7 +91,7 @@ function ClientPills({
           key={client.id}
           onClick={() => onSelectClient(client.id)}
           title={client.reason}
-          className="inline-flex max-w-[220px] items-center gap-1.5 rounded-lg border border-slate-600 bg-slate-900/50 px-2.5 py-1 text-xs text-slate-200 transition-colors hover:border-blue-500/60 hover:text-white"
+          className="inline-flex max-w-[220px] items-center gap-1.5 rounded-lg border border-slate-600 bg-slate-900/50 px-2.5 py-1 text-xs text-slate-200 transition-colors hover:border-blue-500/60 hover:text-slate-50"
         >
           <Users className="h-3 w-3 flex-none text-blue-300" />
           <span className="truncate">{client.name}</span>
@@ -135,11 +135,11 @@ function TodoItem({
               {formatDate(primarySource.publishedAt)}
             </span>
           </div>
-          <h3 className="text-sm font-semibold leading-5 text-white transition-colors hover:text-blue-200">{todo.title}</h3>
+          <h3 className="text-sm font-semibold leading-5 text-slate-50 transition-colors hover:text-blue-400">{todo.title}</h3>
         </button>
         <button
           onClick={() => onOpenTodo(todo.id)}
-          className="inline-flex items-center gap-1.5 rounded-lg border border-blue-500/40 bg-blue-500/10 px-3 py-1.5 text-xs font-medium text-blue-100 transition-colors hover:bg-blue-500/20"
+          className="inline-flex items-center gap-1.5 rounded-lg border border-blue-500/40 bg-blue-500/10 px-3 py-1.5 text-xs font-medium text-blue-500 transition-colors hover:bg-blue-500/20"
         >
           View details
           <ArrowRight className="h-3 w-3" />
@@ -174,7 +174,7 @@ function TodoItem({
                   href={article.url}
                   target="_blank"
                   rel="noreferrer"
-                  className="flex items-center gap-2 text-xs text-slate-300 transition-colors hover:text-white"
+                  className="flex items-center gap-2 text-xs text-slate-300 transition-colors hover:text-slate-50"
                 >
                   {content}
                 </a>
@@ -218,14 +218,14 @@ function NewsItem({ item, onSelectClient }: { item: HomeNewsItem; onSelectClient
             <span>{item.source}</span>
             <span>{formatDate(item.publishedAt)}</span>
           </div>
-          <h3 className="text-sm font-semibold leading-5 text-white">{item.title}</h3>
+          <h3 className="text-sm font-semibold leading-5 text-slate-50">{item.title}</h3>
         </div>
         {item.url && item.url !== "#" && (
           <a
             href={item.url}
             target="_blank"
             rel="noreferrer"
-            className="rounded-lg border border-slate-600 p-2 text-slate-300 transition-colors hover:border-blue-500/60 hover:text-white"
+            className="rounded-lg border border-slate-600 p-2 text-slate-300 transition-colors hover:border-blue-500/60 hover:text-slate-50"
             aria-label="Open source article"
           >
             <ExternalLink className="h-4 w-4" />
@@ -305,15 +305,15 @@ export function HomePage({ data, loading, error, onRetry, onSelectClient, onOpen
           </div>
           <div className="grid grid-cols-3 gap-2 text-center">
             <div className="rounded-lg border border-slate-700 bg-slate-900/40 px-3 py-2">
-              <p className="text-lg font-semibold text-red-200">{highCount}</p>
+              <p className="text-lg font-semibold text-red-500">{highCount}</p>
               <p className="text-[11px] uppercase text-slate-500">High</p>
             </div>
             <div className="rounded-lg border border-slate-700 bg-slate-900/40 px-3 py-2">
-              <p className="text-lg font-semibold text-amber-200">{mediumCount}</p>
+              <p className="text-lg font-semibold text-amber-500">{mediumCount}</p>
               <p className="text-[11px] uppercase text-slate-500">Medium</p>
             </div>
             <div className="rounded-lg border border-slate-700 bg-slate-900/40 px-3 py-2">
-              <p className="text-lg font-semibold text-blue-200">{lowCount}</p>
+              <p className="text-lg font-semibold text-blue-500">{lowCount}</p>
               <p className="text-[11px] uppercase text-slate-500">Low</p>
             </div>
           </div>
@@ -330,8 +330,8 @@ export function HomePage({ data, loading, error, onRetry, onSelectClient, onOpen
         )}
       </Card>
 
-      <Card className="min-h-[520px]">
-        <div className="mb-5 flex flex-wrap items-start justify-between gap-3">
+      <Card className="flex flex-col" style={{ maxHeight: "80vh" }}>
+        <div className="mb-5 flex flex-wrap items-start justify-between gap-3 shrink-0">
           <div>
             <CardTitle icon={Newspaper}>Latest News</CardTitle>
             <p className="text-sm text-slate-400">
@@ -347,7 +347,7 @@ export function HomePage({ data, loading, error, onRetry, onSelectClient, onOpen
         {sortedNews.length === 0 ? (
           <EmptyState message="No recent news articles found" />
         ) : (
-          <div className="space-y-4">
+          <div className="space-y-4 overflow-y-auto hide-scrollbar flex-1 min-h-0">
             {sortedNews.map(item => (
               <NewsItem key={item.id} item={item} onSelectClient={onSelectClient} />
             ))}

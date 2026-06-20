@@ -17,7 +17,7 @@ export function NewsCitationChip({ article }: { article: HomeSourceArticle }) {
   );
 
   const className =
-    "inline-flex items-center gap-1.5 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-1.5 text-xs text-emerald-100 transition-colors hover:border-emerald-400/60 hover:bg-emerald-500/20";
+    "inline-flex items-center gap-1.5 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-1.5 text-xs text-emerald-600 transition-colors hover:border-emerald-400/60 hover:bg-emerald-500/20";
 
   return hasUrl ? (
     <a href={article.url} target="_blank" rel="noreferrer" className={className}>
@@ -33,7 +33,7 @@ export function CrmCitationChip({ citation, onOpen }: { citation: CrmCitation; o
     <button
       onClick={onOpen}
       title={citation.crmExcerpt}
-      className="inline-flex items-center gap-1.5 rounded-lg border border-six-red/30 bg-six-red/10 px-2.5 py-1.5 text-xs text-amber-100 transition-colors hover:border-six-red/60 hover:bg-six-red/20"
+      className="inline-flex items-center gap-1.5 rounded-lg border border-six-red/30 bg-six-red/10 px-2.5 py-1.5 text-xs text-six-red transition-colors hover:border-six-red/60 hover:bg-six-red/20"
     >
       <FileText className="h-3.5 w-3.5 shrink-0 text-six-red" />
       <span className="min-w-0 max-w-[260px] truncate">{citation.trait}</span>

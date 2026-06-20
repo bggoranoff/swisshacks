@@ -54,9 +54,9 @@ export function CrmCitationModal({ citation, onClose }: { citation: CrmCitation;
               <FileText className="h-3.5 w-3.5" />
               CRM Log Entry
             </p>
-            <h3 className="text-base font-semibold text-white">{formatCrmDate(citation)}</h3>
+            <h3 className="text-base font-semibold text-slate-50">{formatCrmDate(citation)}</h3>
           </div>
-          <button onClick={onClose} className="text-slate-400 hover:text-white transition-colors mt-0.5 p-1">
+          <button onClick={onClose} className="text-slate-400 hover:text-slate-50 transition-colors mt-0.5 p-1">
             <X className="h-5 w-5" />
           </button>
         </div>

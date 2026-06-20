@@ -69,7 +69,7 @@ export function DraftEmail({ clientId, clientName, alertId, language }: DraftEma
     return (
       <button
         onClick={generate}
-        className="inline-flex items-center gap-2 rounded-lg border border-six-red/40 bg-six-red/10 px-3 py-2 text-xs font-medium text-amber-100 transition-colors hover:bg-six-red/20"
+        className="inline-flex items-center gap-2 rounded-lg border border-six-red/40 bg-six-red/10 px-3 py-2 text-xs font-medium text-six-red transition-colors hover:bg-six-red/20"
       >
         <Mail className="h-4 w-4" />
         Draft email to {clientName}
@@ -97,21 +97,21 @@ export function DraftEmail({ clientId, clientName, alertId, language }: DraftEma
         <div className="flex items-center gap-1.5">
           <button
             onClick={() => setIsEditing(v => !v)}
-            className="inline-flex items-center gap-1 rounded border border-slate-600 px-2 py-1 text-xs text-slate-300 transition-colors hover:border-slate-400 hover:text-white"
+            className="inline-flex items-center gap-1 rounded border border-slate-600 px-2 py-1 text-xs text-slate-300 transition-colors hover:border-slate-400 hover:text-slate-50"
           >
             <Pencil className="h-3 w-3" />
             {isEditing ? "Done" : "Edit"}
           </button>
           <button
             onClick={handleCopy}
-            className="inline-flex items-center gap-1 rounded border border-slate-600 px-2 py-1 text-xs text-slate-300 transition-colors hover:border-slate-400 hover:text-white"
+            className="inline-flex items-center gap-1 rounded border border-slate-600 px-2 py-1 text-xs text-slate-300 transition-colors hover:border-slate-400 hover:text-slate-50"
           >
             {copied ? <Check className="h-3 w-3 text-green-400" /> : <Copy className="h-3 w-3" />}
             {copied ? "Copied" : "Copy"}
           </button>
           <button
             onClick={handleDownload}
-            className="inline-flex items-center gap-1 rounded border border-slate-600 px-2 py-1 text-xs text-slate-300 transition-colors hover:border-slate-400 hover:text-white"
+            className="inline-flex items-center gap-1 rounded border border-slate-600 px-2 py-1 text-xs text-slate-300 transition-colors hover:border-slate-400 hover:text-slate-50"
           >
             <Download className="h-3 w-3" />
             Download
@@ -119,7 +119,7 @@ export function DraftEmail({ clientId, clientName, alertId, language }: DraftEma
           <button
             onClick={generate}
             title="Regenerate"
-            className="inline-flex items-center gap-1 rounded border border-slate-600 px-2 py-1 text-xs text-slate-300 transition-colors hover:border-slate-400 hover:text-white"
+            className="inline-flex items-center gap-1 rounded border border-slate-600 px-2 py-1 text-xs text-slate-300 transition-colors hover:border-slate-400 hover:text-slate-50"
           >
             <RefreshCw className="h-3 w-3" />
           </button>
@@ -130,10 +130,10 @@ export function DraftEmail({ clientId, clientName, alertId, language }: DraftEma
         <input
           value={subject}
           onChange={e => setSubject(e.target.value)}
-          className="mb-2 w-full rounded border border-slate-600 bg-slate-950/60 px-2 py-1.5 text-sm font-medium text-white outline-none focus:border-six-red/60"
+          className="mb-2 w-full rounded border border-slate-600 bg-slate-950/60 px-2 py-1.5 text-sm font-medium text-slate-50 outline-none focus:border-six-red/60"
         />
       ) : (
-        <p className="mb-2 text-sm font-semibold text-white">{subject}</p>
+        <p className="mb-2 text-sm font-semibold text-slate-50">{subject}</p>
       )}
 
       {isEditing ? (

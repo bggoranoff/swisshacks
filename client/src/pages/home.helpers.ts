@@ -1,9 +1,9 @@
 import type { HomeNewsItem, HomeSourceArticle, HomeTodo, HomeTodoSeverity } from "../types/api";
 
 export const severityStyles: Record<HomeTodoSeverity, string> = {
-  high: "bg-red-500/15 text-red-200 border-red-500/40",
-  medium: "bg-amber-500/15 text-amber-200 border-amber-500/40",
-  low: "bg-blue-500/15 text-blue-200 border-blue-500/40",
+  high: "bg-red-500/15 text-red-500 border-red-500/40",
+  medium: "bg-amber-500/15 text-amber-600 border-amber-500/40",
+  low: "bg-blue-500/15 text-blue-500 border-blue-500/40",
 };
 
 export const severityLabels: Record<HomeTodoSeverity, string> = {
@@ -13,8 +13,8 @@ export const severityLabels: Record<HomeTodoSeverity, string> = {
 };
 
 export const sourceStyles: Record<HomeNewsItem["sourceType"], string> = {
-  live: "bg-emerald-500/15 text-emerald-200 border-emerald-500/30",
-  scenario: "bg-violet-500/15 text-violet-200 border-violet-500/30",
+  live: "bg-emerald-500/15 text-emerald-500 border-emerald-500/30",
+  scenario: "bg-violet-500/15 text-violet-500 border-violet-500/30",
 };
 
 export function formatDate(value: string): string {
