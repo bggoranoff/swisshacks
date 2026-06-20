@@ -9,6 +9,7 @@ import { PortfolioTable } from "./components/portfolio/PortfolioTable";
 import { NewsFeed } from "./components/news/NewsFeed";
 import { AlertsPanel } from "./components/alerts/AlertsPanel";
 import { AdvisoryPanel } from "./components/advisory/AdvisoryPanel";
+import { ErrorBoundary } from "./components/shared/ErrorBoundary";
 import { useFetch } from "./hooks/useFetch";
 import { mockClients, mockDNA, mockPortfolios, mockNews, mockAdvisory } from "./data/mock";
 import type {
@@ -255,34 +256,42 @@ function App() {
                 </div>
               </div>
               <div id="dna-panel">
-                <DNAPanel
-                  dna={dna}
-                  loading={dnaFetch.loading}
-                  error={dnaFetch.error && !dna ? dnaFetch.error : null}
-                  onRetry={dnaFetch.refetch}
-                />
+                <ErrorBoundary fallbackMessage="Failed to load DNA profile">
+                  <DNAPanel
+                    dna={dna}
+                    loading={dnaFetch.loading}
+                    error={dnaFetch.error && !dna ? dnaFetch.error : null}
+                    onRetry={dnaFetch.refetch}
+                  />
+                </ErrorBoundary>
               </div>
-              <PortfolioTable
-                portfolio={portfolio}
-                loading={portfolioFetch.loading}
-                error={portfolioFetch.error && !portfolio ? portfolioFetch.error : null}
-                onRetry={portfolioFetch.refetch}
-              />
-              <NewsFeed
-                news={news}
-                loading={newsFetch.loading}
-                error={newsFetch.error && !news ? newsFetch.error : null}
-                onRetry={newsFetch.refetch}
-              />
-              <div id="alerts-panel">
-                <AlertsPanel
-                  news={news}
+              <ErrorBoundary fallbackMessage="Failed to load portfolio">
+                <PortfolioTable
                   portfolio={portfolio}
-                  loading={dnaFetch.loading || portfolioFetch.loading || newsFetch.loading}
-                  selectedId={selectedId}
-                  triggerEvent={clients?.find(c => c.id === selectedId)?.triggerEvent}
-                  onApprove={(id) => setApprovedAlertId(id)}
+                  loading={portfolioFetch.loading}
+                  error={portfolioFetch.error && !portfolio ? portfolioFetch.error : null}
+                  onRetry={portfolioFetch.refetch}
                 />
+              </ErrorBoundary>
+              <ErrorBoundary fallbackMessage="Failed to load news feed">
+                <NewsFeed
+                  news={news}
+                  loading={newsFetch.loading}
+                  error={newsFetch.error && !news ? newsFetch.error : null}
+                  onRetry={newsFetch.refetch}
+                />
+              </ErrorBoundary>
+              <div id="alerts-panel">
+                <ErrorBoundary fallbackMessage="Failed to load alerts">
+                  <AlertsPanel
+                    news={news}
+                    portfolio={portfolio}
+                    loading={dnaFetch.loading || portfolioFetch.loading || newsFetch.loading}
+                    selectedId={selectedId}
+                    triggerEvent={clients?.find(c => c.id === selectedId)?.triggerEvent}
+                    onApprove={(id) => setApprovedAlertId(id)}
+                  />
+                </ErrorBoundary>
               </div>
               <div ref={advisoryRef} className="col-span-2">
                 {(() => {
@@ -297,14 +306,16 @@ function App() {
                     contextAlertTitle = firstNewsAlert.title;
                   }
                   return (
-                    <AdvisoryPanel
-                      advisory={advisory}
-                      loading={advisoryLoading}
-                      clientId={selectedId}
-                      contextAlertTitle={contextAlertTitle ?? null}
-                      onGenerate={handleGenerate}
-                      onRegenerate={handleRegenerate}
-                    />
+                    <ErrorBoundary fallbackMessage="Failed to load advisory panel">
+                      <AdvisoryPanel
+                        advisory={advisory}
+                        loading={advisoryLoading}
+                        clientId={selectedId}
+                        contextAlertTitle={contextAlertTitle ?? null}
+                        onGenerate={handleGenerate}
+                        onRegenerate={handleRegenerate}
+                      />
+                    </ErrorBoundary>
                   );
                 })()}
               </div>
