@@ -26,6 +26,7 @@ import type {
   HomeAffectedClient,
   HomeDashboard,
   HomeNewsItem,
+  HomeSourceArticle,
   HomeTodo,
   HomeTodoSeverity,
 } from "./types/home";
@@ -156,7 +157,6 @@ app.post("/api/clients/:id/trait-summary", asyncHandler(async (req: Request, res
 const newsAgent = new NewsAgent();
 
 const severityRank: Record<HomeTodoSeverity, number> = {
-  critical: 4,
   high: 3,
   medium: 2,
   low: 1,
@@ -224,7 +224,7 @@ function severityForArticle(article: ScoredNewsArticle, affectedClientCount: num
     article.alertType === "conflict" &&
     (article.relevanceScore >= 0.9 || affectedClientCount >= 2 || article.sentimentLabel === "BEARISH")
   ) {
-    return "critical";
+    return "high";
   }
   if (article.alertType === "conflict" || article.relevanceScore >= 0.85) {
     return "high";
@@ -267,7 +267,7 @@ function riskTagsForArticle(article: ScoredNewsArticle): string[] {
   return Array.from(tags);
 }
 
-function sourceArticle(article: ScoredNewsArticle) {
+function sourceArticle(article: ScoredNewsArticle): HomeSourceArticle {
   return {
     id: article.id,
     title: article.title,
@@ -275,7 +275,31 @@ function sourceArticle(article: ScoredNewsArticle) {
     source: article.source,
     sourceType: article.sourceType,
     publishedAt: article.publishedAt,
+    relevanceScore: article.relevanceScore,
   };
+}
+
+function sourceArticleRank(article: HomeSourceArticle): number {
+  return article.relevanceScore * 10000000000000 + dateValue(article.publishedAt);
+}
+
+function addSourceArticle(articles: HomeSourceArticle[], article: HomeSourceArticle) {
+  const existing = articles.find(a => a.id === article.id || (a.title === article.title && a.url === article.url));
+  if (!existing) {
+    articles.push(article);
+    articles.sort((a, b) => sourceArticleRank(b) - sourceArticleRank(a));
+    return;
+  }
+
+  if (article.relevanceScore > existing.relevanceScore || dateValue(article.publishedAt) > dateValue(existing.publishedAt)) {
+    existing.title = article.title;
+    existing.url = article.url;
+    existing.source = article.source;
+    existing.sourceType = article.sourceType;
+    existing.publishedAt = article.publishedAt;
+    existing.relevanceScore = Math.max(existing.relevanceScore, article.relevanceScore);
+    articles.sort((a, b) => sourceArticleRank(b) - sourceArticleRank(a));
+  }
 }
 
 async function buildHomeDashboard(options: HomeDashboardOptions): Promise<HomeDashboard> {
@@ -351,6 +375,7 @@ async function buildHomeDashboard(options: HomeDashboardOptions): Promise<HomeDa
 
       const todoKey = `${article.alertType || "review"}-${articleKey}`;
       let todo = todosByKey.get(todoKey);
+      const articleSource = sourceArticle(article);
       if (!todo) {
         todo = {
           id: `home-todo-${todoKey}`,
@@ -360,7 +385,8 @@ async function buildHomeDashboard(options: HomeDashboardOptions): Promise<HomeDa
           triggerType: "news",
           recommendedAction: recommendedActionForArticle(article),
           affectedClients: [],
-          sourceArticle: sourceArticle(article),
+          sourceArticle: articleSource,
+          sourceArticles: [articleSource],
           createdAt: new Date().toISOString(),
           riskTags: riskTagsForArticle(article),
           maxRelevance: article.relevanceScore,
@@ -369,6 +395,8 @@ async function buildHomeDashboard(options: HomeDashboardOptions): Promise<HomeDa
       }
 
       addAffectedClient(todo.affectedClients, affectedClient);
+      addSourceArticle(todo.sourceArticles, articleSource);
+      todo.sourceArticle = todo.sourceArticles[0] || todo.sourceArticle;
       todo.maxRelevance = Math.max(todo.maxRelevance, article.relevanceScore);
 
       const nextSeverity = severityForArticle(article, todo.affectedClients.length);
@@ -379,15 +407,16 @@ async function buildHomeDashboard(options: HomeDashboardOptions): Promise<HomeDa
   }
 
   const latestNews = Array.from(newsByKey.values())
-    .sort((a, b) => dateValue(b.publishedAt) - dateValue(a.publishedAt) || b.maxRelevance - a.maxRelevance)
+    .sort((a, b) => b.maxRelevance - a.maxRelevance || dateValue(b.publishedAt) - dateValue(a.publishedAt))
     .slice(0, 12)
     .map(({ maxRelevance, ...item }) => item);
 
   const todos = Array.from(todosByKey.values())
     .sort((a, b) =>
+      b.maxRelevance - a.maxRelevance ||
       severityRank[b.severity] - severityRank[a.severity] ||
       b.affectedClients.length - a.affectedClients.length ||
-      b.maxRelevance - a.maxRelevance
+      dateValue(b.sourceArticle.publishedAt) - dateValue(a.sourceArticle.publishedAt)
     )
     .slice(0, 12)
     .map(({ maxRelevance, ...todo }) => todo);

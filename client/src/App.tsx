@@ -1,5 +1,5 @@
 import { useState, useCallback, useRef, useEffect } from "react";
-import { MessageCircle, ChevronLeft } from "lucide-react";
+import { MessageCircle, ChevronLeft, ChevronRight } from "lucide-react";
 import { Sidebar } from "./components/layout/Sidebar";
 import { TraitDrawer } from "./components/dna/TraitDrawer";
 import { Header } from "./components/layout/Header";
@@ -60,7 +60,7 @@ function App() {
   const [chatHistories, setChatHistories] = useState<Record<string, ChatMessage[]>>({});
   const [sidebarWidth, setSidebarWidth] = useState(260);
   const [chatWidth, setChatWidth] = useState(360);
-  const [chatOpen, setChatOpen] = useState(true);
+  const [chatOpen, setChatOpen] = useState(false);
   const [drawer, setDrawer] = useState<DrawerState>({ open: false, trait: null, category: null });
 
   const handleChatHistoryChange = (clientId: string, msgs: ChatMessage[]) => {
@@ -472,9 +472,24 @@ function App() {
                 />
               </ErrorBoundary>
             ) : (
-              <div className="flex flex-col items-center justify-center h-full text-center px-6">
-                <MessageCircle className="h-8 w-8 text-slate-600 mb-3" strokeWidth={1.5} />
-                <p className="text-sm text-slate-500">Select a client to start a conversation</p>
+              <div className="flex h-full flex-col">
+                <div className="flex items-center justify-between border-b border-slate-700 px-4 py-3">
+                  <div className="flex items-center gap-2">
+                    <MessageCircle className="h-4 w-4 text-six-orange/70" />
+                    <span className="text-sm font-semibold uppercase tracking-wide text-slate-300">RM Assistant</span>
+                  </div>
+                  <button
+                    onClick={() => setChatOpen(false)}
+                    title="Close chat (Ctrl+\)"
+                    className="text-slate-500 transition-colors hover:text-slate-300"
+                  >
+                    <ChevronRight className="h-4 w-4" />
+                  </button>
+                </div>
+                <div className="flex flex-1 flex-col items-center justify-center px-6 text-center">
+                  <MessageCircle className="mb-3 h-8 w-8 text-slate-600" strokeWidth={1.5} />
+                  <p className="text-sm text-slate-500">Select a client to start a conversation</p>
+                </div>
               </div>
             )}
           </div>

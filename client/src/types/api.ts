@@ -113,7 +113,7 @@ export interface NewsDigest {
   generatedAt: string;
 }
 
-export type HomeTodoSeverity = "critical" | "high" | "medium" | "low";
+export type HomeTodoSeverity = "high" | "medium" | "low";
 export type HomeTriggerType = "news" | "crm" | "client-request" | "life-event";
 
 export interface HomeAffectedClient {
@@ -132,6 +132,7 @@ export interface HomeSourceArticle {
   source: string;
   sourceType: ScoredNewsArticle["sourceType"];
   publishedAt: string;
+  relevanceScore: number;
 }
 
 export interface HomeTodo {
@@ -143,6 +144,7 @@ export interface HomeTodo {
   recommendedAction: string;
   affectedClients: HomeAffectedClient[];
   sourceArticle: HomeSourceArticle;
+  sourceArticles: HomeSourceArticle[];
   createdAt: string;
   riskTags: string[];
 }

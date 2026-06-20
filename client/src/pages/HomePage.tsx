@@ -16,6 +16,7 @@ import type {
   HomeAffectedClient,
   HomeDashboard,
   HomeNewsItem,
+  HomeSourceArticle,
   HomeTodo,
   HomeTodoSeverity,
 } from "../types/api";
@@ -29,10 +30,15 @@ interface HomePageProps {
 }
 
 const severityStyles: Record<HomeTodoSeverity, string> = {
-  critical: "bg-red-500/15 text-red-200 border-red-500/40",
-  high: "bg-orange-500/15 text-orange-200 border-orange-500/40",
+  high: "bg-red-500/15 text-red-200 border-red-500/40",
   medium: "bg-amber-500/15 text-amber-200 border-amber-500/40",
-  low: "bg-slate-600/40 text-slate-200 border-slate-500/40",
+  low: "bg-blue-500/15 text-blue-200 border-blue-500/40",
+};
+
+const severityLabels: Record<HomeTodoSeverity, string> = {
+  high: "High",
+  medium: "Medium",
+  low: "Low",
 };
 
 const sourceStyles: Record<HomeNewsItem["sourceType"], string> = {
@@ -56,20 +62,74 @@ function formatScore(score: number): string {
   return `${Math.round(score * 100)}%`;
 }
 
+function firstSentence(value: string): string {
+  const normalized = value.replace(/\s+/g, " ").trim();
+  const sentence = normalized.match(/^(.+?[.!?])(\s|$)/)?.[1] ?? normalized;
+  return sentence.length > 180 ? `${sentence.slice(0, 177).trim()}...` : sentence;
+}
+
+function maxTodoRelevance(todo: HomeTodo): number {
+  return Math.max(0, ...todo.affectedClients.map(client => client.relevanceScore));
+}
+
+function topTodoSources(todo: HomeTodo, limit = 3): HomeSourceArticle[] {
+  const sourceArticles = todo.sourceArticles?.length ? todo.sourceArticles : [todo.sourceArticle];
+
+  return [...sourceArticles]
+    .filter(Boolean)
+    .sort((a, b) => b.relevanceScore - a.relevanceScore || new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime())
+    .slice(0, limit);
+}
+
 function ClientPills({
   clients,
   onSelectClient,
+  showReason = false,
 }: {
   clients: HomeAffectedClient[];
   onSelectClient: (id: string) => void;
+  showReason?: boolean;
 }) {
   if (clients.length === 0) {
     return <span className="text-xs text-slate-500">No affected clients detected</span>;
   }
 
+  const sortedClients = [...clients].sort((a, b) => b.relevanceScore - a.relevanceScore);
+  const maxVisible = showReason ? 6 : 10;
+  const visibleClients = sortedClients.slice(0, maxVisible);
+  const hiddenCount = sortedClients.length - visibleClients.length;
+
+  if (showReason) {
+    return (
+      <div className="grid grid-cols-1 gap-2 lg:grid-cols-2">
+        {visibleClients.map(client => (
+          <button
+            key={client.id}
+            onClick={() => onSelectClient(client.id)}
+            className="rounded-lg border border-slate-600 bg-slate-900/50 px-3 py-2 text-left transition-colors hover:border-blue-500/60 hover:bg-slate-900"
+          >
+            <span className="flex items-center justify-between gap-2">
+              <span className="inline-flex min-w-0 items-center gap-1.5 text-xs font-medium text-slate-200">
+                <Users className="h-3 w-3 flex-none text-blue-300" />
+                <span className="truncate">{client.name}</span>
+              </span>
+              <span className="shrink-0 text-xs text-slate-500">{formatScore(client.relevanceScore)}</span>
+            </span>
+            <span className="mt-1 block text-xs leading-5 text-slate-400">{firstSentence(client.reason)}</span>
+          </button>
+        ))}
+        {hiddenCount > 0 && (
+          <div className="rounded-lg border border-slate-700 bg-slate-900/30 px-3 py-2 text-xs text-slate-500">
+            +{hiddenCount} more affected clients
+          </div>
+        )}
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-wrap gap-2">
-      {clients.map(client => (
+      {visibleClients.map(client => (
         <button
           key={client.id}
           onClick={() => onSelectClient(client.id)}
@@ -81,12 +141,19 @@ function ClientPills({
           <span className="text-slate-500">{formatScore(client.relevanceScore)}</span>
         </button>
       ))}
+      {hiddenCount > 0 && (
+        <span className="rounded-lg border border-slate-700 bg-slate-900/40 px-2.5 py-1 text-xs text-slate-500">
+          +{hiddenCount} more
+        </span>
+      )}
     </div>
   );
 }
 
 function TodoItem({ todo, onSelectClient }: { todo: HomeTodo; onSelectClient: (id: string) => void }) {
   const firstClient = todo.affectedClients[0];
+  const sourceArticles = todo.triggerType === "news" ? topTodoSources(todo) : [];
+  const primarySource = sourceArticles[0] ?? todo.sourceArticle;
 
   return (
     <article className="rounded-lg border border-slate-700 bg-slate-900/35 p-4">
@@ -94,14 +161,14 @@ function TodoItem({ todo, onSelectClient }: { todo: HomeTodo; onSelectClient: (i
         <div className="min-w-0">
           <div className="mb-2 flex flex-wrap items-center gap-2">
             <span className={`rounded-full border px-2.5 py-1 text-[11px] font-semibold uppercase ${severityStyles[todo.severity]}`}>
-              {todo.severity}
+              {severityLabels[todo.severity]}
             </span>
-            <span className={`rounded-full border px-2.5 py-1 text-[11px] font-medium uppercase ${sourceStyles[todo.sourceArticle.sourceType]}`}>
-              {todo.sourceArticle.sourceType}
+            <span className={`rounded-full border px-2.5 py-1 text-[11px] font-medium uppercase ${sourceStyles[primarySource.sourceType]}`}>
+              {primarySource.sourceType}
             </span>
             <span className="inline-flex items-center gap-1 text-xs text-slate-500">
               <Clock className="h-3 w-3" />
-              {formatDate(todo.sourceArticle.publishedAt)}
+              {formatDate(primarySource.publishedAt)}
             </span>
           </div>
           <h3 className="text-sm font-semibold leading-5 text-white">{todo.title}</h3>
@@ -124,6 +191,41 @@ function TodoItem({ todo, onSelectClient }: { todo: HomeTodo; onSelectClient: (i
         <p className="mt-1 text-sm leading-5 text-slate-200">{todo.recommendedAction}</p>
       </div>
 
+      {sourceArticles.length > 0 && (
+        <div className="mt-3 rounded-lg border border-slate-700/80 bg-slate-950/35 px-3 py-2">
+          <p className="text-xs font-medium uppercase text-slate-500">News sources</p>
+          <div className="mt-2 space-y-2">
+            {sourceArticles.map(article => {
+              const hasUrl = article.url && !article.url.startsWith("#");
+              const content = (
+                <>
+                  <span className="min-w-0 flex-1 truncate">{article.title}</span>
+                  <span className="shrink-0 text-slate-500">{article.source}</span>
+                  <span className="shrink-0 text-slate-500">{formatScore(article.relevanceScore)}</span>
+                  {hasUrl && <ExternalLink className="h-3.5 w-3.5 shrink-0" />}
+                </>
+              );
+
+              return hasUrl ? (
+                <a
+                  key={`${article.id}-${article.url}`}
+                  href={article.url}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="flex items-center gap-2 text-xs text-slate-300 transition-colors hover:text-white"
+                >
+                  {content}
+                </a>
+              ) : (
+                <div key={`${article.id}-${article.url}`} className="flex items-center gap-2 text-xs text-slate-400">
+                  {content}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
       <div className="mt-3 flex flex-wrap gap-2">
         {todo.riskTags.map(tag => (
           <span key={tag} className="rounded-full bg-slate-700/60 px-2 py-1 text-[11px] text-slate-300">
@@ -133,7 +235,8 @@ function TodoItem({ todo, onSelectClient }: { todo: HomeTodo; onSelectClient: (i
       </div>
 
       <div className="mt-4">
-        <ClientPills clients={todo.affectedClients} onSelectClient={onSelectClient} />
+        <p className="mb-2 text-xs font-medium uppercase text-slate-500">Affected clients</p>
+        <ClientPills clients={todo.affectedClients} onSelectClient={onSelectClient} showReason />
       </div>
     </article>
   );
@@ -188,13 +291,13 @@ function NewsItem({ item, onSelectClient }: { item: HomeNewsItem; onSelectClient
 }
 
 export function HomePage({ data, loading, error, onRetry, onSelectClient }: HomePageProps) {
-  const criticalCount = data?.todos.filter(todo => todo.severity === "critical").length ?? 0;
   const highCount = data?.todos.filter(todo => todo.severity === "high").length ?? 0;
-  const affectedClientCount = new Set(data?.todos.flatMap(todo => todo.affectedClients.map(client => client.id))).size;
+  const mediumCount = data?.todos.filter(todo => todo.severity === "medium").length ?? 0;
+  const lowCount = data?.todos.filter(todo => todo.severity === "low").length ?? 0;
 
   if (loading) {
     return (
-      <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1.05fr)_minmax(360px,0.95fr)]">
+      <div className="grid grid-cols-1 gap-6">
         <Card>
           <CardTitle icon={ListTodo}>Relationship Manager Todos</CardTitle>
           <SkeletonBlock lines={6} />
@@ -225,8 +328,11 @@ export function HomePage({ data, loading, error, onRetry, onSelectClient }: Home
     );
   }
 
+  const sortedTodos = [...data.todos].sort((a, b) => maxTodoRelevance(b) - maxTodoRelevance(a));
+  const sortedNews = [...data.latestNews].sort((a, b) => b.relevanceScore - a.relevanceScore);
+
   return (
-    <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1.05fr)_minmax(360px,0.95fr)]">
+    <div className="grid grid-cols-1 gap-6">
       <Card className="min-h-[520px]">
         <div className="mb-5 flex flex-wrap items-start justify-between gap-4">
           <div>
@@ -237,25 +343,25 @@ export function HomePage({ data, loading, error, onRetry, onSelectClient }: Home
           </div>
           <div className="grid grid-cols-3 gap-2 text-center">
             <div className="rounded-lg border border-slate-700 bg-slate-900/40 px-3 py-2">
-              <p className="text-lg font-semibold text-red-200">{criticalCount}</p>
-              <p className="text-[11px] uppercase text-slate-500">Critical</p>
-            </div>
-            <div className="rounded-lg border border-slate-700 bg-slate-900/40 px-3 py-2">
-              <p className="text-lg font-semibold text-orange-200">{highCount}</p>
+              <p className="text-lg font-semibold text-red-200">{highCount}</p>
               <p className="text-[11px] uppercase text-slate-500">High</p>
             </div>
             <div className="rounded-lg border border-slate-700 bg-slate-900/40 px-3 py-2">
-              <p className="text-lg font-semibold text-blue-200">{affectedClientCount}</p>
-              <p className="text-[11px] uppercase text-slate-500">Clients</p>
+              <p className="text-lg font-semibold text-amber-200">{mediumCount}</p>
+              <p className="text-[11px] uppercase text-slate-500">Medium</p>
+            </div>
+            <div className="rounded-lg border border-slate-700 bg-slate-900/40 px-3 py-2">
+              <p className="text-lg font-semibold text-blue-200">{lowCount}</p>
+              <p className="text-[11px] uppercase text-slate-500">Low</p>
             </div>
           </div>
         </div>
 
-        {data.todos.length === 0 ? (
+        {sortedTodos.length === 0 ? (
           <EmptyState message="No RM todos generated from current news triggers" />
         ) : (
           <div className="space-y-4">
-            {data.todos.map(todo => (
+            {sortedTodos.map(todo => (
               <TodoItem key={todo.id} todo={todo} onSelectClient={onSelectClient} />
             ))}
           </div>
@@ -276,11 +382,11 @@ export function HomePage({ data, loading, error, onRetry, onSelectClient }: Home
           </div>
         </div>
 
-        {data.latestNews.length === 0 ? (
+        {sortedNews.length === 0 ? (
           <EmptyState message="No recent news articles found" />
         ) : (
           <div className="space-y-4">
-            {data.latestNews.map(item => (
+            {sortedNews.map(item => (
               <NewsItem key={item.id} item={item} onSelectClient={onSelectClient} />
             ))}
           </div>
