@@ -11,7 +11,20 @@ const LLM_URL = () => (process.env.PHOENIQS_API_URL || "https://maas.phoeniqs.co
 const LLM_KEY = () => process.env.PHOENIQS_API_KEY || "";
 const LLM_MODEL = () => process.env.PHOENIQS_MODEL || "inference-gpt-oss-120b";
 
-const SYSTEM_PROMPT = `You are a wealth management analyst. Read these relationship manager notes and extract: values, life events, business context, risk sensitivities, personal priorities, and communication style preference. For each trait, cite the exact CRM entry date and a one-sentence excerpt. Rate your confidence (0-1) for each trait. Return ONLY a JSON object. No markdown fences, no explanatory text before or after. Start your response with { and end with }. Use this structure: {"values": ["..."], "lifeEvents": ["..."], "businessContext": ["..."], "riskSensitivities": ["..."], "personalPriorities": ["..."], "communicationStyle": "data-driven"|"values-led"|"balanced", "evidence": [{"trait": "...", "crmDate": "...", "crmExcerpt": "..."}], "traitConfidence": {"trait_name": 0.9}} CRITICAL: Do not explain your reasoning or thought process. Do not describe what you will do. Output ONLY the raw JSON object. Your entire response must be parseable JSON.`;
+const SYSTEM_PROMPT = `You are a wealth management analyst extracting a client's investment identity from CRM notes.
+
+OUTPUT RULES:
+- Your ENTIRE response must be a single JSON object.
+- Start with { and end with }. No other characters before or after.
+- No markdown fences. No explanation. No reasoning. Just JSON.
+
+REQUIRED JSON SCHEMA:
+{"values":["string array of core values"],"lifeEvents":["significant life events"],"businessContext":["business/professional context"],"riskSensitivities":["investment risk sensitivities"],"personalPriorities":["personal priorities"],"communicationStyle":"data-driven"|"values-led"|"balanced","evidence":[{"trait":"which trait","crmDate":"date","crmExcerpt":"one-sentence quote"}],"traitConfidence":{"trait_name":0.9}}
+
+EXAMPLE OUTPUT:
+{"values":["family legacy","sustainable investing"],"lifeEvents":["daughter graduated 2024","relocated to Zurich 2023"],"businessContext":["owns manufacturing firm","exports to Asia"],"riskSensitivities":["currency risk","emerging market exposure"],"personalPriorities":["education funding","retirement planning"],"communicationStyle":"balanced","evidence":[{"trait":"family legacy","crmDate":"2024-03-15","crmExcerpt":"Discussed setting up trust for grandchildren"}],"traitConfidence":{"family legacy":0.9,"sustainable investing":0.7}}
+
+Extract at least 5 values, 2 life events, and 2 risk sensitivities. Be thorough.`;
 
 function parseJson(content: string): any {
   const trimmed = content.trim();
@@ -61,6 +74,19 @@ function parseJson(content: string): any {
   return null;
 }
 
+function extractPartialFromText(text: string): any {
+  const partial: any = {
+    values: [], lifeEvents: [], businessContext: [],
+    riskSensitivities: [], personalPriorities: [], evidence: [], traitConfidence: {},
+  };
+  const valPat = /(?:believes in|cares about|passionate about|committed to|values?)\s+["']?([^"'\n,.;]{4,60})/gi;
+  const riskPat = /(?:risk|averse|avoid|concern|worried|uncomfortable)\s+(?:about|with|to)?\s*([^.;\n]{4,60})/gi;
+  let m;
+  while ((m = valPat.exec(text)) !== null) partial.values.push(m[1].trim());
+  while ((m = riskPat.exec(text)) !== null) partial.riskSensitivities.push(m[1].trim());
+  return partial.values.length > 0 || partial.riskSensitivities.length > 0 ? partial : null;
+}
+
 function chunkArray<T>(arr: T[], size: number): T[][] {
   const chunks: T[][] = [];
   for (let i = 0; i < arr.length; i += size) {
@@ -76,7 +102,7 @@ function formatCRMEntries(entries: CRMEntry[]): string {
   }).join("\n\n");
 }
 
-async function callLLM(systemPrompt: string, userPrompt: string): Promise<string> {
+async function callLLM(systemPrompt: string, userPrompt: string, maxTokens = 3000): Promise<string> {
   const resp = await axios.post(
     LLM_URL(),
     {
@@ -86,7 +112,7 @@ async function callLLM(systemPrompt: string, userPrompt: string): Promise<string
         { role: "user", content: userPrompt },
       ],
       temperature: 0.1,
-      max_tokens: 2000,
+      max_tokens: maxTokens,
     },
     {
       headers: {
@@ -177,7 +203,17 @@ export async function extractDNA(
     try {
       console.log(`[CRM Agent] Processing chunk ${i + 1}/${chunks.length} for ${clientId}...`);
       const content = await callLLM(SYSTEM_PROMPT, userPrompt);
-      const parsed = parseJson(content);
+      let parsed = parseJson(content);
+      if (!parsed) {
+        console.log(`[CRM Agent] Retrying chunk ${i + 1} with stricter prompt...`);
+        const retryPrompt = `OUTPUT ONLY JSON. Your response must start with { and end with }.\n\n${userPrompt}`;
+        const content2 = await callLLM(SYSTEM_PROMPT, retryPrompt, 3000);
+        parsed = parseJson(content2);
+        if (!parsed) {
+          console.log(`[CRM Agent] Attempting partial extraction from raw text...`);
+          parsed = extractPartialFromText(content);
+        }
+      }
       if (parsed) {
         chunkResults.push(parsed);
       } else {
@@ -234,6 +270,24 @@ export async function extractDNA(
     evidence: merged.evidence,
     traitConfidence: merged.traitConfidence,
   };
+
+  // Validate minimums and supplement from fallback if too sparse
+  const fallback = getFallbackDNA(clientId);
+  if (dna.values.length < 3) {
+    for (const v of fallback.values) { if (!dna.values.includes(v)) dna.values.push(v); }
+  }
+  if (dna.lifeEvents.length < 1) {
+    for (const v of fallback.lifeEvents) { if (!dna.lifeEvents.includes(v)) dna.lifeEvents.push(v); }
+  }
+  if (dna.riskSensitivities.length < 1) {
+    for (const v of fallback.riskSensitivities) { if (!dna.riskSensitivities.includes(v)) dna.riskSensitivities.push(v); }
+  }
+  if (dna.personalPriorities.length < 1) {
+    for (const v of fallback.personalPriorities) { if (!dna.personalPriorities.includes(v)) dna.personalPriorities.push(v); }
+  }
+  if (dna.businessContext.length < 1) {
+    for (const v of fallback.businessContext) { if (!dna.businessContext.includes(v)) dna.businessContext.push(v); }
+  }
 
   dnaCache.set(clientId, dna);
   console.log(`[CRM Agent] DNA extracted for ${clientId}: ${dna.values.length} values, style=${dna.communicationStyle}`);

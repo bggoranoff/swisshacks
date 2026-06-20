@@ -93,6 +93,10 @@ app.get("/api/clients/:id/news", asyncHandler(async (req: Request, res: Response
   res.json({ success: true, data: digest });
 }));
 
+// SIX MCP price cache (listingId → { close, currency, timestamp, fetchedAt })
+const sixPriceCache = new Map<string, { close: number; currency: string; timestamp: string; fetchedAt: number }>();
+const SIX_CACHE_TTL = 10 * 60 * 1000; // 10 minutes
+
 // Client Portfolio — enriched with live SIX MCP prices
 app.get("/api/clients/:id/portfolio", asyncHandler(async (req: Request, res: Response) => {
   const client = getClient(req.params.id);
@@ -110,13 +114,30 @@ app.get("/api/clients/:id/portfolio", asyncHandler(async (req: Request, res: Res
     return { ...p, cioRating: cio?.rating || null, livePrice: undefined as number | undefined, liveCurrency: undefined as string | undefined, livePriceDate: undefined as string | undefined, priceSource: "excel" as "live" | "excel" };
   });
 
-  // Enrich with live SIX MCP prices in batches of 5
-  const batchSize = 5;
-  for (let i = 0; i < positionsWithCio.length; i += batchSize) {
-    const batch = positionsWithCio.slice(i, i + batchSize);
+  // Enrich with live SIX MCP prices — top 15 positions by value, batches of 3 with delay
+  const sortedByValue = [...positionsWithCio]
+    .filter(p => p.valorNumber && p.mic)
+    .sort((a, b) => b.currentValueCHF - a.currentValueCHF)
+    .slice(0, 15);
+
+  const toFetch = sortedByValue.filter(p => {
+    const listingId = `${p.valorNumber}_${p.mic}`;
+    const cached = sixPriceCache.get(listingId);
+    if (cached && Date.now() - cached.fetchedAt < SIX_CACHE_TTL) {
+      p.livePrice = cached.close;
+      p.liveCurrency = cached.currency;
+      p.livePriceDate = cached.timestamp;
+      p.priceSource = "live";
+      return false;
+    }
+    return true;
+  });
+
+  const batchSize = 3;
+  for (let i = 0; i < toFetch.length; i += batchSize) {
+    const batch = toFetch.slice(i, i + batchSize);
     await Promise.all(
       batch.map(async (p) => {
-        if (!p.valorNumber || !p.mic) return;
         const listingId = `${p.valorNumber}_${p.mic}`;
         const result = await sixService.getEndOfDayPrice(listingId);
         if (result) {
@@ -124,9 +145,13 @@ app.get("/api/clients/:id/portfolio", asyncHandler(async (req: Request, res: Res
           p.liveCurrency = result.currency;
           p.livePriceDate = result.timestamp;
           p.priceSource = "live";
+          sixPriceCache.set(listingId, { ...result, fetchedAt: Date.now() });
         }
       })
     );
+    if (i + batchSize < toFetch.length) {
+      await new Promise(r => setTimeout(r, 500)); // rate-limit courtesy delay
+    }
   }
 
   const liveCount = positionsWithCio.filter(p => p.priceSource === "live").length;
@@ -202,6 +227,24 @@ app.get("/api/presentation", asyncHandler(async (_req: Request, res: Response) =
   const filePath = await generatePresentation();
   res.download(filePath, "WealthAdvisor_AI_Presentation.pptx");
 }));
+
+// Explainable AI decisions (NTT DATA pattern)
+import { explainabilityService } from "./services/explainability.service";
+
+app.get("/api/decisions", (req, res) => {
+  const agent = req.query.agent as string | undefined;
+  const decisions = agent ? explainabilityService.getDecisionsByAgent(agent) : explainabilityService.getDecisions();
+  res.json({ success: true, data: decisions });
+});
+
+app.get("/api/decisions/:id", (req, res) => {
+  const d = explainabilityService.getDecision(req.params.id);
+  if (!d) {
+    res.status(404).json({ success: false, error: "Decision not found" });
+    return;
+  }
+  res.json({ success: true, data: d });
+});
 
 // Audit trail
 app.get("/api/audit", (req, res) => {

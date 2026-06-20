@@ -50,6 +50,7 @@ export interface DNAConflict {
 export interface EnrichedPosition extends Position {
   livePrice?: number;
   liveCurrency?: string;
+  livePriceDate?: string;
   priceSource: "live" | "excel";
   cioRating?: "BUY" | "HOLD" | "SELL";
   dnaConflict?: DNAConflict;
@@ -64,6 +65,7 @@ export interface PortfolioAnalysis {
   conflicts: DNAConflict[];
   cioConflicts?: DNAConflict[];
   summary?: string;
+  liveCount?: number;
 }
 
 export interface ScoredNewsArticle {

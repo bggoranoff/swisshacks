@@ -11,6 +11,7 @@ import { AlertsPanel } from "./components/alerts/AlertsPanel";
 import { AdvisoryPanel } from "./components/advisory/AdvisoryPanel";
 import { ErrorBoundary } from "./components/shared/ErrorBoundary";
 import { KnowledgeGraphPanel } from "./components/graph/KnowledgeGraphPanel";
+import { DecisionPanel } from "./components/decisions/DecisionPanel";
 import { useFetch } from "./hooks/useFetch";
 import { mockClients, mockDNA, mockPortfolios, mockNews, mockAdvisory } from "./data/mock";
 import type {
@@ -337,6 +338,13 @@ function App() {
                     </ErrorBoundary>
                   );
                 })()}
+              </div>
+
+              {/* AI Decision Log (NTT DATA Explainable AI) */}
+              <div className="col-span-2">
+                <ErrorBoundary fallbackMessage="Failed to load AI decisions">
+                  <DecisionPanel />
+                </ErrorBoundary>
               </div>
             </div>
           )}

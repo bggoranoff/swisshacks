@@ -231,7 +231,14 @@ export function PortfolioTable({
                       )}
                     </td>
                     <td className="py-3 pr-4 text-slate-400 text-xs">{pos.sectorOrAssetClass}</td>
-                    <td className="py-3 pr-4 text-slate-100">CHF {formatCHF(pos.currentValueCHF)}</td>
+                    <td className="py-3 pr-4 text-slate-100">
+                      <div className="flex items-center gap-1.5">
+                        <span>CHF {formatCHF(pos.livePrice ?? pos.currentValueCHF)}</span>
+                        <span className={clsx("text-[10px] px-1 py-0.5 rounded", pos.priceSource === "live" ? "bg-green-900/50 text-green-400" : "bg-slate-700 text-slate-500")}>
+                          {pos.priceSource === "live" ? "LIVE" : "EXCEL"}
+                        </span>
+                      </div>
+                    </td>
                     <td className="py-3 pr-4">
                       <div className="flex items-center gap-2">
                         <div className="h-1.5 rounded-full bg-slate-700 w-20 inline-block">
