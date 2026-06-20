@@ -199,6 +199,7 @@ export class MessageAgent {
           "This is an AI-generated draft for the relationship manager's review. " +
           "It does not constitute financial advice. " +
           "The client's explicit approval is required before any transaction.",
+        generatedAt: new Date().toISOString(),
       };
 
       // Generate generic (non-personalised) version for before/after comparison
@@ -372,6 +373,7 @@ export class MessageAgent {
           "This is an AI-generated draft for the relationship manager's review. " +
           "It does not constitute financial advice. " +
           "The client's explicit approval is required before any transaction.",
+        generatedAt: new Date().toISOString(),
       };
 
       auditService.log({
@@ -429,6 +431,7 @@ export class MessageAgent {
         "This is an AI-generated draft for the relationship manager's review. " +
         "It does not constitute financial advice. " +
         "The client's explicit approval is required before any transaction.",
+      generatedAt: new Date().toISOString(),
     };
     messageStore.set(msg.id, msg);
     return msg;

@@ -109,4 +109,5 @@ export interface AdvisoryMessage {
   disclaimer: string;
   traceId?: string;
   genericAdvisory?: string;
+  generatedAt?: string;
 }

@@ -13,4 +13,5 @@ export interface AdvisoryMessage {
   rmNotes?: string;
   disclaimer: string;
   genericAdvisory?: string;
+  generatedAt: string;
 }
