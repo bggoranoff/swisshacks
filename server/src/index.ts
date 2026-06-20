@@ -226,6 +226,15 @@ app.listen(port, () => {
         .catch(err => console.warn(`[Warmup] DNA failed for ${c.id}: ${(err as Error).message}`))
     )
   ).then(() => console.log(`[Warmup] All DNA caches ready`));
+
+  // Pre-warm news cache after DNA is ready
+  Promise.all(
+    clients.map(c =>
+      newsAgent.getNewsDigest(c.id)
+        .then(() => console.log(`[Warmup] News cached for ${c.id}`))
+        .catch(err => console.warn(`[Warmup] News failed for ${c.id}: ${(err as Error).message}`))
+    )
+  ).then(() => console.log(`[Warmup] All news caches ready`));
 });
 
 export default app;
