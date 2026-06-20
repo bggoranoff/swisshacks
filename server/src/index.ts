@@ -389,6 +389,18 @@ try {
 }
 
 app.listen(port, () => {
+  const startupTime = Date.now();
+  console.log(`
+╔══════════════════════════════════════════════╗
+║         WealthAdvisor AI  v1.0               ║
+║  The Next Generation of Wealth Advisory      ║
+║  SwissHacks 2026 — SIX · NTT Data · Noumena ║
+╠══════════════════════════════════════════════╣
+║  Server:  http://localhost:${port}              ║
+║  API:     http://localhost:${port}/api           ║
+║  Health:  http://localhost:${port}/api/health    ║
+╚══════════════════════════════════════════════╝
+`);
   console.log(`[Server] Running on http://localhost:${port}`);
 
   // Pre-warm: DNA first, THEN news (news agent calls extractDNA internally — must not race)
@@ -401,6 +413,7 @@ app.listen(port, () => {
         .catch(err => console.warn(`[Warmup] DNA failed for ${c.id}: ${(err as Error).message}`))
     )
   ).then(() => {
+    console.log(`[Warmup] DNA complete (${((Date.now() - startupTime) / 1000).toFixed(1)}s elapsed)`);
     console.log(`[Warmup] All DNA caches ready. Starting news warmup...`);
     return Promise.all(
       clients.map(c =>
@@ -410,6 +423,7 @@ app.listen(port, () => {
       )
     );
   }).then(() => {
+    console.log(`[Warmup] News complete (${((Date.now() - startupTime) / 1000).toFixed(1)}s elapsed)`);
     console.log(`[Warmup] All caches ready. Pre-warming portfolios...`);
     return Promise.all(
       clients.map(async c => {
@@ -426,7 +440,7 @@ app.listen(port, () => {
         }
       })
     );
-  }).then(() => console.log(`[Warmup] All warmup complete`));
+  }).then(() => console.log(`[Warmup] All warmup complete in ${((Date.now() - startupTime) / 1000).toFixed(1)}s`));
 });
 
 export default app;
