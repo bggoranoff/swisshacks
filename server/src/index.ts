@@ -357,11 +357,13 @@ app.get("/api/integrations", asyncHandler(async (_req: Request, res: Response) =
 // Serve built client in production
 app.use(express.static(path.join(__dirname, "../../client/dist")));
 // Serve built client — but NOT for /api/* routes
-app.get("*", (req, res, next) => {
-  if (req.path.startsWith("/api/")) {
-    res.status(404).json({ success: false, error: `API endpoint not found: ${req.path}` });
-    return;
-  }
+// API 404 for all methods
+app.all("/api/*", (req, res) => {
+  res.status(404).json({ success: false, error: `API endpoint not found: ${req.method} ${req.path}` });
+});
+
+// SPA catch-all (non-API routes)
+app.get("*", (_req, res, next) => {
   const clientIndex = path.join(__dirname, "../../client/dist/index.html");
   res.sendFile(clientIndex, (err) => {
     if (err) next();
