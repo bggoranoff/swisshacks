@@ -1,3 +1,4 @@
+import { useState } from "react";
 import type { NewsDigest } from "../../types/api";
 import { Card, CardTitle } from "../shared/Card";
 import { SkeletonBlock } from "../shared/SkeletonLoader";
@@ -32,11 +33,17 @@ function formatDate(dateStr: string): string {
 }
 
 export function NewsFeed({ news, loading, error, onRetry }: NewsFeedProps) {
+  const [filter, setFilter] = useState<"all" | "live" | "alerts">("all");
+
   if (loading) return <Card><CardTitle icon={Newspaper}>News Feed</CardTitle><SkeletonBlock lines={4} /></Card>;
   if (error) return <Card><CardTitle icon={Newspaper}>News Feed</CardTitle><ErrorState message={error} onRetry={onRetry} /></Card>;
   if (!news || news.articles.length === 0) return <Card><CardTitle icon={Newspaper}>News Feed</CardTitle><EmptyState message="No recent news articles" /></Card>;
 
   const articles = [...news.articles].sort((a, b) => b.relevanceScore - a.relevanceScore);
+
+  const displayed = filter === "all" ? articles
+    : filter === "live" ? articles.filter(a => a.sourceType === "live")
+    : articles.filter(a => a.isAlert);
 
   const bullishCount = articles.filter(a => a.sentimentLabel === "BULLISH").length;
   const bearishCount = articles.filter(a => a.sentimentLabel === "BEARISH").length;
@@ -71,8 +78,23 @@ export function NewsFeed({ news, loading, error, onRetry }: NewsFeedProps) {
           <div className="bg-red-500 h-full" style={{ width: `${(bearishCount/total)*100}%` }} />
         </div>
       </div>
+      <div className="flex gap-2 mb-3">
+        {(["all", "live", "alerts"] as const).map(f => (
+          <button
+            key={f}
+            onClick={() => setFilter(f)}
+            className={`text-xs px-3 py-1 rounded-full transition-colors ${
+              filter === f
+                ? "bg-blue-600 text-white"
+                : "bg-slate-700 text-slate-400 hover:text-slate-200"
+            }`}
+          >
+            {f === "all" ? `All (${articles.length})` : f === "live" ? `Live (${articles.filter(a => a.sourceType === "live").length})` : `Alerts (${articles.filter(a => a.isAlert).length})`}
+          </button>
+        ))}
+      </div>
       <div className="max-h-[400px] overflow-y-auto space-y-3">
-        {articles.map((article) => (
+        {displayed.map((article) => (
           <div
             key={article.id}
             className={clsx(
