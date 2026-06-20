@@ -108,4 +108,5 @@ export interface AdvisoryMessage {
   rmNotes?: string;
   disclaimer: string;
   traceId?: string;
+  genericAdvisory?: string;
 }

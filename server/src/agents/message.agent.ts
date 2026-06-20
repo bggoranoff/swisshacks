@@ -27,6 +27,12 @@ const PERSONA_TONE: Record<string, string> = {
   ammann: "balanced",
 };
 
+const LANG_INSTRUCTIONS: Record<string, string> = {
+  en: "",
+  de: "Write the advisory note in German (Hochdeutsch). Use formal Sie-form.",
+  fr: "Write the advisory note in French. Use formal vous-form.",
+};
+
 function parseJson(content: string): any {
   try {
     return JSON.parse(content);
@@ -49,7 +55,8 @@ export class MessageAgent {
   async generateAdvisory(
     clientId: string,
     alertId?: string,
-    conflictIsin?: string
+    conflictIsin?: string,
+    language: string = "en"
   ): Promise<AdvisoryMessage> {
     const startTime = Date.now();
     const client = getClient(clientId);
@@ -114,6 +121,7 @@ export class MessageAgent {
       portfolioSummary +
       holdingsSection +
       alertContext +
+      (LANG_INSTRUCTIONS[language] ? `\n\nLANGUAGE: ${LANG_INSTRUCTIONS[language]}\n` : "") +
       `\n\nIMPORTANT: Return ONLY a JSON object (no markdown fences). Use \\n for newlines inside string values. Structure:\n` +
       `{"subject":"short subject","body":"the advisory message with \\n for paragraphs","proposedAction":"one sentence","reasoning":"2-3 sentences","confidence":0.85,"toneInfluences":[{"dnaValue":"value","effect":"effect"}]}`;
 

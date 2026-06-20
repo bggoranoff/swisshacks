@@ -12,4 +12,5 @@ export interface AdvisoryMessage {
   status: "draft" | "approved" | "rejected";
   rmNotes?: string;
   disclaimer: string;
+  genericAdvisory?: string;
 }

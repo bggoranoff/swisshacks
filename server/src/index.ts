@@ -163,7 +163,8 @@ app.get("/api/clients/:id/portfolio", asyncHandler(async (req: Request, res: Res
   let conflicts: any[] = [];
   try {
     const dna = await extractDNA(client.id, client.crmEntries, false);
-    conflicts = await detectConflicts(client.id, positionsWithCio, dna, portfolio.cioRecommendations);
+    const top20 = [...positionsWithCio].sort((a, b) => b.currentValueCHF - a.currentValueCHF).slice(0, 20);
+    conflicts = await detectConflicts(client.id, top20, dna, portfolio.cioRecommendations);
     console.log(`[Portfolio] ${client.id}: ${conflicts.length} conflicts detected`);
   } catch (err) {
     console.warn(`[Portfolio] Conflict detection failed for ${client.id}: ${(err as Error).message}`);
