@@ -1,0 +1,30 @@
+{
+  "schneider": {
+    "expectedValues": ["family", "chronic", "illness", "research", "foundation", "legacy"],
+    "expectedRisks": ["interest rate", "pharmaceutical"],
+    "expectedStyle": "values-led",
+    "minValues": 5,
+    "minRisks": 2
+  },
+  "huber": {
+    "expectedValues": ["environment", "sustainability", "reforestation", "ESG", "palm oil"],
+    "expectedRisks": ["deforestation", "carbon"],
+    "expectedStyle": "values-led",
+    "minValues": 5,
+    "minRisks": 2
+  },
+  "raeber": {
+    "expectedValues": ["precision", "engineering", "conservative", "Swiss"],
+    "expectedRisks": ["US tech", "technology", "growth stock"],
+    "expectedStyle": "data-driven",
+    "minValues": 4,
+    "minRisks": 2
+  },
+  "ammann": {
+    "expectedValues": ["reputation", "entrepreneur", "brand"],
+    "expectedRisks": ["reputational", "public", "scandal"],
+    "expectedStyle": "balanced",
+    "minValues": 3,
+    "minRisks": 2
+  }
+}
