@@ -1,6 +1,5 @@
-import { useState, useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { MessageCircle, Send, Loader2 } from "lucide-react";
-import { Card, CardTitle } from "../shared/Card";
 
 interface ChatMessage {
   role: "user" | "assistant";
@@ -8,37 +7,50 @@ interface ChatMessage {
   timestamp: string;
 }
 
+interface ChatPanelProps {
+  clientId: string;
+  clientName: string;
+  history: ChatMessage[];
+  onHistoryChange: (msgs: ChatMessage[]) => void;
+}
+
 const SUGGESTIONS = [
   "What are the main conflicts in this portfolio?",
-  "Explain why this client is sensitive to pharma stocks",
-  "What alternative investments would align with this client's values?",
   "Summarize this client's investment identity in 3 sentences",
   "What CIO recommendations conflict with this client's DNA?",
 ];
 
-export function ChatPanel({ clientId }: { clientId: string }) {
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
+export function ChatPanel({ clientId, clientName, history, onHistoryChange }: ChatPanelProps) {
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
+  const [loaded, setLoaded] = useState<Set<string>>(new Set());
   const scrollRef = useRef<HTMLDivElement>(null);
 
+  // Load server history once per clientId (only if no local history yet)
   useEffect(() => {
-    setMessages([]);
+    if (loaded.has(clientId) || history.length > 0) return;
     fetch(`/api/clients/${clientId}/chat`)
       .then(r => r.json())
-      .then(j => { if (j.success && Array.isArray(j.data)) setMessages(j.data); })
-      .catch(() => {});
+      .then(j => {
+        if (j.success && Array.isArray(j.data) && j.data.length > 0) {
+          onHistoryChange(j.data);
+        }
+        setLoaded(prev => new Set(prev).add(clientId));
+      })
+      .catch(() => setLoaded(prev => new Set(prev).add(clientId)));
   }, [clientId]);
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
-  }, [messages]);
+  }, [history, sending]);
 
   const handleSend = async (directText?: string) => {
     const text = (directText ?? input).trim();
     if (!text || sending) return;
     setInput("");
-    setMessages(prev => [...prev, { role: "user", content: text, timestamp: new Date().toISOString() }]);
+    const userMsg: ChatMessage = { role: "user", content: text, timestamp: new Date().toISOString() };
+    const next = [...history, userMsg];
+    onHistoryChange(next);
     setSending(true);
     try {
       const res = await fetch(`/api/clients/${clientId}/chat`, {
@@ -48,28 +60,34 @@ export function ChatPanel({ clientId }: { clientId: string }) {
       });
       const json = await res.json();
       if (json.success) {
-        setMessages(prev => [...prev, json.data]);
+        onHistoryChange([...next, json.data]);
       }
     } catch {
-      setMessages(prev => [...prev, { role: "assistant", content: "Failed to get response.", timestamp: new Date().toISOString() }]);
+      onHistoryChange([...next, { role: "assistant", content: "Failed to get response.", timestamp: new Date().toISOString() }]);
     } finally {
       setSending(false);
     }
   };
 
   return (
-    <Card colSpan2>
-      <CardTitle icon={MessageCircle}>RM Assistant</CardTitle>
-      <div ref={scrollRef} className="max-h-[300px] overflow-y-auto space-y-3 mb-3">
-        {messages.length === 0 && !sending && (
-          <div className="flex-1 flex flex-col items-center justify-center gap-3 p-4">
-            <p className="text-sm text-slate-400 mb-2">Ask the RM Assistant anything about this client:</p>
-            <div className="flex flex-wrap gap-2 justify-center max-w-md">
+    <div className="flex flex-col h-full">
+      {/* Header */}
+      <div className="flex items-center gap-2 px-4 py-3 border-b border-slate-700 shrink-0">
+        <MessageCircle className="h-4 w-4 text-six-orange/70" />
+        <span className="text-sm font-semibold text-slate-300 uppercase tracking-wide">RM Assistant</span>
+      </div>
+
+      {/* Messages */}
+      <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-3">
+        {history.length === 0 && !sending && (
+          <div className="flex flex-col items-center justify-center h-full gap-3 pt-6">
+            <p className="text-sm text-slate-400 text-center">Ask the RM Assistant anything about this client:</p>
+            <div className="flex flex-col gap-2 w-full">
               {SUGGESTIONS.map((q, i) => (
                 <button
                   key={i}
                   onClick={() => handleSend(q)}
-                  className="text-xs px-3 py-1.5 rounded-lg bg-slate-700 text-slate-300 hover:bg-slate-600 hover:text-white transition-colors text-left"
+                  className="text-xs px-3 py-2 rounded-lg bg-slate-800 border border-slate-700 text-slate-300 hover:bg-slate-700 hover:text-white transition-colors text-left"
                 >
                   {q}
                 </button>
@@ -77,9 +95,9 @@ export function ChatPanel({ clientId }: { clientId: string }) {
             </div>
           </div>
         )}
-        {messages.map((m, i) => (
+        {history.map((m, i) => (
           <div key={i} className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}>
-            <div className={`max-w-[80%] px-3 py-2 rounded-lg text-sm ${
+            <div className={`max-w-[85%] px-3 py-2 rounded-lg text-sm leading-relaxed ${
               m.role === "user"
                 ? "bg-six-orange text-white"
                 : "bg-slate-700 text-slate-200"
@@ -96,24 +114,34 @@ export function ChatPanel({ clientId }: { clientId: string }) {
           </div>
         )}
       </div>
-      <div className="flex gap-2">
-        <input
-          type="text"
-          value={input}
-          onChange={e => setInput(e.target.value)}
-          onKeyDown={e => { if (e.key === "Enter") handleSend(); }}
-          placeholder="Ask about this client..."
-          className="flex-1 bg-slate-700/50 border border-slate-600 rounded-lg px-4 py-2 text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:border-six-orange transition-colors"
-          disabled={sending}
-        />
-        <button
-          onClick={() => handleSend()}
-          disabled={sending || !input.trim()}
-          className="bg-six-orange hover:bg-six-orange-bright disabled:opacity-50 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-colors"
-        >
-          <Send className="h-4 w-4" />
-        </button>
+
+      {/* Input area */}
+      <div className="shrink-0 border-t border-slate-700 p-3 space-y-2">
+        <div className="flex items-center">
+          <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-md bg-slate-800 border border-slate-700 text-slate-300">
+            <span className="text-six-orange font-semibold">@</span>
+            {clientName}
+          </span>
+        </div>
+        <div className="flex gap-2">
+          <input
+            type="text"
+            value={input}
+            onChange={e => setInput(e.target.value)}
+            onKeyDown={e => { if (e.key === "Enter") handleSend(); }}
+            placeholder="Ask about this client..."
+            className="flex-1 bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:border-six-orange transition-colors"
+            disabled={sending}
+          />
+          <button
+            onClick={() => handleSend()}
+            disabled={sending || !input.trim()}
+            className="bg-six-orange hover:bg-six-orange-bright disabled:opacity-50 text-white px-3 py-2 rounded-lg flex items-center transition-colors"
+          >
+            <Send className="h-4 w-4" />
+          </button>
+        </div>
       </div>
-    </Card>
+    </div>
   );
 }
