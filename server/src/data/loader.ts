@@ -18,7 +18,7 @@ const CRM_TAB_MAP: Record<string, { id: string; name: string; description: strin
   "CRM Schneider": {
     id: "schneider",
     name: "Schneider",
-    description: "The Personal Connection — emotional, purpose-driven; family foundation for chronic-illness research",
+    description: "Emotionally driven private client running a family foundation for chronic-illness and neuro-degenerative research. Seeks purpose-aligned, balanced investments that reflect her family's health legacy.",
     strategy: "Balanced",
     portfolioTab: "Sample Portfolio Balanced",
     triggerEvent: "Pharma company shuts down its research division for that disease",
@@ -26,7 +26,7 @@ const CRM_TAB_MAP: Record<string, { id: string; name: string; description: strin
   "CRM Huber": {
     id: "huber",
     name: "Huber",
-    description: "The Purpose-Driven Investor — environmentalist financing South American reforestation",
+    description: "Impact-first investor and environmentalist financing South American reforestation projects. Prioritises measurable ecological outcomes and holds biodiversity risk and greenwashing as hard red lines.",
     strategy: "Defensive",
     portfolioTab: "Sample Portfolio Defensive",
     triggerEvent: "Consumer goods company announces historic palm oil deforestation cut-off",
@@ -34,7 +34,7 @@ const CRM_TAB_MAP: Record<string, { id: string; name: string; description: strin
   "CRM Raeber": {
     id: "raeber",
     name: "Räber",
-    description: "The Defensive Value Investor — conservative Swiss couple; precision-engineering background; averse to US tech",
+    description: "Conservative Swiss couple with a precision-engineering background. Capital preservation and dividend income take priority; strongly averse to US tech concentration and emerging market exposure.",
     strategy: "Defensive",
     portfolioTab: "Sample Portfolio Defensive",
     triggerEvent: "CIO suggests rebalancing from blue chips into US AI stocks",
@@ -42,7 +42,7 @@ const CRM_TAB_MAP: Record<string, { id: string; name: string; description: strin
   "CRM Ammann": {
     id: "ammann",
     name: "Ammann",
-    description: "The Corporate Reputation Case — prominent Swiss entrepreneur; reputational risk = financial risk",
+    description: "Prominent Swiss entrepreneur for whom reputational risk is inseparable from financial risk. Any ESG controversy or supply-chain scandal in the portfolio is treated as a direct threat to personal brand and business standing.",
     strategy: "Growth",
     portfolioTab: "Sample Portfolio Growth",
     triggerEvent: "Labour exploitation scandal hits a consumer brand in the portfolio",

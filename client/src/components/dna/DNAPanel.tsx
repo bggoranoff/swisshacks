@@ -1,7 +1,6 @@
 import { useState, useMemo } from "react";
 import type { ClientDNA } from "../../types/api";
 import { Card, CardTitle } from "../shared/Card";
-import { ConfidenceBadge } from "../shared/ConfidenceBadge";
 import { SkeletonBlock, SkeletonPills } from "../shared/SkeletonLoader";
 import { ErrorState } from "../shared/ErrorState";
 import { EmptyState } from "../shared/EmptyState";
@@ -27,11 +26,6 @@ export function DNAPanel({ dna, clientId, loading, error, onRetry, durationMs, f
 
   const [drawerTrait, setDrawerTrait] = useState<string | null>(null);
   const [drawerCategory, setDrawerCategory] = useState<string | null>(null);
-
-  const avgConfidence = (() => {
-    const vals = Object.values(dna.traitConfidence || {});
-    return vals.length > 0 ? vals.reduce((a, b) => a + b, 0) / vals.length : 0;
-  })();
 
   const timelineData = useMemo(() => {
     if (!dna.evidence || dna.evidence.length === 0) return [];
@@ -68,13 +62,12 @@ export function DNAPanel({ dna, clientId, loading, error, onRetry, durationMs, f
       {/* Summary */}
       <p className="text-sm text-slate-300 mb-4 leading-relaxed">{dna.summary}</p>
 
-      {/* Communication Style + Confidence */}
+      {/* Communication Style */}
       <div className="flex items-center gap-3 mb-4">
         <span className="text-xs text-slate-400">Style</span>
         <span className="text-sm font-medium px-3 py-1 rounded-full bg-slate-700 text-white capitalize">
           {dna.communicationStyle}
         </span>
-        <ConfidenceBadge score={avgConfidence} />
       </div>
 
       {/* All categories — scrollable list boxes */}

@@ -244,7 +244,7 @@ export async function extractDNA(
   let summary = "";
   try {
     console.log(`[CRM Agent] Consolidating DNA for ${clientId}...`);
-    const consolidationPrompt = `Based on this extracted client profile, write a 2-3 sentence summary of this client's investment identity. Also refine the communication style classification.\n\nProfile:\n${JSON.stringify(merged, null, 2)}\n\nReturn ONLY valid JSON: {"summary": "...", "communicationStyle": "data-driven"|"values-led"|"balanced"}\n\nRemember: respond with ONLY the JSON object. No other text.`;
+    const consolidationPrompt = `Based on this extracted client profile, write a 3-4 sentence summary of this client's investment identity for an internal RM briefing note. Requirements:\n- Start with the client's full name and their specific professional role and organisation (e.g. "Co-owner of Schneider Medizintechnik AG", not just "entrepreneur"). Use the businessContext field.\n- Describe their core investment values and priorities in concrete terms.\n- Mention their key risk sensitivities and how they shape portfolio decisions.\n- End with what makes this client distinctive as an investor.\nDo NOT use vague labels like "CEO" or "entrepreneur" without specifying the actual company or sector.\nAlso refine the communication style classification.\n\nProfile:\n${JSON.stringify(merged, null, 2)}\n\nReturn ONLY valid JSON: {"summary": "...", "communicationStyle": "data-driven"|"values-led"|"balanced"}\n\nRemember: respond with ONLY the JSON object. No other text.`;
     const content = await callLLM(SYSTEM_PROMPT, consolidationPrompt);
     const parsed = parseJson(content);
     if (parsed) {

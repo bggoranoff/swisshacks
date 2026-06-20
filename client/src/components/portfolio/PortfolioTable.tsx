@@ -250,7 +250,7 @@ export function PortfolioTable({
             </div>
           )}
 
-          <div className="flex items-center gap-2 mb-2">
+          <div className="flex items-center gap-3 mb-2">
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
               <input
@@ -258,13 +258,13 @@ export function PortfolioTable({
                 placeholder="Search positions..."
                 value={search}
                 onChange={e => setSearch(e.target.value)}
-                className="w-full bg-slate-700/50 border border-slate-600 rounded-lg pl-10 pr-4 py-2 text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:border-six-orange transition-colors"
+                className="w-full h-9 bg-slate-700/50 border border-slate-600 rounded-lg pl-10 pr-4 text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:border-six-orange transition-colors"
               />
             </div>
             <select
               value={assetClassFilter}
               onChange={e => setAssetClassFilter(e.target.value)}
-              className="bg-slate-700/50 border border-slate-600 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-six-orange"
+              className="h-9 bg-slate-700/50 border border-slate-600 rounded-lg px-3 text-sm text-slate-200 focus:outline-none focus:border-six-orange"
             >
               {assetClasses.map(ac => (
                 <option key={ac} value={ac}>{ac === "all" ? "All Asset Classes" : ac}</option>
@@ -273,7 +273,7 @@ export function PortfolioTable({
             <button
               onClick={() => setShowConflictsOnly(!showConflictsOnly)}
               className={clsx(
-                "text-xs px-3 py-2 rounded-lg transition-colors whitespace-nowrap",
+                "h-9 px-4 text-sm rounded-lg transition-colors whitespace-nowrap",
                 showConflictsOnly ? "bg-red-600 text-white" : "bg-slate-700 text-slate-400 hover:text-slate-200"
               )}
             >
