@@ -14,6 +14,7 @@ interface NewsFeedProps {
   error: string | null;
   onRetry: () => void;
   durationMs?: number | null;
+  fetchedAt?: string | null;
 }
 
 const sentimentStyles: Record<string, string> = {
@@ -34,7 +35,7 @@ function formatDate(dateStr: string): string {
   }
 }
 
-export function NewsFeed({ news, loading, error, onRetry, durationMs }: NewsFeedProps) {
+export function NewsFeed({ news, loading, error, onRetry, durationMs, fetchedAt }: NewsFeedProps) {
   const [filter, setFilter] = useState<"all" | "live" | "alerts">("all");
 
   if (loading) return <Card><CardTitle icon={Newspaper}>News Feed</CardTitle><SkeletonBlock lines={4} /></Card>;
@@ -57,7 +58,10 @@ export function NewsFeed({ news, loading, error, onRetry, durationMs }: NewsFeed
       <FadeIn>
       <div className="flex items-center justify-between mb-4">
         <CardTitle icon={Newspaper}>News Feed</CardTitle>
-        {durationMs != null && <span className="text-xs text-slate-600">{durationMs}ms</span>}
+        <span className="flex items-center gap-2">
+          {fetchedAt && <span className="text-xs text-slate-600">Updated {fetchedAt}</span>}
+          {durationMs != null && <span className="text-xs text-slate-600">{durationMs}ms</span>}
+        </span>
       </div>
       {news && news.articles.length > 0 && (
         <div className="flex items-center gap-4 mb-3 text-xs">

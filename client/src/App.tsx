@@ -312,6 +312,7 @@ function App() {
                     error={dnaFetch.error && !dna ? dnaFetch.error : null}
                     onRetry={dnaFetch.refetch}
                     durationMs={dnaFetch.durationMs}
+                    fetchedAt={dnaFetch.fetchedAt}
                   />
                 </ErrorBoundary>
               </div>
@@ -322,6 +323,7 @@ function App() {
                   error={portfolioFetch.error && !portfolio ? portfolioFetch.error : null}
                   onRetry={portfolioFetch.refetch}
                   durationMs={portfolioFetch.durationMs}
+                  fetchedAt={portfolioFetch.fetchedAt}
                 />
               </ErrorBoundary>
               <ErrorBoundary fallbackMessage="Failed to load news feed">
@@ -331,6 +333,7 @@ function App() {
                   error={newsFetch.error && !news ? newsFetch.error : null}
                   onRetry={newsFetch.refetch}
                   durationMs={newsFetch.durationMs}
+                  fetchedAt={newsFetch.fetchedAt}
                 />
               </ErrorBoundary>
               <div id="alerts-panel">

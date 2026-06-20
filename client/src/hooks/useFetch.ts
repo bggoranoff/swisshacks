@@ -5,6 +5,7 @@ interface FetchState<T> {
   loading: boolean;
   error: string | null;
   durationMs: number | null;
+  fetchedAt: string | null;
   refetch: () => void;
 }
 
@@ -13,6 +14,7 @@ export function useFetch<T>(url: string | null): FetchState<T> {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [durationMs, setDurationMs] = useState<number | null>(null);
+  const [fetchedAt, setFetchedAt] = useState<string | null>(null);
   const [trigger, setTrigger] = useState(0);
 
   const refetch = useCallback(() => setTrigger(t => t + 1), []);
@@ -21,6 +23,7 @@ export function useFetch<T>(url: string | null): FetchState<T> {
     if (!url) {
       setData(null);
       setDurationMs(null);
+      setFetchedAt(null);
       return;
     }
     setLoading(true);
@@ -31,6 +34,7 @@ export function useFetch<T>(url: string | null): FetchState<T> {
       .then(json => {
         if (json.success) {
           setData(json.data);
+          setFetchedAt(new Date().toLocaleTimeString());
         } else {
           setError(json.error || "Request failed");
         }
@@ -42,5 +46,5 @@ export function useFetch<T>(url: string | null): FetchState<T> {
       });
   }, [url, trigger]);
 
-  return { data, loading, error, durationMs, refetch };
+  return { data, loading, error, durationMs, fetchedAt, refetch };
 }
