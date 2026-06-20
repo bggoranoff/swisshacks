@@ -1,3 +1,4 @@
+import { useState } from "react";
 import type { ClientDNA } from "../../types/api";
 import { Card, CardTitle } from "../shared/Card";
 import { ConfidenceBadge } from "../shared/ConfidenceBadge";
@@ -19,10 +20,59 @@ export function DNAPanel({ dna, loading, error, onRetry }: DNAPanelProps) {
   if (error) return <Card><CardTitle icon={Dna}>Client DNA</CardTitle><ErrorState message={error} onRetry={onRetry} /></Card>;
   if (!dna) return <Card><CardTitle icon={Dna}>Client DNA</CardTitle><EmptyState message="Select a client to view DNA profile" /></Card>;
 
+  const [expandedTrait, setExpandedTrait] = useState<string | null>(null);
+
   const avgConfidence = (() => {
     const vals = Object.values(dna.traitConfidence || {});
     return vals.length > 0 ? vals.reduce((a, b) => a + b, 0) / vals.length : 0;
   })();
+
+  const traitEvidence = (trait: string) =>
+    (dna.evidence ?? []).filter(e =>
+      e.trait.toLowerCase().includes(trait.toLowerCase()) ||
+      trait.toLowerCase().includes(e.trait.toLowerCase())
+    );
+
+  const traitConfidence = dna.traitConfidence ?? {};
+
+  function TraitPill({
+    item,
+    colorClass,
+  }: {
+    item: string;
+    colorClass: string;
+  }) {
+    const evidence = traitEvidence(item);
+    const isExpanded = expandedTrait === item;
+    return (
+      <div key={item}>
+        <span className="inline-flex items-center gap-1.5">
+          <button
+            onClick={() => setExpandedTrait(isExpanded ? null : item)}
+            className={`text-xs px-2.5 py-1 rounded-full ${colorClass} hover:opacity-80 transition-opacity cursor-pointer`}
+          >
+            {item}
+            {evidence.length > 0 && (
+              <span className="ml-1 opacity-60">📎</span>
+            )}
+          </button>
+          {traitConfidence[item] != null && (
+            <ConfidenceBadge score={traitConfidence[item]} />
+          )}
+        </span>
+        {isExpanded && evidence.length > 0 && (
+          <div className="mt-1 ml-2 mb-2">
+            {evidence.map((e, j) => (
+              <blockquote key={j} className="border-l-2 border-slate-600 pl-2 text-xs text-slate-400 italic my-1">
+                "{e.crmExcerpt}"
+                <span className="text-slate-500 block not-italic">{e.crmDate}</span>
+              </blockquote>
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  }
 
   return (
     <Card>
@@ -49,12 +99,7 @@ export function DNAPanel({ dna, loading, error, onRetry }: DNAPanelProps) {
             <p className="text-xs font-medium text-slate-400 uppercase tracking-wide mb-1.5">Values</p>
             <div className="flex flex-wrap gap-1.5">
               {dna.values.map((item) => (
-                <span key={item} className="inline-flex items-center gap-1.5">
-                  <span className="text-xs px-2.5 py-1 rounded-full bg-blue-900/50 text-blue-300">{item}</span>
-                  {dna.traitConfidence?.[item] != null && (
-                    <ConfidenceBadge score={dna.traitConfidence[item]} />
-                  )}
-                </span>
+                <TraitPill key={item} item={item} colorClass="bg-blue-900/50 text-blue-300" />
               ))}
             </div>
           </div>
@@ -88,12 +133,7 @@ export function DNAPanel({ dna, loading, error, onRetry }: DNAPanelProps) {
             <p className="text-xs font-medium text-slate-400 uppercase tracking-wide mb-1.5">Business Context</p>
             <div className="flex flex-wrap gap-1.5">
               {dna.businessContext.map((item) => (
-                <span key={item} className="inline-flex items-center gap-1.5">
-                  <span className="text-xs px-2.5 py-1 rounded-full bg-cyan-900/50 text-cyan-300">{item}</span>
-                  {dna.traitConfidence?.[item] != null && (
-                    <ConfidenceBadge score={dna.traitConfidence[item]} />
-                  )}
-                </span>
+                <TraitPill key={item} item={item} colorClass="bg-cyan-900/50 text-cyan-300" />
               ))}
             </div>
           </div>
@@ -105,12 +145,7 @@ export function DNAPanel({ dna, loading, error, onRetry }: DNAPanelProps) {
             <p className="text-xs font-medium text-slate-400 uppercase tracking-wide mb-1.5">Risk Sensitivities</p>
             <div className="flex flex-wrap gap-1.5">
               {dna.riskSensitivities.map((item) => (
-                <span key={item} className="inline-flex items-center gap-1.5">
-                  <span className="text-xs px-2.5 py-1 rounded-full bg-red-900/50 text-red-300">{item}</span>
-                  {dna.traitConfidence?.[item] != null && (
-                    <ConfidenceBadge score={dna.traitConfidence[item]} />
-                  )}
-                </span>
+                <TraitPill key={item} item={item} colorClass="bg-red-900/50 text-red-300" />
               ))}
             </div>
           </div>
@@ -122,12 +157,7 @@ export function DNAPanel({ dna, loading, error, onRetry }: DNAPanelProps) {
             <p className="text-xs font-medium text-slate-400 uppercase tracking-wide mb-1.5">Personal Priorities</p>
             <div className="flex flex-wrap gap-1.5">
               {dna.personalPriorities.map((item) => (
-                <span key={item} className="inline-flex items-center gap-1.5">
-                  <span className="text-xs px-2.5 py-1 rounded-full bg-green-900/50 text-green-300">{item}</span>
-                  {dna.traitConfidence?.[item] != null && (
-                    <ConfidenceBadge score={dna.traitConfidence[item]} />
-                  )}
-                </span>
+                <TraitPill key={item} item={item} colorClass="bg-green-900/50 text-green-300" />
               ))}
             </div>
           </div>
