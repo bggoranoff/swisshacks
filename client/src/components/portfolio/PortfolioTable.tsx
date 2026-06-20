@@ -67,6 +67,17 @@ export function PortfolioTable({
   const [search, setSearch] = useState("");
   const [assetClassFilter, setAssetClassFilter] = useState<string>("all");
 
+  // Map conflicts from top-level array to per-position by ISIN or name
+  const conflictMap = useMemo(() => {
+    const map = new Map<string, any>();
+    if (!portfolio?.conflicts) return map;
+    for (const c of portfolio.conflicts as any[]) {
+      if (c.positionIsin) map.set(c.positionIsin, c);
+      if (c.positionName) map.set(c.positionName, c);
+    }
+    return map;
+  }, [portfolio?.conflicts]);
+
   const sorted = useMemo(() => {
     if (!portfolio) return [];
     const list = [...portfolio.positions];
@@ -184,6 +195,32 @@ export function PortfolioTable({
             </div>
           )}
 
+          {portfolio.driftBreaches && portfolio.driftBreaches.length > 0 && (
+            <div className="mb-4 bg-red-900/20 border border-red-800/30 rounded-lg p-3">
+              <p className="text-xs text-red-300 font-medium uppercase tracking-wide mb-2 flex items-center gap-1.5">
+                <AlertTriangle className="h-3.5 w-3.5" />
+                Mandate Drift Alert — ±2.0pp threshold breached
+              </p>
+              <div className="space-y-2">
+                {portfolio.driftBreaches.map((b: any, i: number) => (
+                  <div key={i} className="flex items-center gap-3 text-sm">
+                    <span className="text-slate-300">{b.assetClass}</span>
+                    <span className="text-slate-500">target {b.targetPct}%</span>
+                    <span className="text-slate-500">→</span>
+                    <span className={b.driftPct > 0 ? "text-red-400" : "text-amber-400"}>
+                      actual {b.actualPct}%
+                    </span>
+                    <span className={`text-xs px-2 py-0.5 rounded-full ${
+                      Math.abs(b.driftPct) > 3 ? "bg-red-900/50 text-red-300" : "bg-amber-900/50 text-amber-300"
+                    }`}>
+                      {b.driftPct > 0 ? "+" : ""}{b.driftPct}pp
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           <div className="flex items-center gap-2 mb-2">
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
@@ -269,11 +306,18 @@ export function PortfolioTable({
                       )}
                     </td>
                     <td className="py-3 pr-4">
-                      {pos.dnaConflict && (
-                        <span className={clsx("text-xs px-2 py-0.5 rounded-full", conflictClass(pos.dnaConflict.severity))}>
-                          {pos.dnaConflict.severity}
-                        </span>
-                      )}
+                      {(() => {
+                        const conflict = conflictMap.get(pos.isin) || conflictMap.get(pos.name);
+                        if (!conflict) return null;
+                        return (
+                          <span
+                            className={clsx("text-xs px-2 py-0.5 rounded-full cursor-help", conflictClass(conflict.severity))}
+                            title={conflict.reason || "Conflict detected"}
+                          >
+                            {conflict.severity === "high" ? "Conflict" : conflict.severity === "medium" ? "Risk" : conflict.severity}
+                          </span>
+                        );
+                      })()}
                     </td>
                   </tr>
                 ))}
@@ -281,21 +325,6 @@ export function PortfolioTable({
             </table>
           </div>
 
-          {portfolio.driftBreaches.length > 0 && (
-            <div className="mt-4 p-3 rounded-lg bg-red-900/20 border border-red-900/40">
-              <div className="flex items-center gap-2 mb-2">
-                <AlertTriangle className="h-4 w-4 text-red-400" />
-                <span className="text-xs font-medium text-red-300 uppercase tracking-wide">Drift Breaches (&gt;2pp)</span>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                {portfolio.driftBreaches.map(b => (
-                  <span key={b.assetClass} className="text-xs px-2 py-1 rounded-full bg-red-900/50 text-red-300">
-                    {b.assetClass}: {b.driftPct >= 0 ? "+" : ""}{b.driftPct.toFixed(1)}pp
-                  </span>
-                ))}
-              </div>
-            </div>
-          )}
         </>
       )}
     </Card>

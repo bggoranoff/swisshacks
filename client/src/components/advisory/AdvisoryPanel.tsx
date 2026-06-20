@@ -23,8 +23,10 @@ interface AdvisoryPanelProps {
   loading: boolean;
   clientId: string | null;
   contextAlertTitle?: string | null;
-  onGenerate: () => void;
-  onRegenerate: () => void;
+  onGenerate: (language?: string) => void;
+  onRegenerate: (language?: string) => void;
+  language?: string;
+  onLanguageChange?: (lang: string) => void;
 }
 
 const toneStyles: Record<string, { badge: string; pill: string }> = {
@@ -91,7 +93,13 @@ function AdvisorySkeleton() {
   );
 }
 
-export function AdvisoryPanel({ advisory: advisoryProp, loading, clientId, contextAlertTitle, onGenerate, onRegenerate }: AdvisoryPanelProps) {
+const LANGUAGES = [
+  { code: "en", label: "EN" },
+  { code: "de", label: "DE" },
+  { code: "fr", label: "FR" },
+] as const;
+
+export function AdvisoryPanel({ advisory: advisoryProp, loading, clientId, contextAlertTitle, onGenerate, onRegenerate, language = "en", onLanguageChange }: AdvisoryPanelProps) {
   const [advisory, setAdvisory] = useState<AdvisoryMessage | null>(advisoryProp);
   const [isEditing, setIsEditing] = useState(false);
   const [editedBody, setEditedBody] = useState("");
@@ -99,6 +107,7 @@ export function AdvisoryPanel({ advisory: advisoryProp, loading, clientId, conte
   const [copied, setCopied] = useState(false);
   const [currentStep, setCurrentStep] = useState(0);
   const [history, setHistory] = useState<any[]>([]);
+  const [showComparison, setShowComparison] = useState(false);
 
   useEffect(() => {
     if (loading) {
@@ -217,12 +226,25 @@ export function AdvisoryPanel({ advisory: advisoryProp, loading, clientId, conte
               : "Select a client to generate an advisory"}
           </p>
           {clientId && (
-            <button
-              onClick={onGenerate}
-              className="px-5 py-2.5 rounded-lg text-sm font-medium flex items-center gap-2 transition-all bg-blue-600 hover:bg-blue-500 text-white shadow-lg shadow-blue-600/25 hover:shadow-blue-500/30"
-            >
-              <Sparkles className="h-4 w-4" /> Generate Advisory
-            </button>
+            <div className="flex items-center gap-3">
+              <div className="flex items-center gap-1 bg-slate-700/50 rounded-lg p-1">
+                {LANGUAGES.map(l => (
+                  <button
+                    key={l.code}
+                    onClick={() => onLanguageChange?.(l.code)}
+                    className={`text-xs px-2 py-1 rounded transition-colors ${language === l.code ? "bg-blue-600 text-white" : "text-slate-400 hover:text-slate-200"}`}
+                  >
+                    {l.label}
+                  </button>
+                ))}
+              </div>
+              <button
+                onClick={() => onGenerate(language)}
+                className="px-5 py-2.5 rounded-lg text-sm font-medium flex items-center gap-2 transition-all bg-blue-600 hover:bg-blue-500 text-white shadow-lg shadow-blue-600/25 hover:shadow-blue-500/30"
+              >
+                <Sparkles className="h-4 w-4" /> Generate Advisory
+              </button>
+            </div>
           )}
         </div>
       )}
@@ -330,15 +352,26 @@ export function AdvisoryPanel({ advisory: advisoryProp, loading, clientId, conte
           )}
 
           {/* Action buttons */}
-          <div className="flex gap-2 mt-4 flex-wrap">
+          <div className="flex gap-2 mt-4 flex-wrap items-center">
+            <div className="flex items-center gap-1 bg-slate-700/50 rounded-lg p-1 mr-1">
+              {LANGUAGES.map(l => (
+                <button
+                  key={l.code}
+                  onClick={() => onLanguageChange?.(l.code)}
+                  className={`text-xs px-2 py-1 rounded transition-colors ${language === l.code ? "bg-blue-600 text-white" : "text-slate-400 hover:text-slate-200"}`}
+                >
+                  {l.label}
+                </button>
+              ))}
+            </div>
             <button
-              onClick={onGenerate}
+              onClick={() => onGenerate(language)}
               className="px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-colors bg-blue-600 hover:bg-blue-700 text-white"
             >
               <Sparkles className="h-4 w-4" /> Generate
             </button>
             <button
-              onClick={onRegenerate}
+              onClick={() => onRegenerate(language)}
               className="px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-colors bg-slate-700 hover:bg-slate-600 text-slate-200"
             >
               <RefreshCw className="h-4 w-4" /> Regenerate
@@ -417,6 +450,31 @@ export function AdvisoryPanel({ advisory: advisoryProp, loading, clientId, conte
           <p className="text-xs text-slate-500 mt-4 border-t border-slate-700/60 pt-3 leading-relaxed">
             {advisory.disclaimer}
           </p>
+
+          {/* Generic vs Personalised Comparison */}
+          {advisory.genericAdvisory && (
+            <div className="mt-4 border-t border-slate-700 pt-4">
+              <button
+                onClick={() => setShowComparison(!showComparison)}
+                className="text-xs text-blue-400 hover:underline flex items-center gap-1"
+              >
+                <ChevronDown className={`h-3 w-3 transition-transform ${showComparison ? "rotate-180" : ""}`} />
+                {showComparison ? "Hide" : "Show"} Generic vs Personalised Comparison
+              </button>
+              {showComparison && (
+                <div className="grid grid-cols-2 gap-4 mt-3">
+                  <div className="bg-slate-700/30 rounded-lg p-4 border border-slate-600/50">
+                    <p className="text-xs text-slate-400 uppercase tracking-wide mb-2 font-medium">Generic Advisory</p>
+                    <p className="text-sm text-slate-400 leading-relaxed whitespace-pre-wrap">{advisory.genericAdvisory}</p>
+                  </div>
+                  <div className="bg-blue-900/20 rounded-lg p-4 border border-blue-600/30">
+                    <p className="text-xs text-blue-400 uppercase tracking-wide mb-2 font-medium">DNA-Personalised</p>
+                    <p className="text-sm text-slate-200 leading-relaxed whitespace-pre-wrap">{displayBody}</p>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Previous advisories history */}
           {history.length > 1 && (

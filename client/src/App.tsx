@@ -31,6 +31,7 @@ function App() {
   const [advisoryLoading, setAdvisoryLoading] = useState(false);
   const [demoActive, setDemoActive] = useState(false);
   const [approvedAlertId, setApprovedAlertId] = useState<string | null>(null);
+  const [advisoryLanguage, setAdvisoryLanguage] = useState<string>("en");
   const advisoryRef = useRef<HTMLDivElement>(null);
 
   // Fetch clients list
@@ -55,7 +56,7 @@ function App() {
     setApprovedAlertId(null);
   }, []);
 
-  const handleGenerate = useCallback(async () => {
+  const handleGenerate = useCallback(async (lang?: string) => {
     if (!selectedId) return;
     setAdvisoryLoading(true);
     // Pick the approved alert first, then fall back to the first news alert
@@ -63,6 +64,8 @@ function App() {
     const contextAlertId = approvedAlertId ?? firstNewsAlertId ?? undefined;
     const body: Record<string, unknown> = {};
     if (contextAlertId) body.alertId = contextAlertId;
+    const effectiveLang = lang ?? advisoryLanguage;
+    if (effectiveLang) body.language = effectiveLang;
     try {
       const res = await fetch(`/api/clients/${selectedId}/advisory`, {
         method: "POST",
@@ -80,10 +83,10 @@ function App() {
     } finally {
       setAdvisoryLoading(false);
     }
-  }, [selectedId, approvedAlertId, news]);
+  }, [selectedId, approvedAlertId, news, advisoryLanguage]);
 
-  const handleRegenerate = useCallback(() => {
-    handleGenerate();
+  const handleRegenerate = useCallback((lang?: string) => {
+    handleGenerate(lang);
   }, [handleGenerate]);
 
   // Demo mode: auto-walkthrough of Schneider scenario
@@ -305,6 +308,7 @@ function App() {
                   <AlertsPanel
                     news={news}
                     portfolio={portfolio}
+                    portfolioConflicts={(portfolio as any)?.conflicts || []}
                     loading={dnaFetch.loading || portfolioFetch.loading || newsFetch.loading}
                     selectedId={selectedId}
                     triggerEvent={clients?.find(c => c.id === selectedId)?.triggerEvent}
@@ -336,6 +340,8 @@ function App() {
                         contextAlertTitle={contextAlertTitle ?? null}
                         onGenerate={handleGenerate}
                         onRegenerate={handleRegenerate}
+                        language={advisoryLanguage}
+                        onLanguageChange={setAdvisoryLanguage}
                       />
                     </ErrorBoundary>
                   );

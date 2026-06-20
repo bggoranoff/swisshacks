@@ -193,6 +193,33 @@ export class MessageAgent {
           "The client's explicit approval is required before any transaction.",
       };
 
+      // Generate generic (non-personalised) version for before/after comparison
+      try {
+        const alertSummary = alert ? alert.title : "general portfolio review";
+        const genericRes = await axios.post(
+          LLM_URL(),
+          {
+            model: LLM_MODEL(),
+            messages: [
+              { role: "system", content: "You are a wealth management relationship manager writing a generic advisory note. Keep it professional, impersonal, and formal. Do not reference any personal client details." },
+              { role: "user", content: `Write a brief, standard advisory note for a wealth management client regarding: ${alertSummary}. Use a neutral, professional tone. Do not personalise. Keep it generic and formal. 3-4 sentences max.` },
+            ],
+            temperature: 0.3,
+            max_tokens: 500,
+          },
+          {
+            headers: { "Content-Type": "application/json", Authorization: `Bearer ${LLM_KEY()}` },
+            timeout: 30000,
+          }
+        );
+        const genericContent = genericRes.data?.choices?.[0]?.message?.content || "";
+        if (genericContent.length > 20) {
+          msg.genericAdvisory = genericContent.replace(/```json\n?|\n?```/g, "").trim();
+        }
+      } catch (err) {
+        console.warn("[MessageAgent] Generic advisory generation failed:", (err as Error).message);
+      }
+
       messageStore.set(msg.id, msg);
 
       auditService.log({

@@ -410,8 +410,8 @@ export const mockPortfolios: Record<string, PortfolioAnalysis> = {
       },
     ],
     driftBreaches: [
-      { assetClass: "Healthcare", driftPct: -2.96 },
-      { assetClass: "Financials", driftPct: 3.04 },
+      { assetClass: "Healthcare", targetPct: 15.0, actualPct: 12.04, driftPct: -2.96 },
+      { assetClass: "Financials", targetPct: 15.0, actualPct: 18.04, driftPct: 3.04 },
     ],
     conflicts: [
       {
@@ -574,9 +574,9 @@ export const mockPortfolios: Record<string, PortfolioAnalysis> = {
       },
     ],
     driftBreaches: [
-      { assetClass: "Consumer Staples", driftPct: 2.85 },
-      { assetClass: "Financials", driftPct: 2.42 },
-      { assetClass: "Energy", driftPct: 2.29 },
+      { assetClass: "Consumer Staples", targetPct: 15.0, actualPct: 17.85, driftPct: 2.85 },
+      { assetClass: "Financials", targetPct: 15.0, actualPct: 17.42, driftPct: 2.42 },
+      { assetClass: "Energy", targetPct: 15.0, actualPct: 17.29, driftPct: 2.29 },
     ],
     conflicts: [
       {
@@ -721,7 +721,7 @@ export const mockPortfolios: Record<string, PortfolioAnalysis> = {
       },
     ],
     driftBreaches: [
-      { assetClass: "Financials", driftPct: 2.46 },
+      { assetClass: "Financials", targetPct: 15.0, actualPct: 17.46, driftPct: 2.46 },
     ],
     conflicts: [],
     cioConflicts: [
@@ -903,9 +903,9 @@ export const mockPortfolios: Record<string, PortfolioAnalysis> = {
       },
     ],
     driftBreaches: [
-      { assetClass: "Technology", driftPct: 4.48 },
-      { assetClass: "Financials", driftPct: 4.05 },
-      { assetClass: "Consumer Discretionary", driftPct: 3.69 },
+      { assetClass: "Technology", targetPct: 15.0, actualPct: 19.48, driftPct: 4.48 },
+      { assetClass: "Financials", targetPct: 15.0, actualPct: 19.05, driftPct: 4.05 },
+      { assetClass: "Consumer Discretionary", targetPct: 15.0, actualPct: 18.69, driftPct: 3.69 },
     ],
     conflicts: [
       {

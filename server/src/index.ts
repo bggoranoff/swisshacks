@@ -224,10 +224,10 @@ app.post("/api/clients/:id/advisory", asyncHandler(async (req: Request, res: Res
     res.status(404).json({ success: false, error: "Client not found" });
     return;
   }
-  const { alertId, conflictIsin } = req.body || {};
+  const { alertId, conflictIsin, language } = req.body || {};
   const ctx = traceService.startTrace(`advisory-${client.id}`, "orchestrator");
   try {
-    const msg = await messageAgent.generateAdvisory(client.id, alertId, conflictIsin);
+    const msg = await messageAgent.generateAdvisory(client.id, alertId, conflictIsin, language || "en");
     const trace = traceService.endTrace(ctx);
     res.json({ success: true, data: { ...msg, traceId: trace.traceId } });
   } catch (err) {

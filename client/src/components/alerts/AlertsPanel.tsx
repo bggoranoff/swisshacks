@@ -9,6 +9,7 @@ import clsx from "clsx";
 interface AlertsPanelProps {
   news: NewsDigest | null;
   portfolio: PortfolioAnalysis | null;
+  portfolioConflicts?: any[];
   loading: boolean;
   selectedId?: string | null;
   triggerEvent?: string;
@@ -69,13 +70,13 @@ const RAEBER_CIO_ALERT: AlertItem = {
   alertType: "cio-conflict",
 };
 
-export function AlertsPanel({ news, portfolio, loading, selectedId, triggerEvent, onApprove, onDismiss }: AlertsPanelProps) {
+export function AlertsPanel({ news, portfolio, portfolioConflicts = [], loading, selectedId, triggerEvent, onApprove, onDismiss }: AlertsPanelProps) {
   const [approved, setApproved] = useState<Set<string>>(new Set());
   const [dismissed, setDismissed] = useState<Set<string>>(new Set());
 
   const alerts: AlertItem[] = [];
 
-  // News-sourced alerts
+  // News-sourced alerts first
   if (news?.alerts) {
     for (const a of news.alerts) {
       alerts.push({
@@ -91,8 +92,8 @@ export function AlertsPanel({ news, portfolio, loading, selectedId, triggerEvent
     }
   }
 
-  // Portfolio DNA conflict alerts
-  if (portfolio?.conflicts) {
+  // Portfolio DNA conflict alerts (legacy path via portfolio prop)
+  if (portfolio?.conflicts && portfolioConflicts.length === 0) {
     for (const c of portfolio.conflicts) {
       const conflict = c as any;
       alerts.push({

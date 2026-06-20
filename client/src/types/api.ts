@@ -61,7 +61,7 @@ export interface PortfolioAnalysis {
   strategy: string;
   totalValueCHF: number;
   positions: EnrichedPosition[];
-  driftBreaches: { assetClass: string; driftPct: number }[];
+  driftBreaches: { assetClass: string; targetPct: number; actualPct: number; driftPct: number }[];
   conflicts: DNAConflict[];
   cioConflicts?: DNAConflict[];
   summary?: string;
