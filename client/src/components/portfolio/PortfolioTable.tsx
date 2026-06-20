@@ -213,7 +213,12 @@ export function PortfolioTable({
               <tbody>
                 {filtered.map(pos => (
                   <tr key={pos.isin} className="border-b border-slate-700/50 hover:bg-slate-700/30 transition-colors">
-                    <td className="py-3 pr-4 text-slate-100">{pos.name}</td>
+                    <td className="py-2 pr-4" title={`ISIN: ${pos.isin}\nValor: ${pos.valorNumber}\nType: ${pos.instrumentType}\nTarget: CHF ${pos.targetValueCHF.toLocaleString()}\nCurrent: CHF ${pos.currentValueCHF.toLocaleString()}`}>
+                      <span className="text-slate-200">{pos.name}</span>
+                      {pos.instrumentType === "BOND" && (
+                        <span className="ml-1 text-xs px-1 py-0.5 rounded bg-slate-600 text-slate-400">Bond</span>
+                      )}
+                    </td>
                     <td className="py-3 pr-4 text-slate-400 text-xs">{pos.sectorOrAssetClass}</td>
                     <td className="py-3 pr-4 text-slate-100">CHF {formatCHF(pos.currentValueCHF)}</td>
                     <td className="py-3 pr-4">
