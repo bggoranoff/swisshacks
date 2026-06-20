@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import type { ClientDNA } from "../../types/api";
 import { Card, CardTitle } from "../shared/Card";
 import { ConfidenceBadge } from "../shared/ConfidenceBadge";
@@ -6,7 +6,7 @@ import { SkeletonBlock, SkeletonPills } from "../shared/SkeletonLoader";
 import { ErrorState } from "../shared/ErrorState";
 import { EmptyState } from "../shared/EmptyState";
 import { FadeIn } from "../shared/FadeIn";
-import { Dna, ChevronDown } from "lucide-react";
+import { Dna, ChevronDown, Clock } from "lucide-react";
 
 interface DNAPanelProps {
   dna: ClientDNA | null;
@@ -36,6 +36,17 @@ export function DNAPanel({ dna, loading, error, onRetry, durationMs }: DNAPanelP
     );
 
   const traitConfidence = dna.traitConfidence ?? {};
+
+  const timelineData = useMemo(() => {
+    if (!dna.evidence || dna.evidence.length === 0) return [];
+    const byYear: Record<string, { trait: string; date: string; excerpt: string }[]> = {};
+    dna.evidence.forEach(e => {
+      const year = e.crmDate?.slice(0, 4) || "Unknown";
+      if (!byYear[year]) byYear[year] = [];
+      byYear[year].push({ trait: e.trait, date: e.crmDate, excerpt: e.crmExcerpt });
+    });
+    return Object.entries(byYear).sort((a, b) => a[0].localeCompare(b[0]));
+  }, [dna.evidence]);
 
   function TraitPill({
     item,
@@ -170,6 +181,32 @@ export function DNAPanel({ dna, loading, error, onRetry, durationMs }: DNAPanelP
         )}
 
       </div>
+
+      {/* DNA Evolution Timeline */}
+      {timelineData.length > 0 && (
+        <div className="mt-4 pt-3 border-t border-slate-700">
+          <p className="text-xs text-slate-400 uppercase tracking-wide mb-3 flex items-center gap-1.5">
+            <Clock className="h-3.5 w-3.5" />
+            DNA Evolution Timeline
+          </p>
+          <div className="relative pl-4">
+            <div className="absolute left-1 top-0 bottom-0 w-0.5 bg-slate-700" />
+            {timelineData.map(([year, entries]) => (
+              <div key={year} className="mb-4 relative">
+                <div className="absolute -left-3 top-0.5 h-2.5 w-2.5 rounded-full bg-blue-500 border-2 border-slate-800" />
+                <p className="text-sm font-medium text-white ml-2">{year}</p>
+                <div className="ml-2 mt-1 space-y-1">
+                  {entries.slice(0, 3).map((e, i) => (
+                    <p key={i} className="text-xs text-slate-400">
+                      <span className="text-blue-300">{e.trait}</span> — {e.excerpt?.slice(0, 60)}...
+                    </p>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Evidence citations */}
       {dna.evidence && dna.evidence.length > 0 && (

@@ -409,7 +409,24 @@ app.listen(port, () => {
           .catch(err => console.warn(`[Warmup] News failed for ${c.id}: ${(err as Error).message}`))
       )
     );
-  }).then(() => console.log(`[Warmup] All caches ready`));
+  }).then(() => {
+    console.log(`[Warmup] All caches ready. Pre-warming portfolios...`);
+    return Promise.all(
+      clients.map(async c => {
+        try {
+          // Trigger the portfolio endpoint logic to cache conflicts
+          const portfolio = getPortfolio(c.strategy);
+          if (!portfolio) return;
+          const dna = await extractDNA(c.id, c.crmEntries, false);
+          const top20 = [...portfolio.positions].sort((a, b) => b.currentValueCHF - a.currentValueCHF).slice(0, 20);
+          await detectConflicts(c.id, top20, dna, portfolio.cioRecommendations);
+          console.log(`[Warmup] Portfolio cached for ${c.id}`);
+        } catch (err) {
+          console.warn(`[Warmup] Portfolio failed for ${c.id}: ${(err as Error).message}`);
+        }
+      })
+    );
+  }).then(() => console.log(`[Warmup] All warmup complete`));
 });
 
 export default app;
