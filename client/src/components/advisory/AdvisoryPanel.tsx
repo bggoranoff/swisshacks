@@ -361,6 +361,12 @@ export function AdvisoryPanel({ advisory: advisoryProp, loading, clientId, conte
             </div>
           )}
 
+          {advisory && (
+            <p className="text-xs text-slate-600 mt-2">
+              {displayBody.split(/\s+/).length} words · {Math.max(1, Math.ceil(displayBody.split(/\s+/).length / 200))} min read
+            </p>
+          )}
+
           {/* Proposed action highlighted box */}
           {advisory.proposedAction && (
             <div className="mt-4 p-3.5 rounded-lg bg-blue-900/30 border border-blue-700/50 flex items-start gap-3">
