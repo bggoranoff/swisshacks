@@ -11,7 +11,9 @@ import clsx from "clsx";
 type SortField = "name" | "sector" | "value" | "drift" | "cioRating";
 
 function formatCHF(value: number): string {
-  return value.toLocaleString("de-CH", { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+  if (value >= 1_000_000) return `${(value / 1_000_000).toFixed(2)}M`;
+  if (value >= 1_000) return `${(value / 1_000).toFixed(0)}K`;
+  return value.toFixed(0);
 }
 
 function driftColor(drift: number): string {
@@ -113,7 +115,7 @@ export function PortfolioTable({
 
   const headers: { label: string; field: SortField }[] = [
     { label: "Name", field: "name" },
-    { label: "Sector", field: "sector" },
+    { label: "Asset Class", field: "sector" },
     { label: "Value (CHF)", field: "value" },
     { label: "Drift %", field: "drift" },
     { label: "CIO Rating", field: "cioRating" },
@@ -213,7 +215,7 @@ export function PortfolioTable({
                   <tr key={pos.isin} className="border-b border-slate-700/50 hover:bg-slate-700/30 transition-colors">
                     <td className="py-3 pr-4 text-slate-100">{pos.name}</td>
                     <td className="py-3 pr-4 text-slate-400 text-xs">{pos.sectorOrAssetClass}</td>
-                    <td className="py-3 pr-4 text-slate-100">{formatCHF(pos.currentValueCHF)}</td>
+                    <td className="py-3 pr-4 text-slate-100">CHF {formatCHF(pos.currentValueCHF)}</td>
                     <td className="py-3 pr-4">
                       <div className="flex items-center gap-2">
                         <div className="h-1.5 rounded-full bg-slate-700 w-20 inline-block">
