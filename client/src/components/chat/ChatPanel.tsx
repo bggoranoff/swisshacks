@@ -1,10 +1,11 @@
 import { useEffect, useRef, useState } from "react";
-import { MessageCircle, Send, Loader2, ChevronRight } from "lucide-react";
+import { MessageCircle, Send, Loader2, ChevronRight, Wrench } from "lucide-react";
 
 interface ChatMessage {
   role: "user" | "assistant";
   content: string;
   timestamp: string;
+  toolCalls?: { name: string; result: any }[];
 }
 
 interface ChatPanelProps {
@@ -15,10 +16,24 @@ interface ChatPanelProps {
   onClose?: () => void;
 }
 
+const TOOL_LABELS: Record<string, string> = {
+  lookup_conflicts: "Conflicts",
+  get_news_alerts: "News & Alerts",
+  draft_advisory: "Advisory Draft",
+  get_live_price: "Live Price",
+  get_portfolio_drift: "Drift Analysis",
+  get_transactions: "Transactions",
+  search_instrument: "Instrument Search",
+  explain_trait: "DNA Trait",
+  simulate_swap: "Swap Simulation",
+  compare_advisory: "Advisory Comparison",
+  get_knowledge_graph: "Knowledge Graph",
+};
+
 const SUGGESTIONS = [
-  "What are the main conflicts in this portfolio?",
-  "Summarize this client's investment identity in 3 sentences",
-  "What CIO recommendations conflict with this client's DNA?",
+  "What conflicts does this portfolio have with the client's DNA?",
+  "Are there any news alerts relevant to this client?",
+  "How is the portfolio drifting from target allocation?",
 ];
 
 export function ChatPanel({ clientId, clientName, history, onHistoryChange, onClose }: ChatPanelProps) {
@@ -99,7 +114,7 @@ export function ChatPanel({ clientId, clientName, history, onHistoryChange, onCl
                 <button
                   key={i}
                   onClick={() => handleSend(q)}
-                  className="text-xs px-3 py-2 rounded-lg bg-slate-800 border border-slate-700 text-slate-300 hover:bg-slate-700 hover:text-white transition-colors text-left"
+                  className="text-xs px-3 py-2 rounded-lg bg-slate-800 border border-slate-700 text-slate-300 hover:bg-slate-700 hover:text-slate-50 transition-colors text-left"
                 >
                   {q}
                 </button>
@@ -109,12 +124,29 @@ export function ChatPanel({ clientId, clientName, history, onHistoryChange, onCl
         )}
         {history.map((m, i) => (
           <div key={i} className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}>
-            <div className={`max-w-[85%] px-3 py-2 rounded-lg text-sm leading-relaxed ${
-              m.role === "user"
-                ? "bg-six-red text-white"
-                : "bg-slate-700 text-slate-200"
-            }`}>
-              {m.content}
+            <div className="max-w-[85%] space-y-1.5">
+              {/* Tool badges */}
+              {m.role === "assistant" && m.toolCalls && m.toolCalls.length > 0 && (
+                <div className="flex flex-wrap gap-1">
+                  {m.toolCalls.map((tc, j) => (
+                    <span
+                      key={j}
+                      className="inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-full bg-six-red/10 text-six-red/80 border border-six-red/20"
+                    >
+                      <Wrench className="h-2.5 w-2.5" />
+                      {TOOL_LABELS[tc.name] || tc.name}
+                    </span>
+                  ))}
+                </div>
+              )}
+              {/* Message content */}
+              <div className={`px-3 py-2 rounded-lg text-sm leading-relaxed whitespace-pre-wrap ${
+                m.role === "user"
+                  ? "bg-six-red text-white"
+                  : "bg-slate-700 text-slate-200"
+              }`}>
+                {m.content}
+              </div>
             </div>
           </div>
         ))}

@@ -1,14 +1,81 @@
 import { useState } from "react";
-import type { NewsDigest, PortfolioAnalysis } from "../../types/api";
+import type { NewsDigest, PortfolioAnalysis, ClientDNA } from "../../types/api";
 import { Card, CardTitle } from "../shared/Card";
 import { SkeletonBlock } from "../shared/LoadingSpinner";
 import { EmptyState } from "../shared/EmptyState";
-import { ShieldAlert, AlertTriangle, TrendingUp, AlertCircle, Info, ChevronDown, X, ArrowLeftRight, ArrowRight, Briefcase } from "lucide-react";
+import { ShieldAlert, AlertTriangle, TrendingUp, AlertCircle, Info, ChevronDown, X, ArrowLeftRight, ArrowRight, Briefcase, Quote } from "lucide-react";
 import clsx from "clsx";
+
+interface GroundingCitation {
+  excerpt: string;
+  date?: string;
+  source: "crm" | "news";
+}
+
+function matchGrounding(
+  reason: string,
+  title: string,
+  dna: ClientDNA | null,
+  news: NewsDigest | null,
+): GroundingCitation[] {
+  const results: GroundingCitation[] = [];
+  const searchText = `${reason} ${title}`.toLowerCase();
+  const keywords = searchText.split(/\s+/).filter(w => w.length > 4);
+
+  const allEvidence = [
+    ...(dna?.evidence ?? []),
+    ...(dna?.investmentProfile?.evidence ?? []),
+  ];
+
+  for (const e of allEvidence) {
+    const text = (e.crmExcerpt ?? "").toLowerCase();
+    if (keywords.some(kw => text.includes(kw))) {
+      results.push({ excerpt: e.crmExcerpt, date: e.crmDate, source: "crm" });
+    }
+  }
+
+  if (news) {
+    for (const a of news.articles.slice(0, 15)) {
+      const text = `${a.title} ${a.summary}`.toLowerCase();
+      if (keywords.some(kw => text.includes(kw))) {
+        results.push({ excerpt: a.title, date: a.publishedAt?.slice(0, 10), source: "news" });
+      }
+    }
+  }
+
+  const seen = new Set<string>();
+  return results.filter(c => {
+    const k = c.excerpt.slice(0, 40).toLowerCase();
+    if (seen.has(k)) return false;
+    seen.add(k);
+    return true;
+  }).slice(0, 3);
+}
+
+function GroundingBlock({ citations }: { citations: GroundingCitation[] }) {
+  if (citations.length === 0) return null;
+  return (
+    <div className="mt-2 space-y-1.5">
+      <p className="text-[10px] text-slate-500 uppercase tracking-wide font-medium">Sources</p>
+      {citations.map((c, i) => (
+        <div key={i} className="flex items-start gap-2">
+          <Quote className="h-3 w-3 mt-0.5 shrink-0 text-slate-500" />
+          <p className="text-xs text-slate-400 leading-snug italic">
+            {c.excerpt}
+            <span className="not-italic text-slate-500 ml-1">
+              — {c.source === "crm" ? "CRM" : "News"}{c.date ? `, ${c.date}` : ""}
+            </span>
+          </p>
+        </div>
+      ))}
+    </div>
+  );
+}
 
 interface AlertsPanelProps {
   news: NewsDigest | null;
   portfolio: PortfolioAnalysis | null;
+  dna?: ClientDNA | null;
   portfolioConflicts?: any[];
   loading: boolean;
   selectedId?: string | null;
@@ -82,6 +149,7 @@ const RAEBER_CIO_ALERT: AlertItem = {
 export function AlertsPanel({
   news,
   portfolio,
+  dna,
   portfolioConflicts = [],
   loading,
   selectedId,
@@ -234,6 +302,8 @@ export function AlertsPanel({
                 </div>
                 <p className="text-sm text-slate-300 mt-1">{alert.reason}</p>
 
+                <GroundingBlock citations={matchGrounding(alert.reason, alert.title, dna ?? null, news)} />
+
                 {alert.riskType && (
                   <span
                     className={clsx(
@@ -342,6 +412,8 @@ export function AlertsPanel({
                     <p className="text-xs text-slate-500 font-mono">{conflict.positionIsin}</p>
                   )}
                   <p className="text-sm text-slate-300 mt-1">{conflict.reason}</p>
+
+                  <GroundingBlock citations={matchGrounding(conflict.reason, conflict.positionName, dna ?? null, news)} />
 
                   {conflict.riskType && (
                     <span className="inline-block text-xs px-2 py-0.5 rounded-full mt-2 bg-amber-900/50 text-amber-300">

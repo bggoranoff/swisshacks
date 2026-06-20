@@ -19,7 +19,7 @@ import { NewsAIService } from "./services/newsai.service";
 import { generatePresentation } from "./utils/generate-pptx";
 import { knowledgeGraphService } from "./services/knowledge-graph.service";
 import { detectConflicts } from "./agents/conflict.agent";
-import { chat, getChatHistory } from "./agents/chat.agent";
+import { chat, getChatHistory, clearChatHistory } from "./agents/chat.agent";
 
 const app = express();
 const port = parseInt(process.env.PORT || "3000", 10);
@@ -141,6 +141,98 @@ app.post("/api/clients/:id/trait-summary", asyncHandler(async (req: Request, res
   const summary = choice?.message?.content || choice?.message?.reasoning_content || choice?.text || "";
 
   res.json({ success: true, data: { summary: summary.trim() } });
+}));
+
+// Personal engagement tip — LLM-generated specific suggestion to delight the client
+const personalTipCache = new Map<string, { tip: string; fetchedAt: number }>();
+const TIP_CACHE_TTL = 5 * 60 * 1000;
+
+app.get("/api/clients/:id/personal-tip", asyncHandler(async (req: Request, res: Response) => {
+  const client = getClient(req.params.id);
+  if (!client) {
+    res.status(404).json({ success: false, error: "Client not found" });
+    return;
+  }
+
+  const cached = personalTipCache.get(client.id);
+  if (cached && Date.now() - cached.fetchedAt < TIP_CACHE_TTL && req.query.refresh !== "true") {
+    res.json({ success: true, data: { tip: cached.tip } });
+    return;
+  }
+
+  const dna = await extractDNA(client.id, client.crmEntries, false, client.pronouns);
+
+  const crmExcerpts = dna.evidence
+    .slice(0, 20)
+    .map((e) => `[${e.crmDate}] ${e.crmExcerpt}`)
+    .join("\n");
+
+  const systemPrompt = `You are a senior private-banking relationship manager in Switzerland. Suggest ONE specific personal gesture to strengthen a client relationship.
+
+RULES:
+- EASY, LOW-EFFORT gift the client can enjoy locally: tickets to a show, a restaurant reservation, box seats, a book, wine tasting. NOT international trips or lab tours.
+- Include a SPECIFIC upcoming date and time (e.g. "on Tuesday 1 July at 19:30").
+- Name a REAL venue in Switzerland (Zurich, Basel, Bern, Lucerne, Geneva).
+- Be SENSITIVE: if a client has a family member with an illness, do NOT suggest anything related to that illness. Suggest something joyful and unrelated.
+- Connect to the client's hobbies, values, or cultural interests — not their problems.
+- No investments, portfolio, or financial topics.
+- 2-3 sentences starting with "Consider".
+
+You MUST wrap your final answer in <tip></tip> tags. Example:
+<tip>Consider reserving two orchestra seats at the Opernhaus Zurich for "La Traviata" on Thursday 3 July at 19:30. Mr. Weber's CRM notes mention a lifelong passion for Italian opera, and the post-performance reception would offer a relaxed setting to catch up.</tip>`;
+
+  const userPrompt = `Client: ${client.name}
+Profile: ${client.description}
+
+DNA Values: ${dna.values.join(", ")}
+Life Events: ${dna.lifeEvents.join(", ")}
+Personal Priorities: ${dna.personalPriorities.join(", ")}
+Business Context: ${dna.businessContext.join(", ")}
+
+CRM Notes (most recent):
+${crmExcerpts}
+
+Write your suggestion inside <tip></tip> tags:`;
+
+  const llmUrl = (process.env.PHOENIQS_API_URL || "https://maas.phoeniqs.com/v1") + "/chat/completions";
+  const llmKey = process.env.PHOENIQS_API_KEY || "";
+  const llmModel = process.env.PHOENIQS_MODEL || "inference-gpt-oss-120b";
+
+  const resp = await axios.post(
+    llmUrl,
+    {
+      model: llmModel,
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: userPrompt },
+      ],
+      temperature: 0.7,
+      max_tokens: 1000,
+    },
+    {
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${llmKey}` },
+      timeout: 30000,
+    }
+  );
+  const choice = resp.data?.choices?.[0];
+  let rawTip = (choice?.message?.content || choice?.message?.reasoning_content || choice?.text || "").trim();
+
+  // Extract content from <tip> tags (handles reasoning model chain-of-thought)
+  {
+    const tagMatch = rawTip.match(/<tip>([\s\S]*?)<\/tip>/);
+    if (tagMatch) {
+      rawTip = tagMatch[1].trim();
+    } else {
+      // Fallback: find "Consider" and take first paragraph
+      const idx = rawTip.indexOf("Consider");
+      if (idx >= 0) rawTip = rawTip.slice(idx);
+      rawTip = rawTip.split(/\n{2,}/)[0].trim();
+    }
+  }
+  const tip = rawTip;
+
+  personalTipCache.set(client.id, { tip, fetchedAt: Date.now() });
+  res.json({ success: true, data: { tip } });
 }));
 
 // Client News
@@ -367,6 +459,11 @@ app.get("/api/clients/:id/chat", asyncHandler(async (req: Request, res: Response
   const client = getClient(req.params.id);
   if (!client) { res.status(404).json({ success: false, error: "Client not found" }); return; }
   res.json({ success: true, data: getChatHistory(client.id) });
+}));
+
+app.delete("/api/clients/:id/chat", asyncHandler(async (req: Request, res: Response) => {
+  clearChatHistory(req.params.id);
+  res.json({ success: true });
 }));
 
 // Presentation download

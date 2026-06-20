@@ -87,11 +87,11 @@ export function TraitDrawer({ open, trait, category, evidence, clientId, onClose
             <p className="text-xs font-medium text-slate-500 uppercase tracking-wide mb-1">
               {category ? (CATEGORY_LABELS[category] ?? category) : ""}
             </p>
-            <h3 className="text-base font-semibold text-white capitalize">{trait}</h3>
+            <h3 className="text-base font-semibold text-slate-50 capitalize">{trait}</h3>
           </div>
           <button
             onClick={onClose}
-            className="text-slate-400 hover:text-white transition-colors mt-0.5 p-1"
+            className="text-slate-400 hover:text-slate-50 transition-colors mt-0.5 p-1"
           >
             <X className="h-5 w-5" />
           </button>

@@ -214,7 +214,7 @@ interface SpiderChartProps {
 function SpiderChart({ scores, stroke, fill, hoveredAxis, onHoverAxis }: SpiderChartProps) {
   const rValues = AXES.map(ax => (scores[ax.key] / 10) * MAX_R);
   return (
-    <svg viewBox="0 0 400 380" className="w-full" aria-hidden="true">
+    <svg viewBox="0 0 400 380" className="w-full max-w-[400px] mx-auto" overflow="visible" aria-hidden="true">
       {RINGS.map(scale => (
         <polygon key={scale} points={ringPoints(scale)} fill="none" stroke="var(--color-slate-700, #334155)" strokeWidth={scale === 1.0 ? 1.5 : 0.7} strokeOpacity={scale === 1.0 ? 0.8 : 0.4} />
       ))}
@@ -276,7 +276,7 @@ function CitationBlock({ citations, stroke }: { citations: Citation[]; stroke: s
         <div key={i} className="flex items-start gap-2">
           <Quote className="h-3 w-3 mt-0.5 shrink-0" style={{ color: stroke, opacity: 0.6 }} />
           <p className="text-xs text-slate-500 leading-snug italic">
-            {c.excerpt.length > 120 ? c.excerpt.slice(0, 120) + "..." : c.excerpt}
+            {c.excerpt}
             <span className="not-italic text-slate-600 ml-1">
               — {c.source === "crm" ? "CRM" : "News"}{c.date ? `, ${c.date}` : ""}
             </span>

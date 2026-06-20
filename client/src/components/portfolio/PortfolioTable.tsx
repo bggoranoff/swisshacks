@@ -173,8 +173,8 @@ export function PortfolioTable({
       {!loading && !error && portfolio && (
         <FadeIn>
           <div className="flex items-center gap-4 mb-4 text-sm text-slate-400">
-            <span>Mandate: <span className="text-white font-medium">{portfolio.strategy}</span></span>
-            <span>Total: <span className="text-white font-medium">CHF {formatCHF(portfolio.totalValueCHF)}</span></span>
+            <span>Mandate: <span className="text-slate-50 font-medium">{portfolio.strategy}</span></span>
+            <span>Total: <span className="text-slate-50 font-medium">CHF {formatCHF(portfolio.totalValueCHF)}</span></span>
             <span>{portfolio.positions.length} positions</span>
           </div>
 
@@ -185,15 +185,15 @@ export function PortfolioTable({
               <div className="flex gap-3 min-w-max">
                 <div className="bg-slate-700/50 rounded-lg p-3 text-center min-w-[130px]">
                   <p className="text-xs text-slate-400 uppercase tracking-wide whitespace-nowrap">Total Value</p>
-                  <p className="text-lg font-semibold text-white mt-1 whitespace-nowrap">CHF {(summaryStats.totalValue / 1e6).toFixed(1)}M</p>
+                  <p className="text-lg font-semibold text-slate-50 mt-1 whitespace-nowrap">CHF {(summaryStats.totalValue / 1e6).toFixed(1)}M</p>
                 </div>
                 <div className="bg-slate-700/50 rounded-lg p-3 text-center min-w-[110px]">
                   <p className="text-xs text-slate-400 uppercase tracking-wide whitespace-nowrap">Positions</p>
-                  <p className="text-lg font-semibold text-white mt-1">{summaryStats.positionCount}</p>
+                  <p className="text-lg font-semibold text-slate-50 mt-1">{summaryStats.positionCount}</p>
                 </div>
                 <div className="bg-slate-700/50 rounded-lg p-3 text-center min-w-[120px]">
                   <p className="text-xs text-slate-400 uppercase tracking-wide whitespace-nowrap">Asset Classes</p>
-                  <p className="text-lg font-semibold text-white mt-1">{summaryStats.uniqueAssetClasses}</p>
+                  <p className="text-lg font-semibold text-slate-50 mt-1">{summaryStats.uniqueAssetClasses}</p>
                 </div>
                 <div className="bg-slate-700/50 rounded-lg p-3 text-center min-w-[110px]">
                   <p className="text-xs text-slate-400 uppercase tracking-wide whitespace-nowrap">Avg Drift</p>
@@ -276,7 +276,7 @@ export function PortfolioTable({
               onClick={() => setShowConflictsOnly(!showConflictsOnly)}
               className={clsx(
                 "h-9 px-4 text-sm rounded-lg transition-colors whitespace-nowrap",
-                showConflictsOnly ? "bg-red-600 text-white" : "bg-slate-700 text-slate-400 hover:text-slate-200"
+                showConflictsOnly ? "bg-red-600 text-slate-50" : "bg-slate-700 text-slate-400 hover:text-slate-200"
               )}
             >
               {showConflictsOnly ? "Showing Conflicts" : "Show Conflicts"}
@@ -292,7 +292,7 @@ export function PortfolioTable({
                     <th
                       key={h.field}
                       onClick={() => toggleSort(h.field)}
-                      className="text-left text-xs font-medium text-slate-400 uppercase tracking-wide pb-3 border-b border-slate-700 cursor-pointer hover:text-white whitespace-nowrap pr-4"
+                      className="text-left text-xs font-medium text-slate-400 uppercase tracking-wide pb-3 border-b border-slate-700 cursor-pointer hover:text-slate-50 whitespace-nowrap pr-4"
                     >
                       {h.label}
                       <ArrowUpDown className="h-3 w-3 inline ml-1" />
@@ -373,9 +373,9 @@ export function PortfolioTable({
               </tbody>
               <tfoot>
                 <tr className="border-t-2 border-slate-600 font-medium">
-                  <td className="py-3 pr-4 text-white">Total ({filtered.length} positions)</td>
+                  <td className="py-3 pr-4 text-slate-50">Total ({filtered.length} positions)</td>
                   <td className="py-3 pr-4"></td>
-                  <td className="py-3 pr-4 text-white">
+                  <td className="py-3 pr-4 text-slate-50">
                     CHF {formatCHF(filtered.reduce((sum, p) => sum + (p.livePrice ?? p.currentValueCHF), 0))}
                   </td>
                   <td className="py-3 pr-4"></td>

@@ -321,7 +321,7 @@ function App() {
                 ))}
               </div>
             </div>
-            <button onClick={() => { setDemoActive(false); setDemoStep(0); }} className="text-xs text-slate-400 hover:text-white">Dismiss</button>
+            <button onClick={() => { setDemoActive(false); setDemoStep(0); }} className="text-xs text-slate-400 hover:text-slate-50">Dismiss</button>
           </div>
         )}
         {anyError && (
@@ -416,22 +416,22 @@ function App() {
                 <div className="flex items-center gap-4">
                   <div className="text-right">
                     <p className="text-xs text-slate-400">Portfolio Mandate</p>
-                    <p className="text-sm font-medium text-white">{clients?.find(c => c.id === selectedId)?.strategy}</p>
+                    <p className="text-sm font-medium text-slate-50">{clients?.find(c => c.id === selectedId)?.strategy}</p>
                   </div>
                   <div className="text-right">
                     <p className="text-xs text-slate-400">CRM Notes</p>
-                    <p className="text-sm font-medium text-white">{clients?.find(c => c.id === selectedId)?.crmEntryCount}</p>
+                    <p className="text-sm font-medium text-slate-50">{clients?.find(c => c.id === selectedId)?.crmEntryCount}</p>
                   </div>
                   {dna && (
                     <div className="text-right">
                       <p className="text-xs text-slate-400">Comm. Style</p>
-                      <p className="text-sm font-medium text-white capitalize">{dna.communicationProfile?.style ?? dna.communicationStyle}</p>
+                      <p className="text-sm font-medium text-slate-50 capitalize">{dna.communicationProfile?.style ?? dna.communicationStyle}</p>
                     </div>
                   )}
                 </div>
               </div>
               <div className="flex items-center gap-6 text-xs text-slate-400 flex-wrap">
-                <span>AUM: <span className="text-white font-medium">CHF {portfolio ? (portfolio.totalValueCHF / 1e6).toFixed(0) : '—'}M</span></span>
+                <span>AUM: <span className="text-slate-50 font-medium">CHF {portfolio ? (portfolio.totalValueCHF / 1e6).toFixed(0) : '—'}M</span></span>
                 <span>Alerts: <span className="text-amber-400 font-medium">{news?.alerts?.length || 0}</span></span>
                 <span>Conflicts: <span className="text-red-400 font-medium">{portfolio?.conflicts?.length || 0}</span></span>
                 <span>DNA Traits: <span className="text-six-red font-medium">{dna ? dna.values.length + dna.riskSensitivities.length : 0}</span></span>
@@ -472,6 +472,7 @@ function App() {
                 <AlertsPanel
                   news={news}
                   portfolio={portfolio}
+                  dna={dna}
                   portfolioConflicts={(portfolio as any)?.conflicts || []}
                   loading={dnaFetch.loading || portfolioFetch.loading || newsFetch.loading}
                   selectedId={selectedId}

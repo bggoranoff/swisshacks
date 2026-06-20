@@ -57,7 +57,7 @@ export function DNAPanel({ dna, onOpenDrawer, loading, error, onRetry, durationM
       {/* Communication profile */}
       <div className="flex items-center gap-3 mb-2">
         <span className="text-xs text-slate-400">Communication</span>
-        <span className="text-sm font-medium px-3 py-1 rounded-full bg-slate-700 text-white capitalize">
+        <span className="text-sm font-medium px-3 py-1 rounded-full bg-slate-700 text-slate-50 capitalize">
           {communicationStyle}
         </span>
       </div>
@@ -185,28 +185,29 @@ export function DNAPanel({ dna, onOpenDrawer, loading, error, onRetry, durationM
 
       {/* DNA Evolution Timeline */}
       {timelineData.length > 0 && (
-        <div className="mt-4 pt-3 border-t border-slate-700">
-          <p className="text-xs text-slate-400 uppercase tracking-wide mb-3 flex items-center gap-1.5">
+        <details className="mt-4 pt-3 border-t border-slate-700">
+          <summary className="flex items-center gap-1 text-xs text-slate-400 uppercase tracking-wide cursor-pointer select-none hover:text-slate-300 transition-colors">
+            <ChevronDown className="h-3 w-3" />
             <Clock className="h-3.5 w-3.5" />
             DNA Evolution Timeline
-          </p>
-          <div className="relative pl-4">
+          </summary>
+          <div className="relative pl-4 mt-3">
             <div className="absolute left-1 top-0 bottom-0 w-0.5 bg-slate-700" />
             {timelineData.map(([year, entries]) => (
               <div key={year} className="mb-4 relative">
                 <div className="absolute -left-3 top-0.5 h-2.5 w-2.5 rounded-full bg-six-red border-2 border-slate-800" />
-                <p className="text-sm font-medium text-white ml-2">{year}</p>
+                <p className="text-sm font-medium text-slate-50 ml-2">{year}</p>
                 <div className="ml-2 mt-1 space-y-1">
-                  {entries.slice(0, 3).map((e, i) => (
+                  {entries.map((e, i) => (
                     <p key={i} className="text-xs text-slate-400">
-                      <span className="text-six-red">{e.trait}</span> — {e.excerpt?.slice(0, 60)}...
+                      <span className="text-six-red">{e.trait}</span> — {e.excerpt}
                     </p>
                   ))}
                 </div>
               </div>
             ))}
           </div>
-        </div>
+        </details>
       )}
 
       {/* Evidence citations */}

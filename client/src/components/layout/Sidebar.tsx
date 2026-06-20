@@ -1,7 +1,8 @@
 import type { CSSProperties } from "react";
 import clsx from "clsx";
 import type { ClientSummary } from "../../types/api";
-import { Users, ChevronLeft } from "lucide-react";
+import { Users, ChevronLeft, Search } from "lucide-react";
+import { useState } from "react";
 
 const AVATAR_COLORS: Record<string, string> = {
   schneider: "bg-six-red",
@@ -51,6 +52,10 @@ function SidebarSkeleton() {
 }
 
 export function Sidebar({ clients, selectedId, onSelect, onHome, onClose, loading, conflictCount, style }: SidebarProps) {
+  const [search, setSearch] = useState("");
+  const filtered = search
+    ? clients.filter(c => c.name.toLowerCase().includes(search.toLowerCase()))
+    : clients;
   return (
     <aside style={style} className="flex flex-col gap-1 p-4 bg-slate-900 border-r border-slate-700 overflow-y-auto shadow-lg shadow-black/20 h-screen">
       {/* Logo / branding + close */}
@@ -76,14 +81,24 @@ export function Sidebar({ clients, selectedId, onSelect, onHome, onClose, loadin
         )}
       </div>
       <div className="border-t border-slate-700/60 mb-3" />
-      <div className="flex items-center gap-2 mb-3 px-3">
+      <div className="flex items-center gap-2 mb-2 px-3">
         <Users className="h-3.5 w-3.5 text-slate-500" />
         <span className="text-xs font-semibold text-slate-400 uppercase tracking-wide">Clients</span>
+      </div>
+      <div className="relative px-3 mb-3">
+        <Search className="absolute left-5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-500" />
+        <input
+          type="text"
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+          placeholder="Search..."
+          className="w-full h-8 bg-slate-800 border border-slate-700 rounded-lg pl-8 pr-3 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-six-red transition-colors"
+        />
       </div>
       {loading ? (
         <SidebarSkeleton />
       ) : (
-        clients.map((client) => (
+        filtered.map((client) => (
           <button
             key={client.id}
             onClick={() => onSelect(client.id)}
@@ -107,7 +122,7 @@ export function Sidebar({ clients, selectedId, onSelect, onHome, onClose, loadin
               <div className="flex items-center gap-1.5">
                 <span className={clsx(
                   "font-medium block break-words transition-colors",
-                  selectedId === client.id ? "text-white" : "text-slate-200 group-hover:text-white"
+                  selectedId === client.id ? "text-slate-100" : "text-slate-200 group-hover:text-slate-100"
                 )}>
                   {client.name}
                 </span>

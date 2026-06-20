@@ -37,7 +37,7 @@ export function CompareView({ generic, personalised, onClose }: CompareViewProps
         <CardTitle icon={ArrowLeftRight}>Before / After — DNA Personalisation</CardTitle>
         <button
           onClick={onClose}
-          className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-700 transition-colors"
+          className="p-1.5 rounded-lg text-slate-400 hover:text-slate-50 hover:bg-slate-700 transition-colors"
           title="Close comparison"
         >
           <X className="h-4 w-4" />
@@ -90,7 +90,7 @@ export function CompareView({ generic, personalised, onClose }: CompareViewProps
             </span>
           </div>
           <div className="p-4 space-y-3">
-            <h3 className="text-sm font-semibold text-white">{personalised.subject}</h3>
+            <h3 className="text-sm font-semibold text-slate-50">{personalised.subject}</h3>
             <div className="flex items-center gap-2">
               <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${personalStyle.badge}`}>
                 {personalised.tone}

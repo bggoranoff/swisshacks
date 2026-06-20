@@ -11,12 +11,9 @@ import {
   ChevronDown,
   ArrowLeftRight,
   Bell,
-  Download,
-  Check,
-  X,
-  Printer,
+  HelpCircle,
+  Loader2,
 } from "lucide-react";
-import { CompareView } from "./CompareView";
 
 interface AdvisoryPanelProps {
   advisory: AdvisoryMessage | null;
@@ -93,13 +90,7 @@ function AdvisorySkeleton() {
   );
 }
 
-const LANGUAGES = [
-  { code: "en", label: "EN" },
-  { code: "de", label: "DE" },
-  { code: "fr", label: "FR" },
-] as const;
-
-export function AdvisoryPanel({ advisory: advisoryProp, loading, clientId, contextAlertTitle, onGenerate, onRegenerate, language = "en", onLanguageChange }: AdvisoryPanelProps) {
+export function AdvisoryPanel({ advisory: advisoryProp, loading, clientId, contextAlertTitle, onGenerate, onRegenerate, language = "en" }: AdvisoryPanelProps) {
   const [advisory, setAdvisory] = useState<AdvisoryMessage | null>(advisoryProp);
   const [isEditing, setIsEditing] = useState(false);
   const [editedBody, setEditedBody] = useState("");
@@ -107,12 +98,8 @@ export function AdvisoryPanel({ advisory: advisoryProp, loading, clientId, conte
   const [copied, setCopied] = useState(false);
   const [currentStep, setCurrentStep] = useState(0);
   const [history, setHistory] = useState<any[]>([]);
-  const [_showComparison, _setShowComparison] = useState(false);
-  const [compareData, setCompareData] = useState<{ generic: AdvisoryMessage; personalised: AdvisoryMessage } | null>(null);
-  const [compareLoading, setCompareLoading] = useState(false);
-  const [showCompareView, setShowCompareView] = useState(false);
-  const [pendingStatus, setPendingStatus] = useState<"approved" | "rejected" | null>(null);
-  const [rmNotes, setRmNotes] = useState("");
+  const [personalTip, setPersonalTip] = useState<string | null>(null);
+  const [tipLoading, setTipLoading] = useState(false);
 
   useEffect(() => {
     if (loading) {
@@ -141,6 +128,29 @@ export function AdvisoryPanel({ advisory: advisoryProp, loading, clientId, conte
     setHistory([]);
   }, [clientId]);
 
+  useEffect(() => {
+    if (!clientId) {
+      setPersonalTip(null);
+      setTipLoading(false);
+      return;
+    }
+    const ac = new AbortController();
+    setTipLoading(true);
+    setPersonalTip(null);
+    fetch(`/api/clients/${clientId}/personal-tip`, { signal: ac.signal })
+      .then(r => r.json())
+      .then(body => {
+        if (body?.success && body.data?.tip) setPersonalTip(body.data.tip);
+      })
+      .catch(err => {
+        if (err.name === "AbortError") return;
+      })
+      .finally(() => {
+        if (!ac.signal.aborted) setTipLoading(false);
+      });
+    return () => ac.abort();
+  }, [clientId]);
+
   const displayBody = savedBody ?? advisory?.body ?? "";
 
   function handleCopy() {
@@ -165,114 +175,6 @@ export function AdvisoryPanel({ advisory: advisoryProp, loading, clientId, conte
     setIsEditing(false);
   }
 
-  function handleDownload() {
-    if (!advisory) return;
-    const content = [
-      `Subject: ${advisory.subject}`,
-      `Client: ${clientId}`,
-      `Tone: ${advisory.tone}`,
-      `Confidence: ${Math.round(advisory.confidence * 100)}%`,
-      `Date: ${new Date().toLocaleDateString()}`,
-      "",
-      "---",
-      "",
-      displayBody,
-      "",
-      "---",
-      "",
-      advisory.proposedAction ? `Proposed Action: ${advisory.proposedAction}` : "",
-      "",
-      advisory.reasoning ? `Reasoning: ${advisory.reasoning}` : "",
-      "",
-      advisory.disclaimer,
-    ].filter(Boolean).join("\n");
-
-    const blob = new Blob([content], { type: "text/plain" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `advisory-${clientId}-${Date.now()}.txt`;
-    a.click();
-    URL.revokeObjectURL(url);
-  }
-
-  const handlePrint = () => {
-    if (!advisory) return;
-    const printWindow = window.open("", "_blank");
-    if (!printWindow) return;
-    printWindow.document.write(`
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <title>${advisory.subject}</title>
-        <style>
-          body { font-family: 'Georgia', serif; max-width: 700px; margin: 40px auto; padding: 0 20px; color: #1a1a1a; line-height: 1.6; }
-          h1 { font-size: 20px; border-bottom: 2px solid #1a1a1a; padding-bottom: 8px; }
-          .meta { color: #666; font-size: 13px; margin-bottom: 24px; }
-          .body { font-size: 15px; white-space: pre-wrap; }
-          .action { background: #f5f5f5; padding: 16px; border-radius: 8px; margin: 20px 0; }
-          .action-label { font-size: 12px; text-transform: uppercase; color: #666; letter-spacing: 1px; }
-          .disclaimer { font-size: 11px; color: #999; border-top: 1px solid #ddd; padding-top: 16px; margin-top: 32px; }
-          .footer { font-size: 11px; color: #999; margin-top: 16px; }
-          @media print { body { margin: 20px; } }
-        </style>
-      </head>
-      <body>
-        <h1>${advisory.subject}</h1>
-        <div class="meta">
-          <strong>Client:</strong> ${clientId} |
-          <strong>Tone:</strong> ${advisory.tone} |
-          <strong>Confidence:</strong> ${Math.round(advisory.confidence * 100)}% |
-          <strong>Date:</strong> ${new Date().toLocaleDateString()}
-        </div>
-        <div class="body">${displayBody}</div>
-        ${advisory.proposedAction ? `<div class="action"><div class="action-label">Proposed Action</div>${advisory.proposedAction}</div>` : ""}
-        <div class="disclaimer">${advisory.disclaimer}</div>
-        <div class="footer">Generated by SIX AI — SwissHacks 2026</div>
-      </body>
-      </html>
-    `);
-    printWindow.document.close();
-    printWindow.print();
-  };
-
-  const handleCompare = async () => {
-    if (!clientId || !advisory) return;
-    setCompareLoading(true);
-    try {
-      const res = await fetch(`/api/clients/${clientId}/advisory/compare`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ alertId: advisory.referencedAlert, language }),
-      });
-      const json = await res.json();
-      if (json.success) {
-        setCompareData(json.data);
-        setShowCompareView(true);
-      }
-    } catch (err) {
-      console.error("Failed to fetch comparison:", err);
-    } finally {
-      setCompareLoading(false);
-    }
-  };
-
-  const handleStatusUpdate = async (status: "approved" | "rejected", notes?: string) => {
-    if (!advisory) return;
-    try {
-      const res = await fetch(`/api/clients/${clientId}/advisory/${advisory.id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status, rmNotes: notes }),
-      });
-      const json = await res.json();
-      if (json.success) {
-        setAdvisory(json.data);
-      }
-    } catch (err) {
-      console.error("Failed to update status:", err);
-    }
-  };
 
   const toneStyle = toneStyles[advisory?.tone ?? ""] ?? toneStyles.balanced;
 
@@ -280,37 +182,19 @@ export function AdvisoryPanel({ advisory: advisoryProp, loading, clientId, conte
     <Card colSpan2>
       <CardTitle icon={MessageSquare}>Advisory Draft</CardTitle>
 
-      {/* Empty state */}
+      {/* Empty state — compact one-liner */}
       {!advisory && !loading && (
-        <div className="flex flex-col items-center gap-4 py-10">
-          <div className="h-12 w-12 rounded-full bg-six-red/20 flex items-center justify-center mb-1">
-            <Sparkles className="h-6 w-6 text-six-red" />
-          </div>
+        <div className="flex items-center justify-between">
           <p className="text-sm text-slate-400">
-            {clientId
-              ? "Generate a personalised advisory note for this client"
-              : "Select a client to generate an advisory"}
+            {clientId ? "No advisory generated yet" : "Select a client to generate an advisory"}
           </p>
           {clientId && (
-            <div className="flex items-center gap-3">
-              <div className="flex items-center gap-1 bg-slate-700/50 rounded-lg p-1">
-                {LANGUAGES.map(l => (
-                  <button
-                    key={l.code}
-                    onClick={() => onLanguageChange?.(l.code)}
-                    className={`text-xs px-2 py-1 rounded transition-colors ${language === l.code ? "bg-six-red text-white" : "text-slate-400 hover:text-slate-200"}`}
-                  >
-                    {l.label}
-                  </button>
-                ))}
-              </div>
-              <button
-                onClick={() => onGenerate(language)}
-                className="px-5 py-2.5 rounded-lg text-sm font-medium flex items-center gap-2 transition-all bg-six-red hover:bg-six-red-bright text-white shadow-lg shadow-six-red/25 hover:shadow-six-red/30"
-              >
-                <Sparkles className="h-4 w-4" /> Generate Advisory
-              </button>
-            </div>
+            <button
+              onClick={() => onGenerate(language)}
+              className="px-4 py-1.5 rounded-lg text-sm font-medium flex items-center gap-2 transition-all bg-six-red hover:bg-six-red-bright text-white"
+            >
+              <Sparkles className="h-3.5 w-3.5" /> Generate
+            </button>
           )}
         </div>
       )}
@@ -329,7 +213,7 @@ export function AdvisoryPanel({ advisory: advisoryProp, loading, clientId, conte
               <div key={i} className="flex items-center gap-3">
                 <div className={`h-2 w-2 rounded-full ${step.color} ${i <= currentStep ? "opacity-100" : "opacity-30"} ${i === currentStep ? "animate-pulse" : ""}`} />
                 <div>
-                  <span className={`text-sm font-medium ${i <= currentStep ? "text-white" : "text-slate-500"}`}>{step.label}</span>
+                  <span className={`text-sm font-medium ${i <= currentStep ? "text-slate-50" : "text-slate-500"}`}>{step.label}</span>
                   <span className={`text-xs ml-2 ${i === currentStep ? "text-slate-300" : "text-slate-600"}`}>{step.desc}</span>
                   {i < currentStep && <span className="text-xs text-green-400 ml-2">✓</span>}
                 </div>
@@ -354,7 +238,7 @@ export function AdvisoryPanel({ advisory: advisoryProp, loading, clientId, conte
 
           {/* Header: subject + tone badge + confidence */}
           <div className="flex items-start gap-3 flex-wrap mb-1">
-            <h3 className="text-lg font-semibold text-white leading-snug">{advisory.subject}</h3>
+            <h3 className="text-lg font-semibold text-slate-50 leading-snug">{advisory.subject}</h3>
             <div className="flex items-center gap-2 flex-wrap pt-0.5">
               <span
                 className={`text-xs px-2.5 py-1 rounded-full font-medium ${toneStyle.badge}`}
@@ -471,17 +355,6 @@ export function AdvisoryPanel({ advisory: advisoryProp, loading, clientId, conte
             {advisory.disclaimer}
           </p>
 
-          {/* Before/After CompareView */}
-          {showCompareView && compareData && (
-            <div className="mt-4 border-t border-slate-700 pt-4">
-              <CompareView
-                generic={compareData.generic}
-                personalised={compareData.personalised}
-                onClose={() => setShowCompareView(false)}
-              />
-            </div>
-          )}
-
           {/* Previous advisories history */}
           {history.length > 1 && (
             <details className="mt-4 border-t border-slate-700 pt-3">
@@ -502,6 +375,28 @@ export function AdvisoryPanel({ advisory: advisoryProp, loading, clientId, conte
             </details>
           )}
         </>
+      )}
+
+      {/* Personal engagement tip — always visible when a client is selected */}
+      {clientId && (
+        <div className="mt-4 rounded-lg bg-blue-500/10 border border-blue-500/30 p-4">
+          <div className="flex items-start gap-2.5">
+            <HelpCircle className="h-4 w-4 mt-0.5 text-blue-500 shrink-0" />
+            <div className="flex-1 min-w-0">
+              <p className="text-xs font-semibold text-blue-500 uppercase tracking-wide mb-1.5">Personal Touch</p>
+              {tipLoading ? (
+                <div className="flex items-center gap-2 text-sm text-blue-500/70">
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  Generating suggestion...
+                </div>
+              ) : personalTip ? (
+                <p className="text-sm text-slate-200 leading-relaxed">{personalTip}</p>
+              ) : (
+                <p className="text-sm text-slate-400 italic">No suggestion available</p>
+              )}
+            </div>
+          </div>
+        </div>
       )}
     </Card>
   );
