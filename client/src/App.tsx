@@ -203,6 +203,7 @@ function App() {
         clients={clients}
         selectedId={selectedId}
         onSelect={handleSelectClient}
+        onHome={() => setSelectedId(null)}
         loading={clientsFetch.loading}
         conflictCount={portfolio?.conflicts?.length}
       />
@@ -313,6 +314,7 @@ function App() {
                 <ErrorBoundary fallbackMessage="Failed to load DNA profile">
                   <DNAPanel
                     dna={dna}
+                    clientId={selectedId ?? ""}
                     loading={dnaFetch.loading}
                     error={dnaFetch.error && !dna ? dnaFetch.error : null}
                     onRetry={dnaFetch.refetch}

@@ -6,10 +6,12 @@ import { SkeletonBlock, SkeletonPills } from "../shared/SkeletonLoader";
 import { ErrorState } from "../shared/ErrorState";
 import { EmptyState } from "../shared/EmptyState";
 import { FadeIn } from "../shared/FadeIn";
-import { Dna, ChevronDown, Clock } from "lucide-react";
+import { Dna, ChevronDown, ChevronRight, Clock } from "lucide-react";
+import { TraitDrawer } from "./TraitDrawer";
 
 interface DNAPanelProps {
   dna: ClientDNA | null;
+  clientId: string;
   loading: boolean;
   error: string | null;
   onRetry: () => void;
@@ -18,25 +20,18 @@ interface DNAPanelProps {
 }
 
 
-export function DNAPanel({ dna, loading, error, onRetry, durationMs, fetchedAt }: DNAPanelProps) {
+export function DNAPanel({ dna, clientId, loading, error, onRetry, durationMs, fetchedAt }: DNAPanelProps) {
   if (loading) return <Card><CardTitle icon={Dna}>Client DNA</CardTitle><SkeletonPills /><SkeletonBlock /></Card>;
   if (error) return <Card><CardTitle icon={Dna}>Client DNA</CardTitle><ErrorState message={error} onRetry={onRetry} /></Card>;
   if (!dna) return <Card><CardTitle icon={Dna}>Client DNA</CardTitle><EmptyState message="Select a client to view DNA profile" /></Card>;
 
-  const [expandedTrait, setExpandedTrait] = useState<string | null>(null);
+  const [drawerTrait, setDrawerTrait] = useState<string | null>(null);
+  const [drawerCategory, setDrawerCategory] = useState<string | null>(null);
 
   const avgConfidence = (() => {
     const vals = Object.values(dna.traitConfidence || {});
     return vals.length > 0 ? vals.reduce((a, b) => a + b, 0) / vals.length : 0;
   })();
-
-  const traitEvidence = (trait: string) =>
-    (dna.evidence ?? []).filter(e =>
-      e.trait.toLowerCase().includes(trait.toLowerCase()) ||
-      trait.toLowerCase().includes(e.trait.toLowerCase())
-    );
-
-  const traitConfidence = dna.traitConfidence ?? {};
 
   const timelineData = useMemo(() => {
     if (!dna.evidence || dna.evidence.length === 0) return [];
@@ -49,43 +44,14 @@ export function DNAPanel({ dna, loading, error, onRetry, durationMs, fetchedAt }
     return Object.entries(byYear).sort((a, b) => a[0].localeCompare(b[0]));
   }, [dna.evidence]);
 
-  function TraitPill({
-    item,
-    colorClass,
-  }: {
-    item: string;
-    colorClass: string;
-  }) {
-    const evidence = traitEvidence(item);
-    const isExpanded = expandedTrait === item;
-    return (
-      <div key={item}>
-        <span className="inline-flex items-center gap-1.5">
-          <button
-            onClick={() => setExpandedTrait(isExpanded ? null : item)}
-            className={`text-xs px-2.5 py-1 rounded-full ${colorClass} hover:opacity-80 transition-opacity cursor-pointer`}
-          >
-            {item}
-            {evidence.length > 0 && (
-              <span className="ml-1 opacity-60">📎</span>
-            )}
-          </button>
-          {traitConfidence[item] != null && (
-            <ConfidenceBadge score={traitConfidence[item]} />
-          )}
-        </span>
-        {isExpanded && evidence.length > 0 && (
-          <div className="mt-1 ml-2 mb-2">
-            {evidence.map((e, j) => (
-              <blockquote key={j} className="border-l-2 border-slate-600 pl-2 text-xs text-slate-400 italic my-1">
-                "{e.crmExcerpt}"
-                <span className="text-slate-500 block not-italic">{e.crmDate}</span>
-              </blockquote>
-            ))}
-          </div>
-        )}
-      </div>
-    );
+  function openDrawer(trait: string, category: string) {
+    setDrawerTrait(trait);
+    setDrawerCategory(category);
+  }
+
+  function closeDrawer() {
+    setDrawerTrait(null);
+    setDrawerCategory(null);
   }
 
   return (
@@ -111,16 +77,23 @@ export function DNAPanel({ dna, loading, error, onRetry, durationMs, fetchedAt }
         <ConfidenceBadge score={avgConfidence} />
       </div>
 
-      {/* All categories */}
+      {/* All categories — scrollable list boxes */}
       <div className="space-y-4">
 
-        {/* Values */}
+        {/* Client Values */}
         {dna.values && dna.values.length > 0 && (
           <div>
-            <p className="text-xs font-medium text-slate-400 uppercase tracking-wide mb-1.5">Values</p>
-            <div className="flex flex-wrap gap-1.5">
-              {dna.values.map((item) => (
-                <TraitPill key={item} item={item} colorClass="bg-six-orange/15 text-six-orange" />
+            <p className="text-xs font-medium text-slate-400 uppercase tracking-wide mb-1.5">Client Values</p>
+            <div className="h-40 overflow-y-auto bg-slate-800/50 border border-slate-700 rounded-lg">
+              {dna.values.map((item, idx) => (
+                <button
+                  key={item}
+                  onClick={() => openDrawer(item, "values")}
+                  className={`w-full flex items-center justify-between px-3 py-2 text-sm text-left text-slate-300 hover:bg-slate-700/60 transition-colors ${idx < dna.values!.length - 1 ? "border-b border-slate-700/50" : ""}`}
+                >
+                  <span className="capitalize">{item}</span>
+                  <ChevronRight className="h-3.5 w-3.5 text-slate-500 shrink-0" />
+                </button>
               ))}
             </div>
           </div>
@@ -133,14 +106,12 @@ export function DNAPanel({ dna, loading, error, onRetry, durationMs, fetchedAt }
             <div className="flex flex-col gap-0">
               {dna.lifeEvents.map((item, idx) => (
                 <div key={item} className="flex items-stretch gap-3">
-                  {/* Dot + vertical line */}
                   <div className="flex flex-col items-center">
                     <div className="h-2 w-2 rounded-full bg-purple-400 mt-1 shrink-0" />
                     {idx < dna.lifeEvents!.length - 1 && (
                       <div className="w-0.5 flex-1 bg-slate-700 mt-1" />
                     )}
                   </div>
-                  {/* Text */}
                   <p className="text-sm text-slate-300 pb-3">{item}</p>
                 </div>
               ))}
@@ -148,37 +119,58 @@ export function DNAPanel({ dna, loading, error, onRetry, durationMs, fetchedAt }
           </div>
         )}
 
-        {/* Business Context — pills */}
+        {/* Business Context */}
         {dna.businessContext && dna.businessContext.length > 0 && (
           <div>
             <p className="text-xs font-medium text-slate-400 uppercase tracking-wide mb-1.5">Business Context</p>
-            <div className="flex flex-wrap gap-1.5">
-              {dna.businessContext.map((item) => (
-                <TraitPill key={item} item={item} colorClass="bg-cyan-900/50 text-cyan-300" />
+            <div className="h-40 overflow-y-auto bg-slate-800/50 border border-slate-700 rounded-lg">
+              {dna.businessContext.map((item, idx) => (
+                <button
+                  key={item}
+                  onClick={() => openDrawer(item, "businessContext")}
+                  className={`w-full flex items-center justify-between px-3 py-2 text-sm text-left text-slate-300 hover:bg-slate-700/60 transition-colors ${idx < dna.businessContext!.length - 1 ? "border-b border-slate-700/50" : ""}`}
+                >
+                  <span className="capitalize">{item}</span>
+                  <ChevronRight className="h-3.5 w-3.5 text-slate-500 shrink-0" />
+                </button>
               ))}
             </div>
           </div>
         )}
 
-        {/* Risk Sensitivities — pills */}
+        {/* Risk Sensitivities */}
         {dna.riskSensitivities && dna.riskSensitivities.length > 0 && (
           <div>
             <p className="text-xs font-medium text-slate-400 uppercase tracking-wide mb-1.5">Risk Sensitivities</p>
-            <div className="flex flex-wrap gap-1.5">
-              {dna.riskSensitivities.map((item) => (
-                <TraitPill key={item} item={item} colorClass="bg-red-900/50 text-red-300" />
+            <div className="h-40 overflow-y-auto bg-slate-800/50 border border-slate-700 rounded-lg">
+              {dna.riskSensitivities.map((item, idx) => (
+                <button
+                  key={item}
+                  onClick={() => openDrawer(item, "riskSensitivities")}
+                  className={`w-full flex items-center justify-between px-3 py-2 text-sm text-left text-slate-300 hover:bg-slate-700/60 transition-colors ${idx < dna.riskSensitivities!.length - 1 ? "border-b border-slate-700/50" : ""}`}
+                >
+                  <span className="capitalize">{item}</span>
+                  <ChevronRight className="h-3.5 w-3.5 text-slate-500 shrink-0" />
+                </button>
               ))}
             </div>
           </div>
         )}
 
-        {/* Personal Priorities — pills */}
+        {/* Personal Priorities */}
         {dna.personalPriorities && dna.personalPriorities.length > 0 && (
           <div>
             <p className="text-xs font-medium text-slate-400 uppercase tracking-wide mb-1.5">Personal Priorities</p>
-            <div className="flex flex-wrap gap-1.5">
-              {dna.personalPriorities.map((item) => (
-                <TraitPill key={item} item={item} colorClass="bg-green-900/50 text-green-300" />
+            <div className="h-40 overflow-y-auto bg-slate-800/50 border border-slate-700 rounded-lg">
+              {dna.personalPriorities.map((item, idx) => (
+                <button
+                  key={item}
+                  onClick={() => openDrawer(item, "personalPriorities")}
+                  className={`w-full flex items-center justify-between px-3 py-2 text-sm text-left text-slate-300 hover:bg-slate-700/60 transition-colors ${idx < dna.personalPriorities!.length - 1 ? "border-b border-slate-700/50" : ""}`}
+                >
+                  <span className="capitalize">{item}</span>
+                  <ChevronRight className="h-3.5 w-3.5 text-slate-500 shrink-0" />
+                </button>
               ))}
             </div>
           </div>
@@ -231,6 +223,15 @@ export function DNAPanel({ dna, loading, error, onRetry, durationMs, fetchedAt }
           </div>
         </details>
       )}
+
+      <TraitDrawer
+        open={drawerTrait !== null}
+        trait={drawerTrait}
+        category={drawerCategory}
+        evidence={dna.evidence ?? []}
+        clientId={clientId}
+        onClose={closeDrawer}
+      />
       </FadeIn>
     </Card>
   );
