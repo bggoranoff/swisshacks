@@ -19,6 +19,15 @@ import { generatePresentation } from "./utils/generate-pptx";
 import { knowledgeGraphService } from "./services/knowledge-graph.service";
 import { detectConflicts } from "./agents/conflict.agent";
 import { chat, getChatHistory } from "./agents/chat.agent";
+import type { ClientProfile } from "./types/data";
+import type { ScoredNewsArticle } from "./types/news";
+import type {
+  HomeAffectedClient,
+  HomeDashboard,
+  HomeNewsItem,
+  HomeTodo,
+  HomeTodoSeverity,
+} from "./types/home";
 
 const app = express();
 const port = parseInt(process.env.PORT || "3000", 10);
@@ -85,6 +94,251 @@ app.get("/api/clients/:id/dna", asyncHandler(async (req: Request, res: Response)
 
 // Client News
 const newsAgent = new NewsAgent();
+
+const severityRank: Record<HomeTodoSeverity, number> = {
+  critical: 4,
+  high: 3,
+  medium: 2,
+  low: 1,
+};
+
+type AggregatedNewsItem = HomeNewsItem & { maxRelevance: number };
+type AggregatedTodo = HomeTodo & { maxRelevance: number };
+
+interface HomeDashboardOptions {
+  includeScenario: boolean;
+}
+
+function normalizeArticleKey(article: ScoredNewsArticle): string {
+  const source = article.title || article.id;
+  const key = source
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim()
+    .split(/\s+/)
+    .slice(0, 12)
+    .join("-");
+  return key || article.id;
+}
+
+function dateValue(date: string): number {
+  const value = new Date(date).getTime();
+  return Number.isFinite(value) ? value : 0;
+}
+
+function makeAffectedClient(client: ClientProfile, article: ScoredNewsArticle): HomeAffectedClient {
+  return {
+    id: client.id,
+    name: client.name,
+    strategy: client.strategy,
+    reason: article.relevanceReason || "Matched this client's monitored themes.",
+    relevanceScore: article.relevanceScore,
+    alertType: article.alertType,
+  };
+}
+
+function addAffectedClient(clients: HomeAffectedClient[], affected: HomeAffectedClient) {
+  const existing = clients.find(c => c.id === affected.id);
+  if (!existing) {
+    clients.push(affected);
+    return;
+  }
+
+  if (affected.relevanceScore > existing.relevanceScore) {
+    existing.reason = affected.reason;
+    existing.relevanceScore = affected.relevanceScore;
+    existing.alertType = affected.alertType;
+  }
+}
+
+function shouldCreateTodo(article: ScoredNewsArticle): boolean {
+  return (article.isAlert && article.relevanceScore >= 0.7) || article.relevanceScore >= 0.82;
+}
+
+function shouldAttachClient(article: ScoredNewsArticle): boolean {
+  return (article.isAlert && article.relevanceScore >= 0.7) || article.relevanceScore >= 0.6;
+}
+
+function severityForArticle(article: ScoredNewsArticle, affectedClientCount: number): HomeTodoSeverity {
+  if (
+    article.alertType === "conflict" &&
+    (article.relevanceScore >= 0.9 || affectedClientCount >= 2 || article.sentimentLabel === "BEARISH")
+  ) {
+    return "critical";
+  }
+  if (article.alertType === "conflict" || article.relevanceScore >= 0.85) {
+    return "high";
+  }
+  if (article.alertType === "opportunity" || article.relevanceScore >= 0.7) {
+    return "medium";
+  }
+  return "low";
+}
+
+function titleForTodo(article: ScoredNewsArticle): string {
+  if (article.alertType === "conflict") {
+    return `Review portfolio risk: ${article.title}`;
+  }
+  if (article.alertType === "opportunity") {
+    return `Assess client opportunity: ${article.title}`;
+  }
+  return `Review client relevance: ${article.title}`;
+}
+
+function recommendedActionForArticle(article: ScoredNewsArticle): string {
+  if (article.alertType === "conflict") {
+    return "Review affected holdings, check suitability against client DNA, and prepare client communication with possible swap or rebalance options.";
+  }
+  if (article.alertType === "opportunity") {
+    return "Assess suitability against client DNA and prepare a short opportunity note for affected clients.";
+  }
+  return "Review relevance and decide whether client outreach is needed.";
+}
+
+function riskTagsForArticle(article: ScoredNewsArticle): string[] {
+  const tags = new Set<string>();
+
+  if (article.alertType === "conflict") tags.add("Portfolio conflict");
+  if (article.alertType === "opportunity") tags.add("Opportunity");
+  if (article.sentimentLabel === "BEARISH") tags.add("Bearish news");
+  if (article.sentimentLabel === "BULLISH") tags.add("Bullish news");
+  tags.add(article.sourceType === "scenario" ? "Scenario source" : "Live news");
+
+  return Array.from(tags);
+}
+
+function sourceArticle(article: ScoredNewsArticle) {
+  return {
+    id: article.id,
+    title: article.title,
+    url: article.url,
+    source: article.source,
+    sourceType: article.sourceType,
+    publishedAt: article.publishedAt,
+  };
+}
+
+async function buildHomeDashboard(options: HomeDashboardOptions): Promise<HomeDashboard> {
+  const clients = getAllClients();
+  const newsByKey = new Map<string, AggregatedNewsItem>();
+  const todosByKey = new Map<string, AggregatedTodo>();
+
+  const digestResults = await Promise.allSettled(
+    clients.map(async client => ({
+      client,
+      digest: await newsAgent.getNewsDigest(client.id),
+    }))
+  );
+
+  for (const result of digestResults) {
+    if (result.status === "rejected") {
+      console.warn("[Home] Failed to build one client news digest:", result.reason);
+      continue;
+    }
+
+    const { client, digest } = result.value;
+
+    for (const article of digest.articles) {
+      if (!options.includeScenario && article.sourceType === "scenario") {
+        continue;
+      }
+
+      const articleKey = normalizeArticleKey(article);
+      const affectedClient = makeAffectedClient(client, article);
+
+      let newsItem = newsByKey.get(articleKey);
+      if (!newsItem) {
+        newsItem = {
+          id: `home-news-${articleKey}`,
+          articleId: article.id,
+          title: article.title,
+          summary: article.summary,
+          source: article.source,
+          sourceType: article.sourceType,
+          url: article.url,
+          publishedAt: article.publishedAt,
+          sentiment: article.sentiment,
+          sentimentLabel: article.sentimentLabel,
+          relevanceScore: article.relevanceScore,
+          affectedClients: [],
+          maxRelevance: article.relevanceScore,
+        };
+        newsByKey.set(articleKey, newsItem);
+      } else {
+        newsItem.relevanceScore = Math.max(newsItem.relevanceScore, article.relevanceScore);
+        newsItem.maxRelevance = Math.max(newsItem.maxRelevance, article.relevanceScore);
+
+        if (dateValue(article.publishedAt) > dateValue(newsItem.publishedAt)) {
+          newsItem.articleId = article.id;
+          newsItem.title = article.title;
+          newsItem.summary = article.summary;
+          newsItem.source = article.source;
+          newsItem.sourceType = article.sourceType;
+          newsItem.url = article.url;
+          newsItem.publishedAt = article.publishedAt;
+          newsItem.sentiment = article.sentiment;
+          newsItem.sentimentLabel = article.sentimentLabel;
+        }
+      }
+
+      if (shouldAttachClient(article)) {
+        addAffectedClient(newsItem.affectedClients, affectedClient);
+      }
+
+      if (!shouldCreateTodo(article)) {
+        continue;
+      }
+
+      const todoKey = `${article.alertType || "review"}-${articleKey}`;
+      let todo = todosByKey.get(todoKey);
+      if (!todo) {
+        todo = {
+          id: `home-todo-${todoKey}`,
+          title: titleForTodo(article),
+          summary: article.relevanceReason || article.summary,
+          severity: severityForArticle(article, 1),
+          triggerType: "news",
+          recommendedAction: recommendedActionForArticle(article),
+          affectedClients: [],
+          sourceArticle: sourceArticle(article),
+          createdAt: new Date().toISOString(),
+          riskTags: riskTagsForArticle(article),
+          maxRelevance: article.relevanceScore,
+        };
+        todosByKey.set(todoKey, todo);
+      }
+
+      addAffectedClient(todo.affectedClients, affectedClient);
+      todo.maxRelevance = Math.max(todo.maxRelevance, article.relevanceScore);
+
+      const nextSeverity = severityForArticle(article, todo.affectedClients.length);
+      if (severityRank[nextSeverity] > severityRank[todo.severity]) {
+        todo.severity = nextSeverity;
+      }
+    }
+  }
+
+  const latestNews = Array.from(newsByKey.values())
+    .sort((a, b) => dateValue(b.publishedAt) - dateValue(a.publishedAt) || b.maxRelevance - a.maxRelevance)
+    .slice(0, 12)
+    .map(({ maxRelevance, ...item }) => item);
+
+  const todos = Array.from(todosByKey.values())
+    .sort((a, b) =>
+      severityRank[b.severity] - severityRank[a.severity] ||
+      b.affectedClients.length - a.affectedClients.length ||
+      b.maxRelevance - a.maxRelevance
+    )
+    .slice(0, 12)
+    .map(({ maxRelevance, ...todo }) => todo);
+
+  return {
+    todos,
+    latestNews,
+    generatedAt: new Date().toISOString(),
+  };
+}
+
 app.get("/api/clients/:id/news", asyncHandler(async (req: Request, res: Response) => {
   const client = getClient(req.params.id);
   if (!client) {
@@ -93,6 +347,15 @@ app.get("/api/clients/:id/news", asyncHandler(async (req: Request, res: Response
   }
   const digest = await newsAgent.getNewsDigest(client.id);
   res.json({ success: true, data: digest });
+}));
+
+app.get("/api/home", asyncHandler(async (req: Request, res: Response) => {
+  const includeScenario =
+    req.query.demo === "true" ||
+    req.query.scenario === "true" ||
+    process.env.ENABLE_SCENARIO_NEWS === "true";
+  const dashboard = await buildHomeDashboard({ includeScenario });
+  res.json({ success: true, data: dashboard });
 }));
 
 // SIX MCP price cache (listingId → { close, currency, timestamp, fetchedAt })

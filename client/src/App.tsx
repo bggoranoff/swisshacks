@@ -1,5 +1,4 @@
 import { useState, useCallback, useRef, useEffect } from "react";
-import { Briefcase } from "lucide-react";
 import { Sidebar } from "./components/layout/Sidebar";
 import { Header } from "./components/layout/Header";
 import { TraceDrawer } from "./components/traces/TraceDrawer";
@@ -13,6 +12,7 @@ import { ErrorBoundary } from "./components/shared/ErrorBoundary";
 import { KnowledgeGraphPanel } from "./components/graph/KnowledgeGraphPanel";
 import { DecisionPanel } from "./components/decisions/DecisionPanel";
 import { ChatPanel } from "./components/chat/ChatPanel";
+import { HomePage } from "./pages/HomePage";
 import { useFetch } from "./hooks/useFetch";
 import { mockClients, mockDNA, mockPortfolios, mockNews, mockAdvisory } from "./data/mock";
 import type {
@@ -21,6 +21,7 @@ import type {
   PortfolioAnalysis,
   NewsDigest,
   AdvisoryMessage,
+  HomeDashboard,
 } from "./types/api";
 
 function App() {
@@ -37,6 +38,7 @@ function App() {
 
   // Fetch clients list
   const clientsFetch = useFetch<ClientSummary[]>("/api/clients");
+  const homeFetch = useFetch<HomeDashboard>("/api/home");
   const clients = clientsFetch.data ?? mockClients;
 
   // Fetch client-specific data when a client is selected
@@ -185,7 +187,7 @@ function App() {
 
   return (
     <div className="grid grid-cols-[260px_1fr] h-screen bg-slate-900 text-slate-100 font-sans">
-      {(dnaLoading || portLoading || newsLoading) && (
+      {((!selectedId && homeFetch.loading) || dnaLoading || portLoading || newsLoading) && (
         <div className="fixed top-0 left-0 right-0 h-0.5 bg-slate-800 z-[60]">
           <div className="h-full bg-blue-500 animate-pulse" style={{ width: "60%", transition: "width 0.5s" }} />
         </div>
@@ -226,38 +228,13 @@ function App() {
         )}
         <main className="flex-1 overflow-y-auto p-6">
           {!selectedId ? (
-            <div className="grid grid-cols-2">
-              <div className="col-span-2 flex flex-col items-center justify-center h-96 text-center">
-                <div className="bg-slate-800 border border-slate-700 rounded-2xl p-8 max-w-lg">
-                  <div className="h-16 w-16 rounded-full bg-blue-600/20 flex items-center justify-center mx-auto mb-4">
-                    <Briefcase className="h-8 w-8 text-blue-400" />
-                  </div>
-                  <h2 className="text-xl font-semibold text-white mb-2">Welcome to WealthAdvisor AI</h2>
-                  <p className="text-slate-400 text-sm mb-4">
-                    Select a client from the sidebar to view their investment DNA, portfolio analysis,
-                    news alerts, and generate personalised advisory messages.
-                  </p>
-                  <div className="grid grid-cols-2 gap-3 text-left">
-                    <div className="bg-slate-700/50 rounded-lg p-3">
-                      <p className="text-xs text-blue-400 font-medium">Client DNA</p>
-                      <p className="text-xs text-slate-500 mt-1">AI-extracted values, priorities &amp; style</p>
-                    </div>
-                    <div className="bg-slate-700/50 rounded-lg p-3">
-                      <p className="text-xs text-green-400 font-medium">Portfolio Analysis</p>
-                      <p className="text-xs text-slate-500 mt-1">Holdings, drift &amp; allocation charts</p>
-                    </div>
-                    <div className="bg-slate-700/50 rounded-lg p-3">
-                      <p className="text-xs text-purple-400 font-medium">News Monitoring</p>
-                      <p className="text-xs text-slate-500 mt-1">Live news scored by relevance</p>
-                    </div>
-                    <div className="bg-slate-700/50 rounded-lg p-3">
-                      <p className="text-xs text-amber-400 font-medium">Advisory Messages</p>
-                      <p className="text-xs text-slate-500 mt-1">Personalised RM communication</p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
+            <HomePage
+              data={homeFetch.data}
+              loading={homeFetch.loading}
+              error={homeFetch.error}
+              onRetry={homeFetch.refetch}
+              onSelectClient={handleSelectClient}
+            />
           ) : (
             <div className="grid grid-cols-2 gap-6">
               {/* Client Header */}
