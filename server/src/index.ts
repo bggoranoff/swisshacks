@@ -2,6 +2,7 @@ import dotenv from "dotenv";
 import path from "path";
 dotenv.config({ path: path.resolve(__dirname, "../../.env") });
 import express, { Request, Response, NextFunction } from "express";
+import axios from "axios";
 import cors from "cors";
 import helmet from "helmet";
 import morgan from "morgan";
@@ -81,6 +82,62 @@ app.get("/api/clients/:id/dna", asyncHandler(async (req: Request, res: Response)
   const forceRefresh = req.query.refresh === "true";
   const dna = await extractDNA(client.id, client.crmEntries, forceRefresh);
   res.json({ success: true, data: dna });
+}));
+
+// Trait summary — on-demand LLM explanation of a single DNA trait
+app.post("/api/clients/:id/trait-summary", asyncHandler(async (req: Request, res: Response) => {
+  const client = getClient(req.params.id);
+  if (!client) {
+    res.status(404).json({ success: false, error: "Client not found" });
+    return;
+  }
+  const { trait, category, evidence } = req.body || {};
+  if (!trait || typeof trait !== "string") {
+    res.status(400).json({ success: false, error: "trait is required" });
+    return;
+  }
+
+  const evidenceLines = Array.isArray(evidence) && evidence.length > 0
+    ? evidence.map((e: { crmDate: string; crmExcerpt: string }) =>
+        `- ${e.crmDate}: "${e.crmExcerpt}"`
+      ).join("\n")
+    : "No direct CRM citations available.";
+
+  const categoryLabel: Record<string, string> = {
+    values: "core investment value",
+    businessContext: "business context factor",
+    riskSensitivities: "risk sensitivity",
+    personalPriorities: "personal priority",
+  };
+  const label = categoryLabel[category] || "trait";
+
+  const systemPrompt = `You are a senior wealth management advisor writing a brief internal note. Explain in 2-3 sentences why a trait characterises a client's investment identity. Be specific to the evidence. Write in plain English, no bullet points.`;
+  const userPrompt = `Client: ${client.name}\nTrait: "${trait}" (${label})\n\nSupporting CRM evidence:\n${evidenceLines}\n\nExplain why "${trait}" is a defining ${label} for this client.`;
+
+  const llmUrl = (process.env.PHOENIQS_API_URL || "https://maas.phoeniqs.com/v1") + "/chat/completions";
+  const llmKey = process.env.PHOENIQS_API_KEY || "";
+  const llmModel = process.env.PHOENIQS_MODEL || "inference-gpt-oss-120b";
+
+  const resp = await axios.post(
+    llmUrl,
+    {
+      model: llmModel,
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: userPrompt },
+      ],
+      temperature: 0.3,
+      max_tokens: 200,
+    },
+    {
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${llmKey}` },
+      timeout: 30000,
+    }
+  );
+  const choice = resp.data?.choices?.[0];
+  const summary = choice?.message?.content || choice?.message?.reasoning_content || choice?.text || "";
+
+  res.json({ success: true, data: { summary: summary.trim() } });
 }));
 
 // Client News
