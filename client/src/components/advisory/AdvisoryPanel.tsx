@@ -14,6 +14,8 @@ import {
   ScanSearch,
   Bell,
   Download,
+  Check,
+  X,
 } from "lucide-react";
 
 interface AdvisoryPanelProps {
@@ -89,7 +91,8 @@ function AdvisorySkeleton() {
   );
 }
 
-export function AdvisoryPanel({ advisory, loading, clientId, contextAlertTitle, onGenerate, onRegenerate }: AdvisoryPanelProps) {
+export function AdvisoryPanel({ advisory: advisoryProp, loading, clientId, contextAlertTitle, onGenerate, onRegenerate }: AdvisoryPanelProps) {
+  const [advisory, setAdvisory] = useState<AdvisoryMessage | null>(advisoryProp);
   const [isEditing, setIsEditing] = useState(false);
   const [editedBody, setEditedBody] = useState("");
   const [savedBody, setSavedBody] = useState<string | null>(null);
@@ -109,6 +112,10 @@ export function AdvisoryPanel({ advisory, loading, clientId, contextAlertTitle, 
       };
     }
   }, [loading]);
+
+  useEffect(() => {
+    setAdvisory(advisoryProp);
+  }, [advisoryProp]);
 
   useEffect(() => {
     if (advisory) {
@@ -174,6 +181,23 @@ export function AdvisoryPanel({ advisory, loading, clientId, contextAlertTitle, 
     a.click();
     URL.revokeObjectURL(url);
   }
+
+  const handleStatusUpdate = async (status: "approved" | "rejected") => {
+    if (!advisory) return;
+    try {
+      const res = await fetch(`/api/clients/${clientId}/advisory/${advisory.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status }),
+      });
+      const json = await res.json();
+      if (json.success) {
+        setAdvisory(json.data);
+      }
+    } catch (err) {
+      console.error("Failed to update status:", err);
+    }
+  };
 
   const toneStyle = toneStyles[advisory?.tone ?? ""] ?? toneStyles.balanced;
 
@@ -359,6 +383,34 @@ export function AdvisoryPanel({ advisory, loading, clientId, contextAlertTitle, 
                 {advisory.reasoning}
               </div>
             </details>
+          )}
+
+          {/* Approve / Reject */}
+          {advisory && advisory.status === "draft" && (
+            <div className="flex items-center gap-3 mt-4 pt-3 border-t border-slate-700">
+              <button
+                onClick={() => handleStatusUpdate("approved")}
+                className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-colors"
+              >
+                <Check className="h-4 w-4" /> Approve
+              </button>
+              <button
+                onClick={() => handleStatusUpdate("rejected")}
+                className="bg-red-600/20 hover:bg-red-600/30 text-red-300 px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-colors border border-red-600/30"
+              >
+                <X className="h-4 w-4" /> Reject
+              </button>
+              <span className="text-xs text-slate-500 ml-auto">RM decision required</span>
+            </div>
+          )}
+          {advisory && advisory.status !== "draft" && (
+            <div className="flex items-center gap-2 mt-4 pt-3 border-t border-slate-700">
+              <span className={`text-sm font-medium px-3 py-1 rounded-full ${
+                advisory.status === "approved" ? "bg-green-900/50 text-green-300" : "bg-red-900/50 text-red-300"
+              }`}>
+                {advisory.status === "approved" ? "✓ Approved" : "✗ Rejected"}
+              </span>
+            </div>
           )}
 
           {/* Disclaimer */}
