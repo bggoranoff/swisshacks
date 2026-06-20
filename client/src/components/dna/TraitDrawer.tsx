@@ -14,6 +14,7 @@ interface TraitDrawerProps {
   evidence: EvidenceItem[];
   clientId: string;
   onClose: () => void;
+  rightOffset?: number;
 }
 
 const CATEGORY_LABELS: Record<string, string> = {
@@ -23,7 +24,7 @@ const CATEGORY_LABELS: Record<string, string> = {
   personalPriorities: "Personal Priority",
 };
 
-export function TraitDrawer({ open, trait, category, evidence, clientId, onClose }: TraitDrawerProps) {
+export function TraitDrawer({ open, trait, category, evidence, clientId, onClose, rightOffset = 0 }: TraitDrawerProps) {
   const [summary, setSummary] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [fetchError, setFetchError] = useState<string | null>(null);
@@ -73,7 +74,8 @@ export function TraitDrawer({ open, trait, category, evidence, clientId, onClose
       )}
 
       <div
-        className={`fixed top-0 right-0 h-full w-96 z-50 bg-slate-900 border-l border-slate-700 shadow-2xl flex flex-col transition-transform duration-300 ${
+        style={{ right: rightOffset }}
+        className={`fixed top-0 h-full w-96 z-50 bg-slate-900 border-l border-slate-700 shadow-2xl flex flex-col transition-transform duration-300 ${
           open ? "translate-x-0" : "translate-x-full"
         }`}
       >

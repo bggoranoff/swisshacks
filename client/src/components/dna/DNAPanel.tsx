@@ -1,4 +1,5 @@
-import { useState, useMemo } from "react";
+import { useMemo } from "react";
+// drawer state is lifted to App.tsx
 import type { ClientDNA } from "../../types/api";
 import { Card, CardTitle } from "../shared/Card";
 import { SkeletonBlock, SkeletonPills } from "../shared/SkeletonLoader";
@@ -6,11 +7,11 @@ import { ErrorState } from "../shared/ErrorState";
 import { EmptyState } from "../shared/EmptyState";
 import { FadeIn } from "../shared/FadeIn";
 import { Dna, ChevronDown, ChevronRight, Clock } from "lucide-react";
-import { TraitDrawer } from "./TraitDrawer";
 
 interface DNAPanelProps {
   dna: ClientDNA | null;
   clientId: string;
+  onOpenDrawer: (trait: string, category: string) => void;
   loading: boolean;
   error: string | null;
   onRetry: () => void;
@@ -19,13 +20,10 @@ interface DNAPanelProps {
 }
 
 
-export function DNAPanel({ dna, clientId, loading, error, onRetry, durationMs, fetchedAt }: DNAPanelProps) {
+export function DNAPanel({ dna, clientId, onOpenDrawer, loading, error, onRetry, durationMs, fetchedAt }: DNAPanelProps) {
   if (loading) return <Card><CardTitle icon={Dna}>Client DNA</CardTitle><SkeletonPills /><SkeletonBlock /></Card>;
   if (error) return <Card><CardTitle icon={Dna}>Client DNA</CardTitle><ErrorState message={error} onRetry={onRetry} /></Card>;
   if (!dna) return <Card><CardTitle icon={Dna}>Client DNA</CardTitle><EmptyState message="Select a client to view DNA profile" /></Card>;
-
-  const [drawerTrait, setDrawerTrait] = useState<string | null>(null);
-  const [drawerCategory, setDrawerCategory] = useState<string | null>(null);
 
   const timelineData = useMemo(() => {
     if (!dna.evidence || dna.evidence.length === 0) return [];
@@ -37,16 +35,6 @@ export function DNAPanel({ dna, clientId, loading, error, onRetry, durationMs, f
     });
     return Object.entries(byYear).sort((a, b) => a[0].localeCompare(b[0]));
   }, [dna.evidence]);
-
-  function openDrawer(trait: string, category: string) {
-    setDrawerTrait(trait);
-    setDrawerCategory(category);
-  }
-
-  function closeDrawer() {
-    setDrawerTrait(null);
-    setDrawerCategory(null);
-  }
 
   return (
     <Card>
@@ -81,7 +69,7 @@ export function DNAPanel({ dna, clientId, loading, error, onRetry, durationMs, f
               {dna.values.map((item, idx) => (
                 <button
                   key={item}
-                  onClick={() => openDrawer(item, "values")}
+                  onClick={() => onOpenDrawer(item, "values")}
                   className={`w-full flex items-center justify-between px-3 py-2 text-sm text-left text-slate-300 hover:bg-slate-700/60 transition-colors ${idx < dna.values!.length - 1 ? "border-b border-slate-700/50" : ""}`}
                 >
                   <span className="capitalize">{item}</span>
@@ -120,7 +108,7 @@ export function DNAPanel({ dna, clientId, loading, error, onRetry, durationMs, f
               {dna.businessContext.map((item, idx) => (
                 <button
                   key={item}
-                  onClick={() => openDrawer(item, "businessContext")}
+                  onClick={() => onOpenDrawer(item, "businessContext")}
                   className={`w-full flex items-center justify-between px-3 py-2 text-sm text-left text-slate-300 hover:bg-slate-700/60 transition-colors ${idx < dna.businessContext!.length - 1 ? "border-b border-slate-700/50" : ""}`}
                 >
                   <span className="capitalize">{item}</span>
@@ -139,7 +127,7 @@ export function DNAPanel({ dna, clientId, loading, error, onRetry, durationMs, f
               {dna.riskSensitivities.map((item, idx) => (
                 <button
                   key={item}
-                  onClick={() => openDrawer(item, "riskSensitivities")}
+                  onClick={() => onOpenDrawer(item, "riskSensitivities")}
                   className={`w-full flex items-center justify-between px-3 py-2 text-sm text-left text-slate-300 hover:bg-slate-700/60 transition-colors ${idx < dna.riskSensitivities!.length - 1 ? "border-b border-slate-700/50" : ""}`}
                 >
                   <span className="capitalize">{item}</span>
@@ -158,7 +146,7 @@ export function DNAPanel({ dna, clientId, loading, error, onRetry, durationMs, f
               {dna.personalPriorities.map((item, idx) => (
                 <button
                   key={item}
-                  onClick={() => openDrawer(item, "personalPriorities")}
+                  onClick={() => onOpenDrawer(item, "personalPriorities")}
                   className={`w-full flex items-center justify-between px-3 py-2 text-sm text-left text-slate-300 hover:bg-slate-700/60 transition-colors ${idx < dna.personalPriorities!.length - 1 ? "border-b border-slate-700/50" : ""}`}
                 >
                   <span className="capitalize">{item}</span>
@@ -217,14 +205,6 @@ export function DNAPanel({ dna, clientId, loading, error, onRetry, durationMs, f
         </details>
       )}
 
-      <TraitDrawer
-        open={drawerTrait !== null}
-        trait={drawerTrait}
-        category={drawerCategory}
-        evidence={dna.evidence ?? []}
-        clientId={clientId}
-        onClose={closeDrawer}
-      />
       </FadeIn>
     </Card>
   );

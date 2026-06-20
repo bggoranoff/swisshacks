@@ -1,3 +1,4 @@
+import type { CSSProperties } from "react";
 import clsx from "clsx";
 import type { ClientSummary } from "../../types/api";
 import { Users } from "lucide-react";
@@ -26,8 +27,10 @@ interface SidebarProps {
   clients: ClientSummary[];
   selectedId: string | null;
   onSelect: (id: string) => void;
+  onHome?: () => void;
   loading: boolean;
   conflictCount?: number;
+  style?: CSSProperties;
 }
 
 function SidebarSkeleton() {
@@ -46,13 +49,15 @@ function SidebarSkeleton() {
   );
 }
 
-export function Sidebar({ clients, selectedId, onSelect, loading, conflictCount }: SidebarProps) {
+export function Sidebar({ clients, selectedId, onSelect, onHome, loading, conflictCount, style }: SidebarProps) {
   return (
-    <aside className="flex flex-col gap-1 p-4 bg-slate-900 border-r border-slate-700 overflow-y-auto shadow-lg shadow-black/20">
+    <aside style={style} className="flex flex-col gap-1 p-4 bg-slate-900 border-r border-slate-700 overflow-y-auto shadow-lg shadow-black/20 h-screen">
       {/* Logo / branding */}
       <div className="px-3 pb-3 mb-1">
-        <span className="text-sm font-bold tracking-tight text-six-orange">SIX</span>
-        <span className="text-sm font-normal tracking-tight text-slate-500 ml-1">AI</span>
+        <button onClick={onHome} className="hover:opacity-75 transition-opacity">
+          <span className="text-sm font-bold tracking-tight text-six-orange">SIX</span>
+          <span className="text-sm font-normal tracking-tight text-slate-500 ml-1">AI</span>
+        </button>
       </div>
       <div className="border-t border-slate-700/60 mb-3" />
       <div className="flex items-center gap-2 mb-3 px-3">

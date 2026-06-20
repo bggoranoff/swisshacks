@@ -1,12 +1,7 @@
 import { useState, useCallback, useRef, useEffect } from "react";
 import { Briefcase, MessageCircle } from "lucide-react";
-
-interface ChatMessage {
-  role: "user" | "assistant";
-  content: string;
-  timestamp: string;
-}
 import { Sidebar } from "./components/layout/Sidebar";
+import { TraitDrawer } from "./components/dna/TraitDrawer";
 import { Header } from "./components/layout/Header";
 import { TraceDrawer } from "./components/traces/TraceDrawer";
 import { AuditDrawer } from "./components/audit/AuditDrawer";
@@ -30,6 +25,27 @@ import type {
   AdvisoryMessage,
 } from "./types/api";
 
+interface ChatMessage {
+  role: "user" | "assistant";
+  content: string;
+  timestamp: string;
+}
+
+interface DrawerState {
+  open: boolean;
+  trait: string | null;
+  category: string | null;
+}
+
+function ResizeHandle({ onMouseDown }: { onMouseDown: (e: React.MouseEvent) => void }) {
+  return (
+    <div
+      className="w-1 shrink-0 cursor-col-resize bg-slate-700 hover:bg-six-orange/60 active:bg-six-orange transition-colors z-30"
+      onMouseDown={onMouseDown}
+    />
+  );
+}
+
 function App() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [tracesOpen, setTracesOpen] = useState(false);
@@ -41,10 +57,55 @@ function App() {
   const [approvedAlertId, setApprovedAlertId] = useState<string | null>(null);
   const [advisoryLanguage, setAdvisoryLanguage] = useState<string>("en");
   const [chatHistories, setChatHistories] = useState<Record<string, ChatMessage[]>>({});
+  const [sidebarWidth, setSidebarWidth] = useState(260);
+  const [chatWidth, setChatWidth] = useState(360);
+  const [drawer, setDrawer] = useState<DrawerState>({ open: false, trait: null, category: null });
 
   const handleChatHistoryChange = (clientId: string, msgs: ChatMessage[]) => {
     setChatHistories(prev => ({ ...prev, [clientId]: msgs }));
   };
+
+  const handleOpenDrawer = (trait: string, category: string) => {
+    setDrawer({ open: true, trait, category });
+  };
+
+  const handleCloseDrawer = () => {
+    setDrawer({ open: false, trait: null, category: null });
+  };
+
+  function startSidebarResize(e: React.MouseEvent) {
+    e.preventDefault();
+    const startX = e.clientX;
+    const startW = sidebarWidth;
+    document.body.style.cursor = "col-resize";
+    document.body.style.userSelect = "none";
+    const onMove = (ev: MouseEvent) => setSidebarWidth(Math.max(180, Math.min(480, startW + ev.clientX - startX)));
+    const onUp = () => {
+      document.body.style.cursor = "";
+      document.body.style.userSelect = "";
+      document.removeEventListener("mousemove", onMove);
+      document.removeEventListener("mouseup", onUp);
+    };
+    document.addEventListener("mousemove", onMove);
+    document.addEventListener("mouseup", onUp);
+  }
+
+  function startChatResize(e: React.MouseEvent) {
+    e.preventDefault();
+    const startX = e.clientX;
+    const startW = chatWidth;
+    document.body.style.cursor = "col-resize";
+    document.body.style.userSelect = "none";
+    const onMove = (ev: MouseEvent) => setChatWidth(Math.max(240, Math.min(560, startW + startX - ev.clientX)));
+    const onUp = () => {
+      document.body.style.cursor = "";
+      document.body.style.userSelect = "";
+      document.removeEventListener("mousemove", onMove);
+      document.removeEventListener("mouseup", onUp);
+    };
+    document.addEventListener("mousemove", onMove);
+    document.addEventListener("mouseup", onUp);
+  }
   const advisoryRef = useRef<HTMLDivElement>(null);
 
   // Fetch clients list
@@ -204,7 +265,7 @@ function App() {
   const newsLoading = newsFetch.loading;
 
   return (
-    <div className="grid grid-cols-[260px_1fr_360px] h-screen bg-slate-900 text-slate-100 font-sans">
+    <div className="flex h-screen bg-slate-900 text-slate-100 font-sans">
       {(dnaLoading || portLoading || newsLoading) && (
         <div className="fixed top-0 left-0 right-0 h-0.5 bg-slate-800 z-[60]">
           <div className="h-full bg-six-orange animate-pulse" style={{ width: "60%", transition: "width 0.5s" }} />
@@ -217,8 +278,10 @@ function App() {
         onHome={() => setSelectedId(null)}
         loading={clientsFetch.loading}
         conflictCount={portfolio?.conflicts?.length}
+        style={{ width: sidebarWidth, flexShrink: 0 }}
       />
-      <div className="flex flex-col h-screen overflow-hidden">
+      <ResizeHandle onMouseDown={startSidebarResize} />
+      <div className="flex flex-col flex-1 min-w-0 h-screen overflow-hidden">
         <Header onDemo={handleDemo} onTracesClick={() => setTracesOpen(true)} onAuditClick={() => setAuditOpen(true)} />
         {demoActive && (
           <div className="bg-six-orange/10 border-b border-six-orange/30 px-4 py-2 flex items-center justify-between">
@@ -276,9 +339,9 @@ function App() {
               </div>
             </div>
           ) : (
-            <div className="grid grid-cols-2 gap-6">
+            <div className="flex flex-col gap-6">
               {/* Advisory — top of page */}
-              <div ref={advisoryRef} className="col-span-2">
+              <div ref={advisoryRef}>
                 {(() => {
                   const firstNewsAlert = news?.alerts?.[0];
                   let contextAlertTitle: string | undefined;
@@ -306,7 +369,7 @@ function App() {
               </div>
 
               {/* Client Header */}
-              <div className="col-span-2 bg-slate-800/50 border border-slate-700 rounded-xl p-4 flex items-center justify-between">
+              <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-4 flex items-center justify-between flex-wrap gap-4">
                 <div className="flex items-center gap-4">
                   <div className={`h-12 w-12 rounded-full flex items-center justify-center text-lg font-semibold text-white ${
                     selectedId === "schneider" ? "bg-six-orange" :
@@ -343,25 +406,24 @@ function App() {
                   )}
                 </div>
               </div>
-              <div className="col-span-2 flex items-center gap-6 text-xs text-slate-400">
+              <div className="flex items-center gap-6 text-xs text-slate-400 flex-wrap">
                 <span>AUM: <span className="text-white font-medium">CHF {portfolio ? (portfolio.totalValueCHF / 1e6).toFixed(0) : '—'}M</span></span>
                 <span>Alerts: <span className="text-amber-400 font-medium">{news?.alerts?.length || 0}</span></span>
                 <span>Conflicts: <span className="text-red-400 font-medium">{portfolio?.conflicts?.length || 0}</span></span>
                 <span>DNA Traits: <span className="text-six-orange font-medium">{dna ? dna.values.length + dna.riskSensitivities.length : 0}</span></span>
               </div>
-              <div id="dna-panel">
-                <ErrorBoundary fallbackMessage="Failed to load DNA profile">
-                  <DNAPanel
-                    dna={dna}
-                    clientId={selectedId ?? ""}
-                    loading={dnaFetch.loading}
-                    error={dnaFetch.error && !dna ? dnaFetch.error : null}
-                    onRetry={dnaFetch.refetch}
-                    durationMs={dnaFetch.durationMs}
-                    fetchedAt={dnaFetch.fetchedAt}
-                  />
-                </ErrorBoundary>
-              </div>
+              <ErrorBoundary fallbackMessage="Failed to load DNA profile">
+                <DNAPanel
+                  dna={dna}
+                  clientId={selectedId ?? ""}
+                  onOpenDrawer={handleOpenDrawer}
+                  loading={dnaFetch.loading}
+                  error={dnaFetch.error && !dna ? dnaFetch.error : null}
+                  onRetry={dnaFetch.refetch}
+                  durationMs={dnaFetch.durationMs}
+                  fetchedAt={dnaFetch.fetchedAt}
+                />
+              </ErrorBoundary>
               <ErrorBoundary fallbackMessage="Failed to load portfolio">
                 <PortfolioTable
                   portfolio={portfolio}
@@ -382,35 +444,35 @@ function App() {
                   fetchedAt={newsFetch.fetchedAt}
                 />
               </ErrorBoundary>
-              <div id="alerts-panel">
-                <ErrorBoundary fallbackMessage="Failed to load alerts">
-                  <AlertsPanel
-                    news={news}
-                    portfolio={portfolio}
-                    portfolioConflicts={(portfolio as any)?.conflicts || []}
-                    loading={dnaFetch.loading || portfolioFetch.loading || newsFetch.loading}
-                    selectedId={selectedId}
-                    triggerEvent={clients?.find(c => c.id === selectedId)?.triggerEvent}
-                    onApprove={(id) => setApprovedAlertId(id)}
-                  />
-                </ErrorBoundary>
-              </div>
-              <ErrorBoundary fallbackMessage="Failed to load knowledge graph">
-                <KnowledgeGraphPanel clientId={selectedId} />
+              <ErrorBoundary fallbackMessage="Failed to load alerts">
+                <AlertsPanel
+                  news={news}
+                  portfolio={portfolio}
+                  portfolioConflicts={(portfolio as any)?.conflicts || []}
+                  loading={dnaFetch.loading || portfolioFetch.loading || newsFetch.loading}
+                  selectedId={selectedId}
+                  triggerEvent={clients?.find(c => c.id === selectedId)?.triggerEvent}
+                  onApprove={(id) => setApprovedAlertId(id)}
+                />
               </ErrorBoundary>
-              {/* AI Decision Log (NTT DATA Explainable AI) */}
-              <div className="col-span-2">
-                <ErrorBoundary fallbackMessage="Failed to load AI decisions">
-                  <DecisionPanel />
+              {/* Knowledge Graph row — 2 cols to leave room for a second graph */}
+              <div className="grid grid-cols-2 gap-6">
+                <ErrorBoundary fallbackMessage="Failed to load knowledge graph">
+                  <KnowledgeGraphPanel clientId={selectedId} />
                 </ErrorBoundary>
               </div>
+              <ErrorBoundary fallbackMessage="Failed to load AI decisions">
+                <DecisionPanel />
+              </ErrorBoundary>
             </div>
           )}
         </main>
       </div>
 
+      <ResizeHandle onMouseDown={startChatResize} />
+
       {/* Right chat column */}
-      <div className="flex flex-col h-screen bg-slate-900 border-l border-slate-700 overflow-hidden">
+      <div className="flex flex-col h-screen bg-slate-900 overflow-hidden" style={{ width: chatWidth, flexShrink: 0 }}>
         {selectedId ? (
           <ErrorBoundary fallbackMessage="Failed to load RM assistant">
             <ChatPanel
@@ -430,6 +492,17 @@ function App() {
 
       <TraceDrawer isOpen={tracesOpen} onClose={() => setTracesOpen(false)} />
       <AuditDrawer isOpen={auditOpen} onClose={() => setAuditOpen(false)} />
+
+      {/* Trait drawer — rendered at root so it can be positioned relative to chat column */}
+      <TraitDrawer
+        open={drawer.open}
+        trait={drawer.trait}
+        category={drawer.category}
+        evidence={dna?.evidence ?? []}
+        clientId={selectedId ?? ""}
+        onClose={handleCloseDrawer}
+        rightOffset={chatWidth}
+      />
     </div>
   );
 }
