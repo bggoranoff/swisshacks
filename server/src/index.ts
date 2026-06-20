@@ -250,6 +250,21 @@ app.patch("/api/clients/:id/advisory/:messageId", asyncHandler(async (req: Reque
   res.json({ success: true, data: msg });
 }));
 
+// Advisory comparison: generic vs DNA-personalised
+app.post("/api/clients/:id/advisory/compare", asyncHandler(async (req: Request, res: Response) => {
+  const client = getClient(req.params.id);
+  if (!client) {
+    res.status(404).json({ success: false, error: "Client not found" });
+    return;
+  }
+  const { alertId, language } = req.body || {};
+  const [personalised, generic] = await Promise.all([
+    messageAgent.generateAdvisory(client.id, alertId, undefined, language || "en"),
+    messageAgent.generateGenericAdvisory(client.id, alertId),
+  ]);
+  res.json({ success: true, data: { generic, personalised } });
+}));
+
 // Traces
 app.get("/api/traces", (_req, res) => {
   res.json({ success: true, data: traceService.getTraces() });

@@ -150,6 +150,8 @@ function App() {
         setTracesOpen(prev => !prev);
       } else if (e.key === "a" || e.key === "A") {
         setAuditOpen(prev => !prev);
+      } else if (e.key === "g" || e.key === "G") {
+        if (selectedId) handleGenerate();
       } else if (e.key === "Escape") {
         setTracesOpen(false);
         setAuditOpen(false);
@@ -157,7 +159,7 @@ function App() {
     };
     window.addEventListener("keydown", handleKey);
     return () => window.removeEventListener("keydown", handleKey);
-  }, [handleDemo, handleSelectClient]);
+  }, [handleDemo, handleSelectClient, handleGenerate, selectedId]);
 
   // Scroll main content to top when switching clients
   useEffect(() => {
@@ -276,6 +278,16 @@ function App() {
                   )}
                 </div>
               </div>
+              {selectedId && dna && portfolio && (
+                <div className="col-span-2 flex items-center gap-6 bg-slate-800/30 rounded-lg px-4 py-2 text-xs">
+                  <span className="text-slate-400">AUM: <span className="text-white font-medium">CHF {(portfolio.totalValueCHF / 1e6).toFixed(1)}M</span></span>
+                  <span className="text-slate-400">Strategy: <span className="text-white font-medium">{portfolio.strategy}</span></span>
+                  <span className="text-slate-400">Conflicts: <span className={portfolio.conflicts?.length > 0 ? "text-red-400 font-medium" : "text-green-400 font-medium"}>{portfolio.conflicts?.length || 0}</span></span>
+                  <span className="text-slate-400">Alerts: <span className={(news?.alerts?.length ?? 0) > 0 ? "text-amber-400 font-medium" : "text-green-400 font-medium"}>{news?.alerts?.length ?? 0}</span></span>
+                  <span className="text-slate-400">DNA Traits: <span className="text-white font-medium">{dna.values.length + dna.riskSensitivities.length}</span></span>
+                  <span className="text-slate-400">Style: <span className="text-white font-medium capitalize">{dna.communicationStyle}</span></span>
+                </div>
+              )}
               <div id="dna-panel">
                 <ErrorBoundary fallbackMessage="Failed to load DNA profile">
                   <DNAPanel

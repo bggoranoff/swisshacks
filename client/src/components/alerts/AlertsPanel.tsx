@@ -3,7 +3,7 @@ import type { NewsDigest, PortfolioAnalysis } from "../../types/api";
 import { Card, CardTitle } from "../shared/Card";
 import { SkeletonBlock } from "../shared/LoadingSpinner";
 import { EmptyState } from "../shared/EmptyState";
-import { ShieldAlert, AlertTriangle, TrendingUp, AlertCircle, Info, ChevronDown, Check, X, ArrowLeftRight, ArrowRight } from "lucide-react";
+import { ShieldAlert, AlertTriangle, TrendingUp, AlertCircle, Info, ChevronDown, Check, X, ArrowLeftRight, ArrowRight, Briefcase } from "lucide-react";
 import clsx from "clsx";
 
 interface AlertsPanelProps {
@@ -29,20 +29,31 @@ interface AlertItem {
   alertType?: "conflict" | "opportunity" | "cio-conflict";
 }
 
+interface PortfolioConflictItem {
+  positionIsin: string;
+  positionName: string;
+  severity: "high" | "medium" | "low";
+  reason: string;
+  riskType?: string;
+  reasoningChain?: string[];
+  suggestedSwap?: {
+    isin: string;
+    name: string;
+    reason: string;
+    cioRating?: string;
+  };
+}
+
 function AlertIcon({ alert }: { alert: AlertItem }) {
-  // CIO conflict alerts get amber AlertTriangle
   if (alert.source === "cio" || alert.alertType === "cio-conflict") {
     return <AlertTriangle className="h-5 w-5 mt-0.5 text-amber-400 shrink-0" />;
   }
-  // Opportunity alerts get green TrendingUp
   if (alert.alertType === "opportunity") {
     return <TrendingUp className="h-5 w-5 mt-0.5 text-green-400 shrink-0" />;
   }
-  // Conflict alerts get red ShieldAlert
   if (alert.alertType === "conflict" || alert.riskType === "conflict" || alert.riskType === "values" || alert.riskType === "reputational") {
     return <ShieldAlert className="h-5 w-5 mt-0.5 text-red-400 shrink-0" />;
   }
-  // Fallback by severity
   switch (alert.severity) {
     case "high":
       return <AlertTriangle className="h-5 w-5 mt-0.5 text-red-400 shrink-0" />;
@@ -53,7 +64,6 @@ function AlertIcon({ alert }: { alert: AlertItem }) {
   }
 }
 
-// Hardcoded CIO conflict alert for the Räber client
 const RAEBER_CIO_ALERT: AlertItem = {
   id: "cio-raeber-us-tech",
   title: "CIO Recommends Rebalancing into US AI Stocks",
@@ -70,9 +80,19 @@ const RAEBER_CIO_ALERT: AlertItem = {
   alertType: "cio-conflict",
 };
 
-export function AlertsPanel({ news, portfolio, portfolioConflicts = [], loading, selectedId, triggerEvent, onApprove, onDismiss }: AlertsPanelProps) {
+export function AlertsPanel({
+  news,
+  portfolio,
+  portfolioConflicts = [],
+  loading,
+  selectedId,
+  triggerEvent,
+  onApprove,
+  onDismiss,
+}: AlertsPanelProps) {
   const [approved, setApproved] = useState<Set<string>>(new Set());
   const [dismissed, setDismissed] = useState<Set<string>>(new Set());
+  const [expandedChains, setExpandedChains] = useState<Set<string>>(new Set());
 
   const alerts: AlertItem[] = [];
 
@@ -92,7 +112,7 @@ export function AlertsPanel({ news, portfolio, portfolioConflicts = [], loading,
     }
   }
 
-  // Portfolio DNA conflict alerts (legacy path via portfolio prop)
+  // Portfolio DNA conflict alerts (legacy path via portfolio prop — skipped when new prop is provided)
   if (portfolio?.conflicts && portfolioConflicts.length === 0) {
     for (const c of portfolio.conflicts) {
       const conflict = c as any;
@@ -103,7 +123,9 @@ export function AlertsPanel({ news, portfolio, portfolioConflicts = [], loading,
         reason: conflict.reason || "DNA conflict detected",
         reasoningChain: conflict.reasoningChain,
         riskType: conflict.riskType,
-        swap: conflict.suggestedSwap ? { name: conflict.suggestedSwap.name, reason: conflict.suggestedSwap.reason } : undefined,
+        swap: conflict.suggestedSwap
+          ? { name: conflict.suggestedSwap.name, reason: conflict.suggestedSwap.reason }
+          : undefined,
         source: "portfolio",
         alertType: "conflict",
       });
@@ -121,12 +143,27 @@ export function AlertsPanel({ news, portfolio, portfolioConflicts = [], loading,
         reason: conflict.reason || "CIO recommendation conflicts with client DNA",
         reasoningChain: conflict.reasoningChain,
         riskType: conflict.riskType,
-        swap: conflict.suggestedSwap ? { name: conflict.suggestedSwap.name, reason: conflict.suggestedSwap.reason } : undefined,
+        swap: conflict.suggestedSwap
+          ? { name: conflict.suggestedSwap.name, reason: conflict.suggestedSwap.reason }
+          : undefined,
         source: "cio",
         alertType: "cio-conflict",
       });
     }
   }
+
+  // Typed portfolio conflicts from new API shape — appear after news alerts
+  const typedConflicts: PortfolioConflictItem[] = portfolioConflicts.map(
+    (c: any): PortfolioConflictItem => ({
+      positionIsin: c.positionIsin ?? c.isin ?? "",
+      positionName: c.positionName ?? c.holdingName ?? "Unknown Position",
+      severity: (c.severity ?? "medium") as "high" | "medium" | "low",
+      reason: c.reason ?? "DNA conflict detected",
+      riskType: c.riskType,
+      reasoningChain: c.reasoningChain,
+      suggestedSwap: c.suggestedSwap,
+    }),
+  );
 
   // Inject hardcoded Räber CIO conflict alert
   const isRaeber = selectedId === "raeber";
@@ -155,6 +192,15 @@ export function AlertsPanel({ news, portfolio, portfolioConflicts = [], loading,
     onDismiss?.(id);
   }
 
+  function toggleChain(id: string) {
+    setExpandedChains((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
   if (loading) {
     return (
       <Card>
@@ -164,7 +210,7 @@ export function AlertsPanel({ news, portfolio, portfolioConflicts = [], loading,
     );
   }
 
-  if (alerts.length === 0) {
+  if (alerts.length === 0 && typedConflicts.length === 0) {
     return (
       <Card>
         <CardTitle icon={ShieldAlert}>Alerts &amp; Conflicts</CardTitle>
@@ -183,12 +229,14 @@ export function AlertsPanel({ news, portfolio, portfolioConflicts = [], loading,
             <p className="text-sm text-slate-300">{triggerEvent}</p>
           </div>
         )}
+
+        {/* News / CIO / legacy portfolio alerts */}
         {alerts.map((alert) => (
           <div
             key={alert.id}
             className={clsx(
               "p-4 rounded-lg bg-slate-700/50 border border-slate-600 transition-opacity",
-              dismissed.has(alert.id) && "opacity-40"
+              dismissed.has(alert.id) && "opacity-40",
             )}
           >
             <div className="flex items-start gap-3">
@@ -210,14 +258,16 @@ export function AlertsPanel({ news, portfolio, portfolioConflicts = [], loading,
                 <p className="text-sm text-slate-300 mt-1">{alert.reason}</p>
 
                 {alert.riskType && (
-                  <span className={clsx(
-                    "inline-block text-xs px-2 py-0.5 rounded-full mt-2",
-                    alert.alertType === "cio-conflict" || alert.source === "cio"
-                      ? "bg-amber-900/50 text-amber-300"
-                      : alert.alertType === "opportunity"
-                        ? "bg-green-900/50 text-green-300"
-                        : "bg-red-900/50 text-red-300"
-                  )}>
+                  <span
+                    className={clsx(
+                      "inline-block text-xs px-2 py-0.5 rounded-full mt-2",
+                      alert.alertType === "cio-conflict" || alert.source === "cio"
+                        ? "bg-amber-900/50 text-amber-300"
+                        : alert.alertType === "opportunity"
+                          ? "bg-green-900/50 text-green-300"
+                          : "bg-red-900/50 text-red-300",
+                    )}
+                  >
                     {alert.source === "cio" ? "CIO conflict" : alert.riskType}
                   </span>
                 )}
@@ -228,7 +278,6 @@ export function AlertsPanel({ news, portfolio, portfolioConflicts = [], loading,
                   </p>
                 )}
 
-                {/* Only show for conflict alerts */}
                 {alert.alertType === "conflict" && (
                   <div className="mt-3 bg-slate-600/30 rounded-lg p-3 border border-slate-600/50">
                     <div className="flex items-center gap-2 mb-2">
@@ -274,7 +323,9 @@ export function AlertsPanel({ news, portfolio, portfolioConflicts = [], loading,
                     </summary>
                     <div className="text-xs text-slate-400 mt-1 pl-4 space-y-1">
                       {alert.reasoningChain.map((step, i) => (
-                        <p key={i}>{i + 1}. {step}</p>
+                        <p key={i}>
+                          {i + 1}. {step}
+                        </p>
                       ))}
                     </div>
                   </details>
@@ -283,6 +334,128 @@ export function AlertsPanel({ news, portfolio, portfolioConflicts = [], loading,
             </div>
           </div>
         ))}
+
+        {/* Portfolio conflicts from new API shape — appear after news alerts */}
+        {typedConflicts.map((conflict, idx) => {
+          const cardId = `portfolio-conflict-${conflict.positionIsin || idx}`;
+          const isApproved = approved.has(cardId);
+          const isDismissed = dismissed.has(cardId);
+          const chainExpanded = expandedChains.has(cardId);
+          return (
+            <div
+              key={cardId}
+              className={clsx(
+                "p-4 rounded-lg bg-slate-700/50 border border-slate-600 transition-opacity",
+                isDismissed && "opacity-40",
+              )}
+            >
+              <div className="flex items-start gap-3">
+                <Briefcase
+                  className={clsx(
+                    "h-5 w-5 mt-0.5 shrink-0",
+                    conflict.severity === "high" ? "text-red-400" : "text-amber-400",
+                  )}
+                />
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-xs px-2 py-0.5 rounded-full bg-amber-900/50 text-amber-300 font-medium">
+                      Portfolio Conflict
+                    </span>
+                    {isApproved && (
+                      <span className="flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-green-900/50 text-green-300">
+                        <Check className="h-3 w-3" /> Approved
+                      </span>
+                    )}
+                    {isDismissed && (
+                      <span className="flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-slate-700 text-slate-400">
+                        <X className="h-3 w-3" /> Dismissed
+                      </span>
+                    )}
+                  </div>
+                  <p className="font-medium text-sm text-slate-100 mt-1">{conflict.positionName}</p>
+                  {conflict.positionIsin && (
+                    <p className="text-xs text-slate-500 font-mono">{conflict.positionIsin}</p>
+                  )}
+                  <p className="text-sm text-slate-300 mt-1">{conflict.reason}</p>
+
+                  {conflict.riskType && (
+                    <span className="inline-block text-xs px-2 py-0.5 rounded-full mt-2 bg-amber-900/50 text-amber-300">
+                      {conflict.riskType}
+                    </span>
+                  )}
+
+                  {conflict.suggestedSwap && (
+                    <div className="mt-3 bg-slate-600/30 rounded-lg p-3 border border-slate-600/50">
+                      <div className="flex items-center gap-2 mb-2">
+                        <ArrowLeftRight className="h-4 w-4 text-blue-400" />
+                        <span className="text-xs font-medium text-blue-300 uppercase tracking-wide">Suggested Swap</span>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <div className="flex-1">
+                          <p className="text-xs text-slate-400">Current Holding</p>
+                          <p className="text-sm text-red-300">{conflict.positionName}</p>
+                          {conflict.positionIsin && (
+                            <p className="text-xs text-slate-500 font-mono">{conflict.positionIsin}</p>
+                          )}
+                        </div>
+                        <ArrowRight className="h-4 w-4 text-slate-500 shrink-0" />
+                        <div className="flex-1">
+                          <p className="text-xs text-slate-400">
+                            Replacement
+                            {conflict.suggestedSwap.cioRating ? ` (${conflict.suggestedSwap.cioRating}-rated)` : ""}
+                          </p>
+                          <p className="text-sm text-green-300">{conflict.suggestedSwap.name}</p>
+                          {conflict.suggestedSwap.isin && (
+                            <p className="text-xs text-slate-500 font-mono">{conflict.suggestedSwap.isin}</p>
+                          )}
+                          <p className="text-xs text-slate-400 mt-0.5">{conflict.suggestedSwap.reason}</p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {!isApproved && !isDismissed && (
+                    <div className="flex gap-2 mt-3">
+                      <button
+                        onClick={() => handleApprove(cardId)}
+                        className="text-xs px-3 py-1 rounded-lg bg-green-600 hover:bg-green-700 text-white flex items-center gap-1 transition-colors"
+                      >
+                        <Check className="h-3 w-3" /> Approve
+                      </button>
+                      <button
+                        onClick={() => handleDismiss(cardId)}
+                        className="text-xs px-3 py-1 rounded-lg bg-slate-600 hover:bg-slate-500 text-slate-200 flex items-center gap-1 transition-colors"
+                      >
+                        <X className="h-3 w-3" /> Dismiss
+                      </button>
+                    </div>
+                  )}
+
+                  {conflict.reasoningChain && conflict.reasoningChain.length > 0 && (
+                    <div className="mt-2">
+                      <button
+                        onClick={() => toggleChain(cardId)}
+                        className="flex items-center gap-1 text-xs text-slate-400 cursor-pointer select-none hover:text-slate-300 transition-colors"
+                      >
+                        <ChevronDown className={clsx("h-3 w-3 transition-transform", chainExpanded && "rotate-180")} />
+                        Why this conflict?
+                      </button>
+                      {chainExpanded && (
+                        <div className="text-xs text-slate-400 mt-1 pl-4 space-y-1">
+                          {conflict.reasoningChain.map((step, i) => (
+                            <p key={i}>
+                              {i + 1}. {step}
+                            </p>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          );
+        })}
       </div>
     </Card>
   );

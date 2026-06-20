@@ -5,6 +5,7 @@ import { SkeletonTable } from "../shared/SkeletonLoader";
 import { ErrorState } from "../shared/ErrorState";
 import { EmptyState } from "../shared/EmptyState";
 import { AllocationChart } from "./AllocationChart";
+import { FadeIn } from "../shared/FadeIn";
 import { Briefcase, ArrowUpDown, AlertTriangle, Search } from "lucide-react";
 import clsx from "clsx";
 
@@ -149,7 +150,7 @@ export function PortfolioTable({
       {!loading && !error && !portfolio && <EmptyState message="Select a client to view portfolio" />}
 
       {!loading && !error && portfolio && (
-        <>
+        <FadeIn>
           <div className="flex items-center gap-4 mb-4 text-sm text-slate-400">
             <span>Strategy: <span className="text-white font-medium">{portfolio.strategy}</span></span>
             <span>Total: <span className="text-white font-medium">CHF {formatCHF(portfolio.totalValueCHF)}</span></span>
@@ -325,7 +326,7 @@ export function PortfolioTable({
             </table>
           </div>
 
-        </>
+        </FadeIn>
       )}
     </Card>
   );

@@ -4,6 +4,7 @@ import { Card, CardTitle } from "../shared/Card";
 import { SkeletonBlock } from "../shared/SkeletonLoader";
 import { ErrorState } from "../shared/ErrorState";
 import { EmptyState } from "../shared/EmptyState";
+import { FadeIn } from "../shared/FadeIn";
 import { Newspaper, ExternalLink } from "lucide-react";
 import clsx from "clsx";
 
@@ -53,6 +54,7 @@ export function NewsFeed({ news, loading, error, onRetry, durationMs }: NewsFeed
 
   return (
     <Card>
+      <FadeIn>
       <div className="flex items-center justify-between mb-4">
         <CardTitle icon={Newspaper}>News Feed</CardTitle>
         {durationMs != null && <span className="text-xs text-slate-600">{durationMs}ms</span>}
@@ -145,6 +147,7 @@ export function NewsFeed({ news, loading, error, onRetry, durationMs }: NewsFeed
           </div>
         ))}
       </div>
+      </FadeIn>
     </Card>
   );
 }

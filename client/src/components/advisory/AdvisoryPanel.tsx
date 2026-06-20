@@ -17,6 +17,7 @@ import {
   Check,
   X,
 } from "lucide-react";
+import { CompareView } from "./CompareView";
 
 interface AdvisoryPanelProps {
   advisory: AdvisoryMessage | null;
@@ -107,7 +108,10 @@ export function AdvisoryPanel({ advisory: advisoryProp, loading, clientId, conte
   const [copied, setCopied] = useState(false);
   const [currentStep, setCurrentStep] = useState(0);
   const [history, setHistory] = useState<any[]>([]);
-  const [showComparison, setShowComparison] = useState(false);
+  const [_showComparison, _setShowComparison] = useState(false);
+  const [compareData, setCompareData] = useState<{ generic: AdvisoryMessage; personalised: AdvisoryMessage } | null>(null);
+  const [compareLoading, setCompareLoading] = useState(false);
+  const [showCompareView, setShowCompareView] = useState(false);
 
   useEffect(() => {
     if (loading) {
@@ -190,6 +194,27 @@ export function AdvisoryPanel({ advisory: advisoryProp, loading, clientId, conte
     a.click();
     URL.revokeObjectURL(url);
   }
+
+  const handleCompare = async () => {
+    if (!clientId || !advisory) return;
+    setCompareLoading(true);
+    try {
+      const res = await fetch(`/api/clients/${clientId}/advisory/compare`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ alertId: advisory.referencedAlert, language }),
+      });
+      const json = await res.json();
+      if (json.success) {
+        setCompareData(json.data);
+        setShowCompareView(true);
+      }
+    } catch (err) {
+      console.error("Failed to fetch comparison:", err);
+    } finally {
+      setCompareLoading(false);
+    }
+  };
 
   const handleStatusUpdate = async (status: "approved" | "rejected") => {
     if (!advisory) return;
@@ -389,6 +414,14 @@ export function AdvisoryPanel({ advisory: advisoryProp, loading, clientId, conte
             >
               <Download className="h-4 w-4" /> Download
             </button>
+            <button
+              onClick={handleCompare}
+              disabled={compareLoading}
+              className="px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-colors bg-indigo-700 hover:bg-indigo-600 text-white disabled:opacity-50"
+            >
+              <ArrowLeftRight className="h-4 w-4" />
+              {compareLoading ? "Comparing..." : "Compare"}
+            </button>
             {!isEditing ? (
               <button
                 onClick={handleEdit}
@@ -451,28 +484,14 @@ export function AdvisoryPanel({ advisory: advisoryProp, loading, clientId, conte
             {advisory.disclaimer}
           </p>
 
-          {/* Generic vs Personalised Comparison */}
-          {advisory.genericAdvisory && (
+          {/* Before/After CompareView */}
+          {showCompareView && compareData && (
             <div className="mt-4 border-t border-slate-700 pt-4">
-              <button
-                onClick={() => setShowComparison(!showComparison)}
-                className="text-xs text-blue-400 hover:underline flex items-center gap-1"
-              >
-                <ChevronDown className={`h-3 w-3 transition-transform ${showComparison ? "rotate-180" : ""}`} />
-                {showComparison ? "Hide" : "Show"} Generic vs Personalised Comparison
-              </button>
-              {showComparison && (
-                <div className="grid grid-cols-2 gap-4 mt-3">
-                  <div className="bg-slate-700/30 rounded-lg p-4 border border-slate-600/50">
-                    <p className="text-xs text-slate-400 uppercase tracking-wide mb-2 font-medium">Generic Advisory</p>
-                    <p className="text-sm text-slate-400 leading-relaxed whitespace-pre-wrap">{advisory.genericAdvisory}</p>
-                  </div>
-                  <div className="bg-blue-900/20 rounded-lg p-4 border border-blue-600/30">
-                    <p className="text-xs text-blue-400 uppercase tracking-wide mb-2 font-medium">DNA-Personalised</p>
-                    <p className="text-sm text-slate-200 leading-relaxed whitespace-pre-wrap">{displayBody}</p>
-                  </div>
-                </div>
-              )}
+              <CompareView
+                generic={compareData.generic}
+                personalised={compareData.personalised}
+                onClose={() => setShowCompareView(false)}
+              />
             </div>
           )}
 

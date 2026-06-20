@@ -267,6 +267,120 @@ export class MessageAgent {
     }
   }
 
+  async generateGenericAdvisory(clientId: string, alertId?: string): Promise<AdvisoryMessage> {
+    const startTime = Date.now();
+    const client = getClient(clientId);
+    if (!client) return this.fallbackAdvisory(clientId, "Unknown Client");
+
+    const digest = await newsAgent.getNewsDigest(clientId);
+    const portfolio = getPortfolio(client.strategy);
+
+    const alert = alertId
+      ? digest.alerts.find(a => a.id === alertId) || digest.alerts[0]
+      : digest.alerts[0];
+
+    const topHoldings = portfolio?.positions
+      .slice()
+      .sort((a, b) => b.currentValueCHF - a.currentValueCHF)
+      .slice(0, 10)
+      .map(p => `${p.name} (${p.isin}, CHF ${(p.currentValueCHF / 1000).toFixed(0)}K, ${p.sectorOrAssetClass})`)
+      .join("\n") || "No holdings data available";
+
+    const portfolioSummary = portfolio
+      ? `\nPORTFOLIO: ${portfolio.strategy} mandate, ${portfolio.positions.length} positions, CHF ${portfolio.totalTargetCHF.toLocaleString()} target`
+      : "";
+
+    const holdingsSection = `\nTop 10 holdings:\n${topHoldings}`;
+
+    const alertContext = alert
+      ? `\nTRIGGER EVENT:\nTitle: ${alert.title}\nSummary: ${alert.summary}\nType: ${alert.alertType || "conflict"}\nRelevance: ${alert.relevanceScore}`
+      : "\nNo specific trigger event — provide a general portfolio review note.";
+
+    const systemPrompt =
+      "Write a standard institutional advisory note. Do not personalise. Use formal, neutral language.";
+
+    const userPrompt =
+      `Draft a standard advisory note for a wealth management client.\n` +
+      portfolioSummary +
+      holdingsSection +
+      alertContext +
+      `\n\nIMPORTANT: Return ONLY a JSON object (no markdown fences). Use \\n for newlines inside string values. Structure:\n` +
+      `{"subject":"short subject","body":"the advisory message with \\n for paragraphs","proposedAction":"one sentence","reasoning":"2-3 sentences","confidence":0.75,"toneInfluences":[]}`;
+
+    try {
+      const { data } = await axios.post(
+        LLM_URL(),
+        {
+          model: LLM_MODEL(),
+          messages: [
+            { role: "system", content: systemPrompt },
+            { role: "user", content: userPrompt },
+          ],
+          temperature: 0.3,
+          max_tokens: 2000,
+        },
+        {
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${LLM_KEY()}`,
+          },
+          timeout: 60000,
+        }
+      );
+
+      const choice = data?.choices?.[0];
+      const content = choice?.message?.content || choice?.message?.reasoning_content || choice?.text || "";
+      let parsed = parseJson(content);
+
+      if (!parsed || !parsed.body) {
+        if (content.length > 50) {
+          parsed = {
+            subject: `Advisory Note — Standard`,
+            body: content.replace(/```json\n?|\n?```/g, "").trim(),
+            proposedAction: "Review and discuss with your relationship manager.",
+            reasoning: "Generated from LLM response.",
+            confidence: 0.7,
+            toneInfluences: [],
+          };
+        } else {
+          return this.fallbackAdvisory(clientId, client.name, alert?.title);
+        }
+      }
+
+      const msg: AdvisoryMessage = {
+        id: generateId(),
+        clientId,
+        subject: parsed.subject || `Advisory Note — Standard`,
+        body: parsed.body,
+        tone: "balanced",
+        toneInfluences: [],
+        referencedAlert: alert?.id,
+        proposedAction: parsed.proposedAction || undefined,
+        reasoning: parsed.reasoning || "Standard advisory based on portfolio and market conditions.",
+        confidence: typeof parsed.confidence === "number" ? parsed.confidence : 0.7,
+        status: "draft",
+        disclaimer:
+          "This is an AI-generated draft for the relationship manager's review. " +
+          "It does not constitute financial advice. " +
+          "The client's explicit approval is required before any transaction.",
+      };
+
+      auditService.log({
+        agent: "message-agent",
+        action: "generate-generic-advisory",
+        clientId,
+        inputSummary: `alert=${alert?.id || "none"}, generic=true`,
+        outputSummary: `subject="${msg.subject}", confidence=${msg.confidence}`,
+        durationMs: Date.now() - startTime,
+      });
+
+      return msg;
+    } catch (err) {
+      console.error("[MessageAgent] Generic LLM call failed:", (err as Error).message);
+      return this.fallbackAdvisory(clientId, client.name, alert?.title);
+    }
+  }
+
   updateStatus(
     messageId: string,
     status: "approved" | "rejected",
