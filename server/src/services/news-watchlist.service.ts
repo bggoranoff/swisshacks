@@ -75,23 +75,71 @@ function topPortfolioPositions(positions: Position[], totalCurrent: number): Pos
     .slice(0, 18);
 }
 
+// DNA investment-profile fields are written as constraint clauses ("avoid
+// companies tied to ecosystem destruction"), not search keywords. Stripping the
+// intent verbs and generic finance filler leaves the topical nouns that
+// actually match news ("ecosystem destruction").
+const KEYWORD_STOPWORDS = new Set([
+  // constraint / intent verbs and modifiers
+  "avoid", "avoids", "exclude", "excludes", "excluding", "no", "not", "without", "never", "ban",
+  "banned", "prohibit", "reduce", "limit", "limited", "minimise", "minimize", "maintain", "maintains",
+  "keep", "hold", "seek", "seeks", "prefer", "prefers", "preferred", "ensure", "align", "aligned",
+  "aligning", "flag", "flags", "monitor", "favour", "favor", "want", "wants", "require", "requires",
+  "required", "must", "should", "may", "could",
+  // generic company / finance filler
+  "company", "companies", "firm", "firms", "business", "businesses", "corporation", "corporations",
+  "issuer", "issuers", "position", "positions", "exposure", "exposures", "holding", "holdings",
+  "security", "securities", "stock", "stocks", "product", "products", "investment", "investments",
+  "fund", "funds", "portfolio", "portfolios", "sleeve", "sleeves", "asset", "assets", "class",
+  "classes", "income", "fixed", "equity", "equities", "standard", "generic", "large", "small", "mid",
+  "cap", "anchor", "overall", "direct", "indirect", "severe", "major", "minor", "high", "low",
+  "measurable", "impact", "risk", "risks", "sensitivity", "sensitivities", "concern", "concerns",
+  "related", "linked", "tied", "involved", "scoring", "score", "level", "levels",
+  "defensive", "conservative", "aggressive", "balanced",
+  // articles / conjunctions / prepositions
+  "the", "a", "an", "and", "or", "of", "to", "in", "on", "with", "for", "that", "this", "those",
+  "these", "as", "at", "by", "from", "into", "their", "its", "our", "is", "are", "be", "being", "been",
+]);
+
+// Meaningful tokens shorter than the 3-char floor that we still want to keep.
+const KEYWORD_WHITELIST = new Set(["ai", "us", "eu", "uk", "oil", "gas", "war", "esg"]);
+
+function extractKeyword(phrase: string): string {
+  const tokens = phrase
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9\s-]/g, " ")
+    .replace(/-/g, " ")
+    .split(/\s+/)
+    .filter(token => (token.length >= 3 || KEYWORD_WHITELIST.has(token)) && !KEYWORD_STOPWORDS.has(token));
+
+  // Cap at 3 tokens so the "and" keyword search stays satisfiable.
+  return tokens.slice(0, 3).join(" ").trim();
+}
+
 function dnaTerms(dna: Awaited<ReturnType<typeof extractDNA>>): string[] {
   const profile = dna.investmentProfile;
-  const terms = [
-    ...(profile?.hardConstraints || []),
+  // Most topic-like fields first so the keyword budget favours concrete themes.
+  const phrases = [
     ...(profile?.exclusions || []),
-    ...(profile?.positiveScreens || []),
     ...(profile?.valueThemes || []),
-    ...(profile?.softPreferences || []),
+    ...(profile?.positiveScreens || []),
     ...(dna.riskSensitivities || []),
+    ...(profile?.hardConstraints || []),
+    ...(profile?.softPreferences || []),
   ];
 
-  return terms
-    .map(term => term.replace(/[^\p{L}\p{N}\s-]/gu, " ").replace(/\s+/g, " ").trim())
-    .filter(term => term.length >= 4)
-    .map(term => term.split(/\s+/).slice(0, 7).join(" "))
-    .filter((term, index, arr) => arr.indexOf(term) === index)
-    .slice(0, 5);
+  const seen = new Set<string>();
+  const keywords: string[] = [];
+  for (const phrase of phrases) {
+    const keyword = extractKeyword(phrase);
+    if (keyword.length < 3 || seen.has(keyword)) continue;
+    seen.add(keyword);
+    keywords.push(keyword);
+    if (keywords.length >= 6) break;
+  }
+  return keywords;
 }
 
 export class NewsWatchlistService {

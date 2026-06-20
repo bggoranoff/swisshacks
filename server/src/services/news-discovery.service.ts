@@ -1,7 +1,14 @@
 import axios, { AxiosInstance } from "axios";
-import { BREAKING_NEWS_QUERIES, HOME_NEWS_LIMITS } from "../config/news-scoring";
+import { BREAKING_NEWS_QUERIES, HOME_NEWS_LIMITS, NEWS_QUERY_RATE } from "../config/news-scoring";
 import type { DiscoveredNewsArticle, DiscoverySource, MonitoredInterest } from "../types/news-impact";
 import type { ScoredNewsArticle } from "../types/news";
+
+interface QueryTask {
+  query: string;
+  discoverySource: DiscoverySource;
+  matchedInterestIds: string[];
+  keywordOper: "and" | "or";
+}
 
 interface EventRegistryArticle {
   uri?: string | number;
@@ -64,32 +71,45 @@ export class NewsDiscoveryService {
   }
 
   async discover(interests: MonitoredInterest[], scenarioArticles: ScoredNewsArticle[] = []): Promise<DiscoveredNewsArticle[]> {
-    const selectedInterests = interests
-      .filter(i => i.source === "holding" || i.source === "client-dna" || i.source === "static-profile")
-      .slice(0, HOME_NEWS_LIMITS.targetedQueries);
+    // Budget each interest source separately. A flat top-N slice over the
+    // priority-sorted list only ever queried holdings (priority ~100), so
+    // client-DNA (~55) and static mandate (~40) interests were never searched.
+    const byPriority = (a: MonitoredInterest, b: MonitoredInterest) => b.priority - a.priority;
+    const holdingInterests = interests
+      .filter(i => i.source === "holding").sort(byPriority).slice(0, HOME_NEWS_LIMITS.holdingQueries);
+    const dnaInterests = interests
+      .filter(i => i.source === "client-dna").sort(byPriority).slice(0, HOME_NEWS_LIMITS.dnaQueries);
+    const mandateInterests = interests
+      .filter(i => i.source === "static-profile").sort(byPriority).slice(0, HOME_NEWS_LIMITS.mandateQueries);
+    const selectedInterests = [...holdingInterests, ...dnaInterests, ...mandateInterests];
 
-    const allArticles: DiscoveredNewsArticle[] = [];
+    console.log(
+      `[NewsDiscovery] Querying ${selectedInterests.length} targeted interests ` +
+      `(${holdingInterests.length} holding, ${dnaInterests.length} dna, ${mandateInterests.length} mandate) ` +
+      `+ ${Math.min(BREAKING_NEWS_QUERIES.length, HOME_NEWS_LIMITS.breakingQueries)} breaking`,
+    );
 
-    const targetedResults = await Promise.allSettled(selectedInterests.map(interest => this.fetchQuery(
-        interest.query,
-        "targeted",
-        [interest.id],
-        "and",
-      )));
-    for (const result of targetedResults) {
-      if (result.status === "fulfilled") allArticles.push(...result.value);
-    }
+    const tasks: QueryTask[] = [
+      ...selectedInterests.map((interest): QueryTask => ({
+        query: interest.query,
+        discoverySource: "targeted",
+        matchedInterestIds: [interest.id],
+        keywordOper: "and",
+      })),
+      ...BREAKING_NEWS_QUERIES.slice(0, HOME_NEWS_LIMITS.breakingQueries).map((breaking): QueryTask => ({
+        query: breaking.query,
+        discoverySource: "breaking",
+        matchedInterestIds: [breaking.id],
+        keywordOper: "or",
+      })),
+    ];
 
-    const breakingResults = await Promise.allSettled(BREAKING_NEWS_QUERIES.slice(0, HOME_NEWS_LIMITS.breakingQueries).map(breaking => this.fetchQuery(
-        breaking.query,
-        "breaking",
-        [breaking.id],
-        "or",
-      )));
-    for (const result of breakingResults) {
-      if (result.status === "fulfilled") allArticles.push(...result.value);
-    }
+    // Cap in-flight requests globally and stagger batches to avoid Event Registry 429s.
+    const fetched = await this.runPooled(tasks, task =>
+      this.fetchQuery(task.query, task.discoverySource, task.matchedInterestIds, task.keywordOper),
+    );
 
+    const allArticles: DiscoveredNewsArticle[] = fetched.flat();
     allArticles.push(...scenarioArticles.map(article => this.fromScenario(article)));
 
     const byKey = new Map<string, DiscoveredNewsArticle>();
@@ -103,6 +123,23 @@ export class NewsDiscoveryService {
     return Array.from(byKey.values())
       .sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime())
       .slice(0, HOME_NEWS_LIMITS.discoveredArticles);
+  }
+
+  /** Run async workers with bounded concurrency and an inter-batch delay. Rejections are dropped. */
+  private async runPooled<T, R>(items: T[], worker: (item: T) => Promise<R>): Promise<R[]> {
+    const { concurrency, batchDelayMs } = NEWS_QUERY_RATE;
+    const size = Math.max(1, concurrency);
+    const results: R[] = [];
+    for (let i = 0; i < items.length; i += size) {
+      const settled = await Promise.allSettled(items.slice(i, i + size).map(worker));
+      for (const outcome of settled) {
+        if (outcome.status === "fulfilled") results.push(outcome.value);
+      }
+      if (i + size < items.length && batchDelayMs > 0) {
+        await new Promise(resolve => setTimeout(resolve, batchDelayMs));
+      }
+    }
+    return results;
   }
 
   private fromScenario(article: ScoredNewsArticle): DiscoveredNewsArticle {

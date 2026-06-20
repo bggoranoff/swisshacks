@@ -34,12 +34,29 @@ export const BREAKING_NEWS_QUERIES = [
 ];
 
 export const HOME_NEWS_LIMITS = {
-  targetedQueries: parseInt(process.env.HOME_TARGETED_NEWS_QUERIES || "6", 10),
+  // Per-source query budgets. Previously a single flat `targetedQueries` slice
+  // starved every non-holding interest, because holdings always out-prioritise
+  // DNA- and mandate-derived interests. Each source now gets its own budget.
+  holdingQueries: parseInt(process.env.HOME_HOLDING_NEWS_QUERIES || "6", 10),
+  dnaQueries: parseInt(process.env.HOME_DNA_NEWS_QUERIES || "4", 10),
+  mandateQueries: parseInt(process.env.HOME_MANDATE_NEWS_QUERIES || "3", 10),
   breakingQueries: parseInt(process.env.HOME_BREAKING_NEWS_QUERIES || "2", 10),
   articlesPerQuery: parseInt(process.env.HOME_ARTICLES_PER_QUERY || "3", 10),
-  discoveredArticles: parseInt(process.env.HOME_DISCOVERED_ARTICLES_LIMIT || "18", 10),
+  // Raised from 18: with ~13 targeted + 2 breaking queries the raw pool is now
+  // larger, and this cap is applied by recency — too low a value lets recent
+  // breaking news crowd out the holding-matched articles that produce todos.
+  discoveredArticles: parseInt(process.env.HOME_DISCOVERED_ARTICLES_LIMIT || "30", 10),
   latestNews: parseInt(process.env.HOME_LATEST_NEWS_LIMIT || "12", 10),
   todos: parseInt(process.env.HOME_TODOS_LIMIT || "16", 10),
+};
+
+// Event Registry rate-limits bursts. Firing all targeted + breaking queries in
+// one Promise.allSettled tripped HTTP 429 on ~40% of calls, so we cap in-flight
+// requests and stagger batches. Cache hits (5-min TTL) skip the network and are
+// unaffected by this pacing.
+export const NEWS_QUERY_RATE = {
+  concurrency: parseInt(process.env.HOME_NEWS_QUERY_CONCURRENCY || "3", 10),
+  batchDelayMs: parseInt(process.env.HOME_NEWS_QUERY_DELAY_MS || "400", 10),
 };
 
 export const HOME_SCORE_THRESHOLDS = {
