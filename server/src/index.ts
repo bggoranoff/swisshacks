@@ -356,7 +356,12 @@ app.get("/api/integrations", asyncHandler(async (_req: Request, res: Response) =
 
 // Serve built client in production
 app.use(express.static(path.join(__dirname, "../../client/dist")));
-app.get("*", (_req, res, next) => {
+// Serve built client — but NOT for /api/* routes
+app.get("*", (req, res, next) => {
+  if (req.path.startsWith("/api/")) {
+    res.status(404).json({ success: false, error: `API endpoint not found: ${req.path}` });
+    return;
+  }
   const clientIndex = path.join(__dirname, "../../client/dist/index.html");
   res.sendFile(clientIndex, (err) => {
     if (err) next();

@@ -9,7 +9,7 @@ import { FadeIn } from "../shared/FadeIn";
 import { Briefcase, ArrowUpDown, AlertTriangle, Search } from "lucide-react";
 import clsx from "clsx";
 
-type SortField = "name" | "sector" | "value" | "drift" | "cioRating";
+type SortField = "name" | "sector" | "value" | "drift" | "cioRating" | "conflict";
 
 function formatCHF(value: number): string {
   if (value >= 1_000_000) return `${(value / 1_000_000).toFixed(2)}M`;
@@ -40,7 +40,7 @@ function conflictClass(severity: string): string {
   }
 }
 
-function getSortValue(p: EnrichedPosition, field: SortField): string | number {
+function getSortValue(p: EnrichedPosition, field: Exclude<SortField, "conflict">): string | number {
   switch (field) {
     case "name": return p.name.toLowerCase();
     case "sector": return p.sectorOrAssetClass.toLowerCase();
@@ -48,6 +48,12 @@ function getSortValue(p: EnrichedPosition, field: SortField): string | number {
     case "drift": return Math.abs(p.driftPercent);
     case "cioRating": return p.cioRating ?? "HOLD";
   }
+}
+
+const SEVERITY_ORDER: Record<string, number> = { high: 0, medium: 1, low: 2 };
+function conflictSortValue(conflict: any | undefined): number {
+  if (!conflict) return 3;
+  return SEVERITY_ORDER[conflict.severity] ?? 2;
 }
 
 export function PortfolioTable({
@@ -83,13 +89,20 @@ export function PortfolioTable({
     if (!portfolio) return [];
     const list = [...portfolio.positions];
     list.sort((a, b) => {
-      const av = getSortValue(a, sortField);
-      const bv = getSortValue(b, sortField);
-      const cmp = av < bv ? -1 : av > bv ? 1 : 0;
+      let cmp: number;
+      if (sortField === "conflict") {
+        const ac = conflictMap.get(a.isin) || conflictMap.get(a.name);
+        const bc = conflictMap.get(b.isin) || conflictMap.get(b.name);
+        cmp = conflictSortValue(ac) - conflictSortValue(bc);
+      } else {
+        const av = getSortValue(a, sortField);
+        const bv = getSortValue(b, sortField);
+        cmp = av < bv ? -1 : av > bv ? 1 : 0;
+      }
       return sortDir === "asc" ? cmp : -cmp;
     });
     return list;
-  }, [portfolio, sortField, sortDir]);
+  }, [portfolio, sortField, sortDir, conflictMap]);
 
   const assetClasses = useMemo(() => {
     if (!portfolio) return ["all"];
@@ -136,6 +149,7 @@ export function PortfolioTable({
     { label: "Value (CHF)", field: "value" },
     { label: "Drift %", field: "drift" },
     { label: "CIO Rating", field: "cioRating" },
+    { label: "Conflict", field: "conflict" },
   ];
 
   return (
@@ -197,25 +211,32 @@ export function PortfolioTable({
           )}
 
           {portfolio.driftBreaches && portfolio.driftBreaches.length > 0 && (
-            <div className="mb-4 bg-red-900/20 border border-red-800/30 rounded-lg p-3">
-              <p className="text-xs text-red-300 font-medium uppercase tracking-wide mb-2 flex items-center gap-1.5">
-                <AlertTriangle className="h-3.5 w-3.5" />
-                Mandate Drift Alert — ±2.0pp threshold breached
-              </p>
+            <div className="mt-4 p-4 rounded-lg bg-red-900/20 border border-red-900/40">
+              <div className="flex items-center gap-2 mb-3">
+                <AlertTriangle className="h-4 w-4 text-red-400" />
+                <span className="text-xs font-medium text-red-300 uppercase tracking-wide">
+                  Mandate Drift Breaches ({portfolio.driftBreaches.length})
+                </span>
+                <span className="text-xs text-slate-500 ml-auto">Threshold: ±2.0pp</span>
+              </div>
               <div className="space-y-2">
-                {portfolio.driftBreaches.map((b: any, i: number) => (
-                  <div key={i} className="flex items-center gap-3 text-sm">
-                    <span className="text-slate-300">{b.assetClass}</span>
-                    <span className="text-slate-500">target {b.targetPct}%</span>
-                    <span className="text-slate-500">→</span>
-                    <span className={b.driftPct > 0 ? "text-red-400" : "text-amber-400"}>
-                      actual {b.actualPct}%
+                {portfolio.driftBreaches.map((b: any) => (
+                  <div key={b.assetClass} className="flex items-center gap-3">
+                    <span className="text-xs text-slate-300 w-32 truncate">{b.assetClass}</span>
+                    <div className="flex-1 h-2 rounded-full bg-slate-700 relative">
+                      <div
+                        className={`h-full rounded-full ${b.driftPct > 0 ? "bg-red-500" : "bg-amber-500"}`}
+                        style={{ width: `${Math.min(Math.abs(b.driftPct) * 10, 100)}%` }}
+                      />
+                    </div>
+                    <span className={`text-xs font-mono w-16 text-right ${b.driftPct > 0 ? "text-red-400" : "text-amber-400"}`}>
+                      {b.driftPct >= 0 ? "+" : ""}{b.driftPct.toFixed(1)}pp
                     </span>
-                    <span className={`text-xs px-2 py-0.5 rounded-full ${
-                      Math.abs(b.driftPct) > 3 ? "bg-red-900/50 text-red-300" : "bg-amber-900/50 text-amber-300"
-                    }`}>
-                      {b.driftPct > 0 ? "+" : ""}{b.driftPct}pp
-                    </span>
+                    {b.targetPct != null && (
+                      <span className="text-xs text-slate-500 w-20">
+                        {b.actualPct?.toFixed(1)}% / {b.targetPct.toFixed(1)}%
+                      </span>
+                    )}
                   </div>
                 ))}
               </div>
@@ -259,9 +280,6 @@ export function PortfolioTable({
                       <ArrowUpDown className="h-3 w-3 inline ml-1" />
                     </th>
                   ))}
-                  <th className="text-left text-xs font-medium text-slate-400 uppercase tracking-wide pb-3 border-b border-slate-700">
-                    Conflict
-                  </th>
                 </tr>
               </thead>
               <tbody>
@@ -272,6 +290,18 @@ export function PortfolioTable({
                       {pos.instrumentType === "BOND" && (
                         <span className="ml-1 text-xs px-1 py-0.5 rounded bg-slate-600 text-slate-400">Bond</span>
                       )}
+                      {(() => {
+                        const conflict = conflictMap.get(pos.isin) || conflictMap.get(pos.name);
+                        if (!conflict) return null;
+                        return (
+                          <span
+                            className={clsx("ml-2 text-xs px-1.5 py-0.5 rounded", conflictClass(conflict.severity))}
+                            title={conflict.reason || "Conflict detected"}
+                          >
+                            {conflict.severity === "high" ? "⚠ Conflict" : "⚡ Review"}
+                          </span>
+                        );
+                      })()}
                     </td>
                     <td className="py-3 pr-4 text-slate-400 text-xs">{pos.sectorOrAssetClass}</td>
                     <td className="py-3 pr-4 text-slate-100">
@@ -309,13 +339,13 @@ export function PortfolioTable({
                     <td className="py-3 pr-4">
                       {(() => {
                         const conflict = conflictMap.get(pos.isin) || conflictMap.get(pos.name);
-                        if (!conflict) return null;
+                        if (!conflict) return <span className="text-xs text-slate-600">—</span>;
                         return (
                           <span
                             className={clsx("text-xs px-2 py-0.5 rounded-full cursor-help", conflictClass(conflict.severity))}
                             title={conflict.reason || "Conflict detected"}
                           >
-                            {conflict.severity === "high" ? "Conflict" : conflict.severity === "medium" ? "Risk" : conflict.severity}
+                            {conflict.severity === "high" ? "High" : conflict.severity === "medium" ? "Medium" : conflict.severity}
                           </span>
                         );
                       })()}
