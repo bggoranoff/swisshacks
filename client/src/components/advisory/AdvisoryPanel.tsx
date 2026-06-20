@@ -113,6 +113,8 @@ export function AdvisoryPanel({ advisory: advisoryProp, loading, clientId, conte
   const [compareData, setCompareData] = useState<{ generic: AdvisoryMessage; personalised: AdvisoryMessage } | null>(null);
   const [compareLoading, setCompareLoading] = useState(false);
   const [showCompareView, setShowCompareView] = useState(false);
+  const [pendingStatus, setPendingStatus] = useState<"approved" | "rejected" | null>(null);
+  const [rmNotes, setRmNotes] = useState("");
 
   useEffect(() => {
     if (loading) {
@@ -257,13 +259,13 @@ export function AdvisoryPanel({ advisory: advisoryProp, loading, clientId, conte
     }
   };
 
-  const handleStatusUpdate = async (status: "approved" | "rejected") => {
+  const handleStatusUpdate = async (status: "approved" | "rejected", notes?: string) => {
     if (!advisory) return;
     try {
       const res = await fetch(`/api/clients/${clientId}/advisory/${advisory.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status }),
+        body: JSON.stringify({ status, rmNotes: notes }),
       });
       const json = await res.json();
       if (json.success) {
@@ -508,20 +510,49 @@ export function AdvisoryPanel({ advisory: advisoryProp, loading, clientId, conte
 
           {/* Approve / Reject */}
           {advisory && advisory.status === "draft" && (
-            <div className="flex items-center gap-3 mt-4 pt-3 border-t border-slate-700">
-              <button
-                onClick={() => handleStatusUpdate("approved")}
-                className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-colors"
-              >
-                <Check className="h-4 w-4" /> Approve
-              </button>
-              <button
-                onClick={() => handleStatusUpdate("rejected")}
-                className="bg-red-600/20 hover:bg-red-600/30 text-red-300 px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-colors border border-red-600/30"
-              >
-                <X className="h-4 w-4" /> Reject
-              </button>
-              <span className="text-xs text-slate-500 ml-auto">RM decision required</span>
+            <div className="mt-4 pt-3 border-t border-slate-700">
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => setPendingStatus("approved")}
+                  className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-colors"
+                >
+                  <Check className="h-4 w-4" /> Approve
+                </button>
+                <button
+                  onClick={() => setPendingStatus("rejected")}
+                  className="bg-red-600/20 hover:bg-red-600/30 text-red-300 px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-colors border border-red-600/30"
+                >
+                  <X className="h-4 w-4" /> Reject
+                </button>
+                <span className="text-xs text-slate-500 ml-auto">RM decision required</span>
+              </div>
+              {pendingStatus && (
+                <div className="mt-3 p-3 rounded-lg bg-slate-700/50 border border-slate-600">
+                  <p className="text-xs text-slate-400 mb-2">
+                    {pendingStatus === "approved" ? "Approve" : "Reject"} this advisory — add optional notes:
+                  </p>
+                  <textarea
+                    value={rmNotes}
+                    onChange={e => setRmNotes(e.target.value)}
+                    placeholder="Add notes for the record (optional)..."
+                    className="w-full bg-slate-800 border border-slate-600 rounded-lg p-2 text-sm text-slate-200 placeholder-slate-500 min-h-[60px] focus:outline-none focus:border-blue-500"
+                  />
+                  <div className="flex gap-2 mt-2">
+                    <button
+                      onClick={() => { handleStatusUpdate(pendingStatus, rmNotes); setPendingStatus(null); setRmNotes(""); }}
+                      className={`text-xs px-3 py-1.5 rounded-lg text-white ${pendingStatus === "approved" ? "bg-green-600" : "bg-red-600"}`}
+                    >
+                      Confirm {pendingStatus === "approved" ? "Approval" : "Rejection"}
+                    </button>
+                    <button
+                      onClick={() => { setPendingStatus(null); setRmNotes(""); }}
+                      className="text-xs px-3 py-1.5 rounded-lg bg-slate-600 text-slate-200"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           )}
           {advisory && advisory.status !== "draft" && (

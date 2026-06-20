@@ -73,6 +73,7 @@ export function PortfolioTable({
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
   const [search, setSearch] = useState("");
   const [assetClassFilter, setAssetClassFilter] = useState<string>("all");
+  const [showConflictsOnly, setShowConflictsOnly] = useState(false);
 
   // Map conflicts from top-level array to per-position by ISIN or name
   const conflictMap = useMemo(() => {
@@ -117,7 +118,8 @@ export function PortfolioTable({
       p.isin.toLowerCase().includes(q) ||
       (p.sectorOrAssetClass || "").toLowerCase().includes(q);
     const matchesClass = assetClassFilter === "all" || p.sectorOrAssetClass === assetClassFilter;
-    return matchesSearch && matchesClass;
+    const matchesConflict = !showConflictsOnly || conflictMap.has(p.isin) || conflictMap.has(p.name);
+    return matchesSearch && matchesClass && matchesConflict;
   });
 
   const summaryStats = useMemo(() => {
@@ -263,6 +265,15 @@ export function PortfolioTable({
                 <option key={ac} value={ac}>{ac === "all" ? "All Asset Classes" : ac}</option>
               ))}
             </select>
+            <button
+              onClick={() => setShowConflictsOnly(!showConflictsOnly)}
+              className={clsx(
+                "text-xs px-3 py-2 rounded-lg transition-colors whitespace-nowrap",
+                showConflictsOnly ? "bg-red-600 text-white" : "bg-slate-700 text-slate-400 hover:text-slate-200"
+              )}
+            >
+              {showConflictsOnly ? "Showing Conflicts" : "Show Conflicts"}
+            </button>
           </div>
           <p className="text-xs text-slate-500 mb-2">{filtered.length} of {portfolio.positions.length} positions</p>
 
