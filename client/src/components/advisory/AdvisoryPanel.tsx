@@ -376,6 +376,12 @@ export function AdvisoryPanel({ advisory: advisoryProp, loading, clientId, conte
             </div>
           </div>
 
+          {advisory.generatedAt && (
+            <span className="text-xs text-slate-500">
+              Generated {new Date(advisory.generatedAt).toLocaleTimeString()}
+            </span>
+          )}
+
           {/* Tone Influences */}
           {advisory.toneInfluences && advisory.toneInfluences.length > 0 && (
             <div className="mt-3 mb-3">
