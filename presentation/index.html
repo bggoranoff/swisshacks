@@ -78,8 +78,8 @@
     backdrop-filter: blur(12px);
     border-bottom: 1px solid var(--border);
   }
-  .logo { display: flex; align-items: center; gap: .35rem; }
-  .logo-six { font-size: 1.05rem; font-weight: 800; color: var(--six-red); letter-spacing: -.02em; }
+  .logo { display: flex; align-items: center; gap: .4rem; }
+  .logo svg { height: 0.85rem; width: auto; }
   .logo-ai  { font-size: 1.05rem; font-weight: 400; color: var(--text-sub); }
   .slide-label {
     font-size: .65rem; color: var(--muted); letter-spacing: .12em; text-transform: uppercase; font-weight: 600;
@@ -121,14 +121,15 @@
   }
   .pain-card {
     background: var(--bg); border: 1px solid var(--border);
-    border-radius: 3px; padding: 1.3rem 1.3rem 1.15rem;
+    border-radius: 3px; padding: 2rem 2rem;
     box-shadow: 0 1px 3px rgba(0,0,0,.04);
     transition: box-shadow .2s, border-color .2s;
+    display: flex; align-items: center; gap: 1rem;
+    justify-content: center;
   }
   .pain-card:hover { box-shadow: 0 4px 16px rgba(200,16,46,.08); border-color: rgba(200,16,46,.3); }
-  .pain-card .icon { font-size: 1.8rem; margin-bottom: .5rem; }
-  .pain-card h3 { font-size: 1.2rem; font-weight: 700; color: var(--text); margin-bottom: .35rem; }
-  .pain-card p  { font-size: 1.05rem; color: var(--text-sub); line-height: 1.6; }
+  .pain-card .icon { font-size: 2.4rem; flex-shrink: 0; }
+  .pain-card h3 { font-size: 1.25rem; font-weight: 700; color: var(--text); }
 
   /* ══════════════════════════════════════════════════════
      SLIDE 2 — SOLUTION
@@ -301,8 +302,9 @@
   }
   .browser-body { flex: 1; display: grid; grid-template-columns: 140px 1fr; min-height: 0; }
   .mock-sidebar { border-right: 1px solid var(--border); padding: .6rem .4rem; background: var(--surface); }
-  .mock-logo-bar { font-size: .6rem; font-weight: 800; color: var(--six-red); padding: .15rem .35rem .4rem; border-bottom: 1px solid var(--border); margin-bottom: .4rem; }
-  .mock-logo-bar span { color: var(--text-sub); font-weight: 400; }
+  .mock-logo-bar { display: flex; align-items: center; gap: .2rem; padding: .15rem .35rem .4rem; border-bottom: 1px solid var(--border); margin-bottom: .4rem; }
+  .mock-logo-bar svg { height: .45rem; width: auto; }
+  .mock-logo-bar span { font-size: .6rem; color: var(--text-sub); font-weight: 400; }
   .mock-client { display: flex; align-items: center; gap: .4rem; padding: .3rem .35rem; border-radius: 3px; margin-bottom: .2rem; }
   .mock-client.sel { background: rgba(200,16,46,.06); border-left: 2px solid var(--six-red); }
   .mock-av { width: 20px; height: 20px; border-radius: 50%; font-size: .5rem; font-weight: 700; color: #fff; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
@@ -386,14 +388,19 @@
       linear-gradient(180deg, #fff 0%, #f8fafc 100%);
   }
   .title-logo {
-    font-size: 3.5rem; font-weight: 800; letter-spacing: -.04em;
-    margin-bottom: .5rem;
+    display: flex; align-items: center; gap: 0.6rem;
+    justify-content: center; margin-bottom: .5rem;
   }
-  .title-logo .t-six { color: var(--six-red); }
-  .title-logo .t-ai  { color: var(--text); font-weight: 400; }
+  .title-logo svg { height: 2.8rem; width: auto; }
+  .title-logo .t-ai  { font-size: 3.5rem; font-weight: 400; color: var(--text); letter-spacing: -.04em; }
   .title-subtitle {
-    font-size: 1.6rem; color: var(--navy); font-weight: 700;
-    font-style: normal; margin-bottom: 3rem; text-align: center;
+    font-size: 1.35rem; color: var(--text-sub); font-weight: 400;
+    font-style: italic; margin-bottom: 3rem; text-align: center;
+    line-height: 1.6;
+  }
+  .title-subtitle .quote-attr {
+    display: block; font-style: normal; font-size: 0.95rem;
+    color: var(--muted); margin-top: 0.4rem; letter-spacing: 0.02em;
   }
   .title-team {
     display: flex; gap: 2.5rem; align-items: center;
@@ -435,7 +442,7 @@
 
 <!-- Top bar -->
 <div class="top-bar">
-  <div class="logo"><span class="logo-six">SIX</span><span class="logo-ai">AI</span></div>
+  <div class="logo"><svg viewBox="0 0 368.02 102.05" aria-label="SIX"><path fill="#C8102E" d="M93.7,14.59C101.18,5.67,112.4,0,124.94,0h27.98v20.41h-27.98c-6.27,0-11.88,2.83-15.62,7.29l-50.1,59.76c-7.48,8.92-18.69,14.58-31.24,14.58H0V81.64h27.98c6.27,0,11.87-2.83,15.62-7.29L93.7,14.59z"/><rect fill="#C8102E" x="173.31" y="0" width="21.41" height="102.05"/><path fill="#C8102E" d="M274.33,14.59l17.24,20.57l17.24-20.57C316.29,5.67,327.51,0,340.05,0h27.97v20.41h-27.97c-6.27,0-11.88,2.83-15.62,7.29l-19.56,23.32l19.56,23.32c3.74,4.46,9.34,7.29,15.62,7.29h27.97v20.41h-27.97c-12.54,0-23.76-5.66-31.24-14.58L291.57,66.9l-17.24,20.56c-7.48,8.92-18.7,14.58-31.24,14.58h-27.98V81.64h27.98c6.27,0,11.87-2.83,15.61-7.29l19.55-23.32L258.7,27.7c-3.74-4.46-9.35-7.29-15.61-7.29h-27.98V0h27.98C255.62,0,266.85,5.67,274.33,14.59"/></svg><span class="logo-ai">AI</span></div>
   <span class="slide-label" id="slide-label">01 / 05</span>
   <img class="swisshacks-logo" id="swisshacks-logo"
        src="pptx_slide2_Google_Shape_64_p14.png"
@@ -446,8 +453,8 @@
 
   <!-- ── SLIDE 0: TITLE ────────────────────────────────── -->
   <section class="slide active" id="s0">
-    <div class="title-logo"><span class="t-six">SIX</span> <span class="t-ai">AI</span></div>
-    <p class="title-subtitle">Cursor meets Palantir (for relationship managers)</p>
+    <div class="title-logo"><svg viewBox="0 0 368.02 102.05" aria-label="SIX"><path fill="#C8102E" d="M93.7,14.59C101.18,5.67,112.4,0,124.94,0h27.98v20.41h-27.98c-6.27,0-11.88,2.83-15.62,7.29l-50.1,59.76c-7.48,8.92-18.69,14.58-31.24,14.58H0V81.64h27.98c6.27,0,11.87-2.83,15.62-7.29L93.7,14.59z"/><rect fill="#C8102E" x="173.31" y="0" width="21.41" height="102.05"/><path fill="#C8102E" d="M274.33,14.59l17.24,20.57l17.24-20.57C316.29,5.67,327.51,0,340.05,0h27.97v20.41h-27.97c-6.27,0-11.88,2.83-15.62,7.29l-19.56,23.32l19.56,23.32c3.74,4.46,9.34,7.29,15.62,7.29h27.97v20.41h-27.97c-12.54,0-23.76-5.66-31.24-14.58L291.57,66.9l-17.24,20.56c-7.48,8.92-18.7,14.58-31.24,14.58h-27.98V81.64h27.98c6.27,0,11.87-2.83,15.61-7.29l19.55-23.32L258.7,27.7c-3.74-4.46-9.35-7.29-15.61-7.29h-27.98V0h27.98C255.62,0,266.85,5.67,274.33,14.59"/></svg><span class="t-ai">AI</span></div>
+    <p class="title-subtitle">"Intellectuals solve problems, geniuses prevent them."<span class="quote-attr">— Albert Einstein, probably</span></p>
 
     <div class="title-team">
       <div class="title-member"><strong>Boris Goranov</strong></div>
@@ -469,17 +476,14 @@
       <div class="pain-card">
         <div class="icon">🏦</div>
         <h3>The UHNW privilege gap</h3>
-        <p>Deep personalisation is reserved for the top 1%. Everyone else gets a template.</p>
       </div>
       <div class="pain-card">
         <div class="icon">⏱️</div>
         <h3>RMs can't scale intimacy</h3>
-        <p>50 &ndash; 150 clients per RM. Cross-referencing values, portfolio and news for each is humanly impossible.</p>
       </div>
       <div class="pain-card">
         <div class="icon">📉</div>
         <h3>Generic service loses clients</h3>
-        <p>Clients who feel like a number switch banks. Poor personalisation costs AUM.</p>
       </div>
     </div>
   </section>
@@ -635,7 +639,7 @@
           </div>
           <div class="browser-body">
             <div class="mock-sidebar">
-              <div class="mock-logo-bar">SIX <span>AI</span></div>
+              <div class="mock-logo-bar"><svg viewBox="0 0 368.02 102.05" aria-label="SIX"><path fill="#C8102E" d="M93.7,14.59C101.18,5.67,112.4,0,124.94,0h27.98v20.41h-27.98c-6.27,0-11.88,2.83-15.62,7.29l-50.1,59.76c-7.48,8.92-18.69,14.58-31.24,14.58H0V81.64h27.98c6.27,0,11.87-2.83,15.62-7.29L93.7,14.59z"/><rect fill="#C8102E" x="173.31" y="0" width="21.41" height="102.05"/><path fill="#C8102E" d="M274.33,14.59l17.24,20.57l17.24-20.57C316.29,5.67,327.51,0,340.05,0h27.97v20.41h-27.97c-6.27,0-11.88,2.83-15.62,7.29l-19.56,23.32l19.56,23.32c3.74,4.46,9.34,7.29,15.62,7.29h27.97v20.41h-27.97c-12.54,0-23.76-5.66-31.24-14.58L291.57,66.9l-17.24,20.56c-7.48,8.92-18.7,14.58-31.24,14.58h-27.98V81.64h27.98c6.27,0,11.87-2.83,15.61-7.29l19.55-23.32L258.7,27.7c-3.74-4.46-9.35-7.29-15.61-7.29h-27.98V0h27.98C255.62,0,266.85,5.67,274.33,14.59"/></svg><span>AI</span></div>
               <div class="mock-client sel">
                 <div class="mock-av" style="background:var(--six-red)">HS</div>
                 <div><div class="mock-name">H. Schneider</div><div class="mock-tag">Balanced</div></div>
