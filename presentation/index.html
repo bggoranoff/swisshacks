@@ -1,0 +1,757 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>SIX AI — Final Presentation</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg:         #ffffff;
+    --surface:    #f1f5f9;
+    --surface-2:  #e2e8f0;
+    --border:     #cbd5e1;
+    --muted:      #94a3b8;
+    --text:       #0f172a;
+    --text-sub:   #475569;
+    --six-red:    #C8102E;
+    --six-red-br: #E4253D;
+    --six-red-dk: #9B0C23;
+    --six-blue:   #2e6fd6;
+    --six-blue-br:#4f8bf0;
+    --navy:       #14233f;
+    --green:      #16a34a;
+    --amber:      #d97706;
+    --purple:     #7c3aed;
+  }
+
+  html, body {
+    height: 100%; overflow: hidden;
+    background: var(--bg);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    color: var(--text);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* ── Deck shell ──────────────────────────────────────── */
+  .deck { position: relative; width: 100%; height: 100%; }
+
+  .slide {
+    position: absolute; inset: 0;
+    display: flex; flex-direction: column;
+    opacity: 0; pointer-events: none;
+    transition: opacity 0.5s ease;
+    overflow-y: auto;
+  }
+  .slide.active { opacity: 1; pointer-events: all; }
+
+  /* ── Nav bar ─────────────────────────────────────────── */
+  nav {
+    position: fixed; bottom: 1.5rem; left: 50%; transform: translateX(-50%);
+    display: flex; align-items: center; gap: .75rem;
+    background: rgba(255,255,255,0.92); border: 1px solid var(--border);
+    backdrop-filter: blur(16px); border-radius: 9999px;
+    padding: .45rem 1.1rem; z-index: 100;
+    box-shadow: 0 4px 24px rgba(0,0,0,.08);
+  }
+  .dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--border); cursor: pointer;
+    transition: background .2s, transform .2s;
+  }
+  .dot.active { background: var(--six-red); transform: scale(1.35); }
+  .nav-btn {
+    background: none; border: none; color: var(--muted); cursor: pointer;
+    font-size: .8rem; padding: .2rem .5rem; border-radius: 6px;
+    transition: color .2s, background .2s;
+  }
+  .nav-btn:hover { color: var(--text); background: var(--surface); }
+  .slide-counter { font-size: .7rem; color: var(--muted); min-width: 2.5rem; text-align: center; }
+
+  /* ── Top bar ─────────────────────────────────────────── */
+  .top-bar {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 1rem 2rem;
+    background: rgba(255,255,255,0.85);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border);
+  }
+  .logo { display: flex; align-items: center; gap: .35rem; }
+  .logo-six { font-size: 1.05rem; font-weight: 800; color: var(--six-red); letter-spacing: -.02em; }
+  .logo-ai  { font-size: 1.05rem; font-weight: 400; color: var(--text-sub); }
+  .slide-label {
+    font-size: .65rem; color: var(--muted); letter-spacing: .12em; text-transform: uppercase; font-weight: 600;
+  }
+  .swisshacks-logo { height: 28px; }
+
+  /* ── Common slide elements ───────────────────────────── */
+  .eyebrow {
+    font-size: .85rem; letter-spacing: .18em; text-transform: uppercase;
+    font-weight: 700; margin-bottom: 1rem;
+  }
+  .slide-title {
+    font-size: clamp(2.2rem, 4.5vw, 3.4rem); font-weight: 800; line-height: 1.15;
+    letter-spacing: -.03em; max-width: 820px;
+  }
+  .slide-title em { font-style: normal; }
+  .slide-sub {
+    margin-top: 1rem; font-size: 1.25rem; color: var(--text-sub);
+    line-height: 1.65; max-width: 680px;
+  }
+
+  /* ══════════════════════════════════════════════════════
+     SLIDE 1 — PROBLEM
+  ══════════════════════════════════════════════════════ */
+  #s1 {
+    align-items: center; justify-content: center; padding: 5rem 8vw 4rem;
+    background:
+      radial-gradient(ellipse 60% 50% at 50% 35%, rgba(200,16,46,.04) 0%, transparent 70%),
+      linear-gradient(180deg, #fff 0%, #f8fafc 100%);
+  }
+  #s1 .eyebrow { color: var(--six-red); }
+  #s1 .slide-title { text-align: center; }
+  #s1 .slide-title em { color: var(--six-red); }
+  #s1 .slide-sub { text-align: center; }
+
+  .pain-grid {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.25rem;
+    margin-top: 2.5rem; max-width: 900px; width: 100%;
+  }
+  .pain-card {
+    background: var(--bg); border: 1px solid var(--border);
+    border-radius: 3px; padding: 1.3rem 1.3rem 1.15rem;
+    box-shadow: 0 1px 3px rgba(0,0,0,.04);
+    transition: box-shadow .2s, border-color .2s;
+  }
+  .pain-card:hover { box-shadow: 0 4px 16px rgba(200,16,46,.08); border-color: rgba(200,16,46,.3); }
+  .pain-card .icon { font-size: 1.8rem; margin-bottom: .5rem; }
+  .pain-card h3 { font-size: 1.2rem; font-weight: 700; color: var(--text); margin-bottom: .35rem; }
+  .pain-card p  { font-size: 1.05rem; color: var(--text-sub); line-height: 1.6; }
+
+  /* ══════════════════════════════════════════════════════
+     SLIDE 2 — SOLUTION
+  ══════════════════════════════════════════════════════ */
+  #s2 {
+    align-items: center; justify-content: center; padding: 5rem 8vw 4rem;
+    background:
+      radial-gradient(ellipse 60% 50% at 50% 35%, rgba(46,111,214,.04) 0%, transparent 70%),
+      linear-gradient(180deg, #fff 0%, #f8fafc 100%);
+  }
+  #s2 .eyebrow { color: var(--six-blue); }
+  #s2 .slide-title { text-align: center; }
+  #s2 .slide-title em { color: var(--six-blue); }
+
+  .flow {
+    display: flex; align-items: center; gap: .6rem;
+    margin-top: 2rem; flex-wrap: wrap; justify-content: center;
+  }
+  .flow-step {
+    display: flex; align-items: center; gap: .35rem;
+    font-size: .88rem; font-weight: 600; color: var(--text-sub);
+    background: var(--bg); border: 1px solid var(--border);
+    border-radius: 2px; padding: .3rem .8rem;
+    box-shadow: 0 1px 2px rgba(0,0,0,.04);
+  }
+  .flow-dot { width: 6px; height: 6px; border-radius: 50%; }
+  .flow-arrow { color: var(--muted); font-size: 1rem; }
+
+  .feat-grid {
+    display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem;
+    margin-top: 2rem; max-width: 860px; width: 100%;
+  }
+  .feat {
+    display: flex; gap: .85rem; align-items: flex-start;
+    background: var(--bg); border: 1px solid var(--border);
+    border-radius: 3px; padding: 1rem;
+    box-shadow: 0 1px 3px rgba(0,0,0,.04);
+    transition: box-shadow .2s, border-color .2s;
+  }
+  .feat:hover { box-shadow: 0 4px 16px rgba(46,111,214,.08); border-color: rgba(46,111,214,.25); }
+  .feat-icon {
+    width: 34px; height: 34px; border-radius: 3px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1rem; flex-shrink: 0;
+  }
+  .feat-icon.red    { background: rgba(200,16,46,.08); }
+  .feat-icon.blue   { background: rgba(46,111,214,.08); }
+  .feat-icon.green  { background: rgba(22,163,74,.08); }
+  .feat-icon.amber  { background: rgba(217,119,6,.08); }
+  .feat h3 { font-size: 1.15rem; font-weight: 700; color: var(--text); margin-bottom: .3rem; }
+  .feat p  { font-size: 1.02rem; color: var(--text-sub); line-height: 1.55; }
+
+  /* ══════════════════════════════════════════════════════
+     SLIDE 3 — ARCHITECTURE
+  ══════════════════════════════════════════════════════ */
+  #s3 {
+    align-items: center; justify-content: center; padding: 5rem 6vw 4rem;
+    background:
+      radial-gradient(ellipse 50% 40% at 50% 40%, rgba(200,16,46,.03) 0%, transparent 70%),
+      linear-gradient(180deg, #fff 0%, #f8fafc 100%);
+  }
+  #s3 .eyebrow { color: var(--six-red); }
+  #s3 .slide-title { text-align: center; }
+  #s3 .slide-title em { color: var(--six-red); }
+
+  .arch-container {
+    margin-top: 2rem; max-width: 960px; width: 100%;
+    display: flex; flex-direction: column; gap: 1rem;
+  }
+
+  .arch-row {
+    display: flex; gap: 1rem; justify-content: center;
+  }
+
+  .arch-block {
+    background: var(--bg); border: 1px solid var(--border);
+    border-radius: 3px; padding: 1rem 1.2rem;
+    box-shadow: 0 1px 3px rgba(0,0,0,.04);
+    flex: 1; min-width: 0;
+  }
+  .arch-block.highlight {
+    border-color: rgba(200,16,46,.3);
+    background: linear-gradient(135deg, rgba(200,16,46,.02), rgba(46,111,214,.02));
+  }
+  .arch-block-title {
+    font-size: .9rem; font-weight: 700; text-transform: uppercase;
+    letter-spacing: .1em; margin-bottom: .5rem; display: flex; align-items: center; gap: .4rem;
+  }
+  .arch-block-title .arch-dot {
+    width: 6px; height: 6px; border-radius: 50%; display: inline-block;
+  }
+  .arch-items { display: flex; flex-wrap: wrap; gap: .35rem; }
+  .arch-pill {
+    font-size: .95rem; font-weight: 500; padding: .3rem .7rem;
+    border-radius: 2px; border: 1px solid;
+  }
+  .pill-red    { background: rgba(200,16,46,.06); border-color: rgba(200,16,46,.15); color: var(--six-red); }
+  .pill-blue   { background: rgba(46,111,214,.06); border-color: rgba(46,111,214,.15); color: var(--six-blue); }
+  .pill-green  { background: rgba(22,163,74,.06); border-color: rgba(22,163,74,.15); color: var(--green); }
+  .pill-purple { background: rgba(124,58,237,.06); border-color: rgba(124,58,237,.15); color: var(--purple); }
+  .pill-amber  { background: rgba(217,119,6,.06); border-color: rgba(217,119,6,.15); color: var(--amber); }
+  .pill-navy   { background: rgba(20,35,63,.06); border-color: rgba(20,35,63,.15); color: var(--navy); }
+
+  .arch-arrow-row {
+    display: flex; justify-content: center; gap: 1.5rem;
+    color: var(--muted); font-size: .75rem;
+  }
+  .arch-arrow { display: flex; flex-direction: column; align-items: center; gap: .15rem; }
+  .arch-arrow span { font-size: .75rem; color: var(--muted); font-weight: 500; }
+
+  /* ══════════════════════════════════════════════════════
+     SLIDE 4 — DEMO
+  ══════════════════════════════════════════════════════ */
+  #s4 { padding: 0; }
+  .demo-layout { display: grid; grid-template-columns: 1fr 1fr; height: 100%; }
+
+  .demo-left {
+    display: flex; flex-direction: column; justify-content: center;
+    padding: 5rem 3rem 4rem 8vw;
+    background:
+      radial-gradient(ellipse 80% 70% at 20% 50%, rgba(200,16,46,.03) 0%, transparent 70%),
+      linear-gradient(135deg, #fff 0%, #f8fafc 100%);
+  }
+  .demo-left .eyebrow { color: var(--six-red); }
+  .demo-left .slide-title em { color: var(--six-red); }
+  .demo-left .slide-sub { max-width: 420px; }
+
+  .demo-steps { margin-top: 1.75rem; display: flex; flex-direction: column; gap: .55rem; }
+  .demo-step {
+    display: flex; align-items: center; gap: .7rem;
+    font-size: 1.1rem; color: var(--text-sub);
+  }
+  .step-num {
+    width: 22px; height: 22px; border-radius: 50%; flex-shrink: 0;
+    background: var(--six-red); color: #fff; font-size: .65rem; font-weight: 700;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .demo-step strong { color: var(--six-red); font-weight: 600; }
+
+  .url-chip {
+    margin-top: 2rem; display: inline-flex; align-items: center; gap: .5rem;
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 3px; padding: .5rem .9rem;
+    font-size: .95rem; color: var(--text-sub); font-family: 'SF Mono', 'Fira Code', monospace;
+  }
+  .url-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--green); animation: pulse 2s infinite; }
+  @keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:.35; } }
+
+  .demo-right {
+    position: relative; overflow: hidden;
+    background: var(--surface);
+    border-left: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: center;
+  }
+  .mock-browser {
+    width: 90%; height: 84%; background: var(--bg);
+    border: 1px solid var(--border); border-radius: 3px;
+    overflow: hidden; display: flex; flex-direction: column;
+    box-shadow: 0 20px 60px rgba(0,0,0,.1);
+  }
+  .browser-bar {
+    background: var(--surface); border-bottom: 1px solid var(--border);
+    padding: .5rem .75rem; display: flex; align-items: center; gap: .5rem; flex-shrink: 0;
+  }
+  .b-dot { width: 8px; height: 8px; border-radius: 50%; }
+  .browser-url {
+    flex: 1; background: var(--bg); border: 1px solid var(--border);
+    border-radius: 3px; padding: .15rem .6rem; font-size: .65rem;
+    color: var(--text-sub); font-family: monospace; margin: 0 .5rem;
+  }
+  .browser-body { flex: 1; display: grid; grid-template-columns: 140px 1fr; min-height: 0; }
+  .mock-sidebar { border-right: 1px solid var(--border); padding: .6rem .4rem; background: var(--surface); }
+  .mock-logo-bar { font-size: .6rem; font-weight: 800; color: var(--six-red); padding: .15rem .35rem .4rem; border-bottom: 1px solid var(--border); margin-bottom: .4rem; }
+  .mock-logo-bar span { color: var(--text-sub); font-weight: 400; }
+  .mock-client { display: flex; align-items: center; gap: .4rem; padding: .3rem .35rem; border-radius: 3px; margin-bottom: .2rem; }
+  .mock-client.sel { background: rgba(200,16,46,.06); border-left: 2px solid var(--six-red); }
+  .mock-av { width: 20px; height: 20px; border-radius: 50%; font-size: .5rem; font-weight: 700; color: #fff; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .mock-name { font-size: .65rem; color: var(--text); font-weight: 600; }
+  .mock-tag  { font-size: .55rem; color: var(--text-sub); }
+  .mock-main { padding: .6rem; overflow: hidden; display: flex; flex-direction: column; gap: .4rem; }
+  .mock-card { background: var(--surface); border: 1px solid var(--border); border-radius: 3px; padding: .5rem .6rem; }
+  .mock-card-title { font-size: .6rem; font-weight: 700; color: var(--six-red); text-transform: uppercase; letter-spacing: .08em; margin-bottom: .3rem; }
+  .mock-pill { display: inline-block; font-size: .55rem; padding: .1rem .35rem; border-radius: 2px; margin: .05rem; font-weight: 500; }
+  .mock-alert { background: rgba(200,16,46,.04); border: 1px solid rgba(200,16,46,.15); border-radius: 3px; padding: .35rem .5rem; font-size: .6rem; color: var(--six-red-dk); }
+  .mock-advisory {
+    background: linear-gradient(135deg, rgba(200,16,46,.04), rgba(46,111,214,.03));
+    border: 1px solid rgba(200,16,46,.15); border-radius: 3px;
+    padding: .4rem .5rem; font-size: .6rem; color: var(--text-sub); line-height: 1.5;
+  }
+  .mock-advisory strong { color: var(--six-red); }
+
+  /* ══════════════════════════════════════════════════════
+     SLIDE 5 — Q&A / TEAM
+  ══════════════════════════════════════════════════════ */
+  #s5 {
+    align-items: center; justify-content: center; padding: 5rem 8vw 4rem;
+    background:
+      radial-gradient(ellipse 50% 40% at 50% 55%, rgba(200,16,46,.03) 0%, transparent 70%),
+      linear-gradient(180deg, #fff 0%, #f8fafc 100%);
+  }
+  #s5 .eyebrow { color: var(--six-red); }
+  #s5 .slide-title { text-align: center; }
+  #s5 .slide-title em { color: var(--six-red); }
+  #s5 .slide-sub { text-align: center; margin-bottom: 2.5rem; }
+
+  .team-grid {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 2rem;
+    max-width: 720px; width: 100%;
+  }
+  .team-card {
+    display: flex; flex-direction: column; align-items: center; text-align: center;
+    background: var(--bg); border: 1px solid var(--border);
+    border-radius: 3px; padding: 1.75rem 1.25rem 1.5rem;
+    box-shadow: 0 1px 3px rgba(0,0,0,.04);
+    transition: box-shadow .25s, border-color .25s, transform .25s;
+  }
+  .team-card:hover { box-shadow: 0 8px 32px rgba(200,16,46,.1); border-color: rgba(200,16,46,.25); transform: translateY(-2px); }
+  .team-photo {
+    width: 150px; height: 150px; border-radius: 4px;
+    object-fit: cover; object-position: center top;
+    border: 3px solid var(--surface-2);
+    margin-bottom: 1rem;
+    filter: grayscale(10%);
+    transition: filter .25s, border-color .25s;
+  }
+  .team-card:hover .team-photo { filter: grayscale(0%); border-color: var(--six-red); }
+  .team-name { font-size: 1.3rem; font-weight: 700; color: var(--text); margin-bottom: .35rem; }
+  .team-role {
+    font-size: .9rem; font-weight: 600; text-transform: uppercase; letter-spacing: .1em;
+    padding: .2rem .6rem; border-radius: 2px;
+  }
+  .role-frontend  { background: rgba(46,111,214,.08); color: var(--six-blue); }
+  .role-backend   { background: rgba(22,163,74,.08); color: var(--green); }
+  .role-business   { background: rgba(217,119,6,.08); color: var(--amber); }
+
+  .qa-cta {
+    margin-top: 1.5rem; font-size: 1.25rem; font-weight: 600; color: var(--text-sub);
+    display: flex; align-items: center; gap: .5rem;
+  }
+  .qa-cta .qa-icon { font-size: 1.4rem; }
+
+  .powered-by {
+    margin-top: 1.5rem; font-size: .65rem; color: var(--muted);
+    display: flex; align-items: center; gap: .5rem;
+  }
+  .powered-by img { height: 18px; opacity: .6; }
+
+  /* ══════════════════════════════════════════════════════
+     SLIDE 0 — TITLE
+  ══════════════════════════════════════════════════════ */
+  #s0 {
+    align-items: center; justify-content: center; padding: 5rem 8vw 4rem;
+    background:
+      radial-gradient(ellipse 60% 50% at 50% 40%, rgba(200,16,46,.05) 0%, transparent 70%),
+      linear-gradient(180deg, #fff 0%, #f8fafc 100%);
+  }
+  .title-logo {
+    font-size: 3.5rem; font-weight: 800; letter-spacing: -.04em;
+    margin-bottom: .5rem;
+  }
+  .title-logo .t-six { color: var(--six-red); }
+  .title-logo .t-ai  { color: var(--text); font-weight: 400; }
+  .title-subtitle {
+    font-size: 1.6rem; color: var(--navy); font-weight: 700;
+    font-style: normal; margin-bottom: 3rem; text-align: center;
+  }
+  .title-team {
+    display: flex; gap: 2.5rem; align-items: center;
+  }
+  .title-member {
+    text-align: center; font-size: .95rem; color: var(--muted);
+  }
+  .title-member strong {
+    display: block; font-size: 1.05rem; color: var(--text-sub); font-weight: 600;
+    margin-bottom: .15rem;
+  }
+  .title-divider {
+    width: 1px; height: 2.5rem; background: var(--border);
+  }
+  .title-event {
+    margin-top: 2.5rem; font-size: .85rem; color: var(--muted);
+    letter-spacing: .1em; text-transform: uppercase; font-weight: 600;
+  }
+
+  .closing-statement {
+    font-size: clamp(1.1rem, 2vw, 1.35rem); font-weight: 700; color: var(--text);
+    text-align: center; max-width: 600px; line-height: 1.4; margin-top: 2rem; margin-bottom: .5rem;
+  }
+
+  @media (max-height: 768px) {
+    #s1, #s2, #s3, #s5 { padding-top: 4rem; padding-bottom: 3rem; }
+    .arch-container { gap: .6rem; }
+    .arch-block { padding: .65rem .9rem; }
+    .arch-arrow-row { font-size: .65rem; }
+    .pain-grid, .feat-grid { gap: .75rem; }
+    .pain-card { padding: 1rem; }
+    .feat { padding: .75rem; }
+    .team-photo { width: 110px; height: 110px; }
+    .team-card { padding: 1.25rem 1rem 1.15rem; }
+  }
+</style>
+</head>
+<body>
+
+<!-- Top bar -->
+<div class="top-bar">
+  <div class="logo"><span class="logo-six">SIX</span><span class="logo-ai">AI</span></div>
+  <span class="slide-label" id="slide-label">01 / 05</span>
+  <img class="swisshacks-logo" id="swisshacks-logo"
+       src="pptx_slide2_Google_Shape_64_p14.png"
+       alt="SwissHacks 2026" />
+</div>
+
+<div class="deck">
+
+  <!-- ── SLIDE 0: TITLE ────────────────────────────────── -->
+  <section class="slide active" id="s0">
+    <div class="title-logo"><span class="t-six">SIX</span> <span class="t-ai">AI</span></div>
+    <p class="title-subtitle">Cursor meets Palantir (for relationship managers)</p>
+
+    <div class="title-team">
+      <div class="title-member"><strong>Boris Goranov</strong></div>
+      <div class="title-divider"></div>
+      <div class="title-member"><strong>Hristo Stefanov</strong></div>
+      <div class="title-divider"></div>
+      <div class="title-member"><strong>Nikola Staykov</strong></div>
+    </div>
+
+    <p class="title-event">SwissHacks 2026</p>
+  </section>
+
+  <!-- ── SLIDE 1: PROBLEM ─────────────────────────────── -->
+  <section class="slide" id="s1">
+    <p class="eyebrow">The Problem</p>
+    <h1 class="slide-title">Private banking is personal — <em>but only if you have CHF&nbsp;50M+</em></h1>
+    <p class="slide-sub">Ultra-high-net-worth clients get a dedicated RM who knows them deeply. Everyone else gets a template.</p>
+    <div class="pain-grid">
+      <div class="pain-card">
+        <div class="icon">🏦</div>
+        <h3>The UHNW privilege gap</h3>
+        <p>Deep personalisation is reserved for the top 1%. Everyone else gets a template.</p>
+      </div>
+      <div class="pain-card">
+        <div class="icon">⏱️</div>
+        <h3>RMs can't scale intimacy</h3>
+        <p>50 &ndash; 150 clients per RM. Cross-referencing values, portfolio and news for each is humanly impossible.</p>
+      </div>
+      <div class="pain-card">
+        <div class="icon">📉</div>
+        <h3>Generic service loses clients</h3>
+        <p>Clients who feel like a number switch banks. Poor personalisation costs AUM.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── SLIDE 2: SOLUTION ────────────────────────────── -->
+  <section class="slide" id="s2">
+    <p class="eyebrow">Our Solution</p>
+    <h1 class="slide-title">Give <em>every client</em> the UHNW experience &mdash; at scale</h1>
+
+    <div class="flow">
+      <div class="flow-step"><span class="flow-dot" style="background:var(--six-blue)"></span>CRM History</div>
+      <span class="flow-arrow">&rarr;</span>
+      <div class="flow-step"><span class="flow-dot" style="background:var(--six-red)"></span>Client DNA</div>
+      <span class="flow-arrow">&rarr;</span>
+      <div class="flow-step"><span class="flow-dot" style="background:var(--purple)"></span>Live Intelligence</div>
+      <span class="flow-arrow">&rarr;</span>
+      <div class="flow-step"><span class="flow-dot" style="background:var(--green)"></span>Personalised Advisory</div>
+    </div>
+
+    <div class="feat-grid">
+      <div class="feat">
+        <div class="feat-icon red">🧬</div>
+        <div>
+          <h3>AI Client DNA</h3>
+          <p>Synthesises CRM history into a living profile &mdash; values, risk appetite, life events &mdash; in seconds, not decades.</p>
+        </div>
+      </div>
+      <div class="feat">
+        <div class="feat-icon amber">⚡</div>
+        <div>
+          <h3>Conflict &amp; Mandate Alerts</h3>
+          <p>Continuously checks every position against personal values and CIO ratings &mdash; flags misalignments before they cost trust.</p>
+        </div>
+      </div>
+      <div class="feat">
+        <div class="feat-icon blue">📰</div>
+        <div>
+          <h3>News Scored Per Client</h3>
+          <p>Market news ranked by relevance to each client's portfolio and beliefs, not generic asset-class feeds.</p>
+        </div>
+      </div>
+      <div class="feat">
+        <div class="feat-icon green">✉️</div>
+        <div>
+          <h3>Advisory in One Click</h3>
+          <p>Tone-matched, context-aware client message in under 5 seconds &mdash; outreach that used to take an hour.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── SLIDE 3: ARCHITECTURE ────────────────────────── -->
+  <section class="slide" id="s3">
+    <p class="eyebrow">Architecture</p>
+    <h1 class="slide-title">One <em>intelligent</em> platform</h1>
+    <p class="slide-sub" style="text-align:center">Real-time data from SIX Financial &amp; Event Registry, processed by specialised LLM assistants, served through an RM-first interface.</p>
+
+    <div class="arch-container">
+      <!-- Data Sources -->
+      <div class="arch-row">
+        <div class="arch-block" style="flex:1.2">
+          <div class="arch-block-title"><span class="arch-dot" style="background:var(--six-blue)"></span> Data Sources</div>
+          <div class="arch-items">
+            <span class="arch-pill pill-blue">SIX Financial MCP</span>
+            <span class="arch-pill pill-blue">Event Registry News</span>
+            <span class="arch-pill pill-blue">CRM Notes</span>
+            <span class="arch-pill pill-blue">Portfolio Data</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="arch-arrow-row">
+        <div class="arch-arrow">&#8595;<span>Live data feeds</span></div>
+      </div>
+
+      <!-- Assistant Layer -->
+      <div class="arch-row">
+        <div class="arch-block highlight">
+          <div class="arch-block-title"><span class="arch-dot" style="background:var(--six-red)"></span> Conflict Assistant</div>
+          <div class="arch-items">
+            <span class="arch-pill pill-red">Monitors the portfolio</span>
+          </div>
+        </div>
+        <div class="arch-block highlight">
+          <div class="arch-block-title"><span class="arch-dot" style="background:var(--six-red)"></span> Message Assistant</div>
+          <div class="arch-items">
+            <span class="arch-pill pill-red">Drafts the advisory notes</span>
+          </div>
+        </div>
+        <div class="arch-block highlight">
+          <div class="arch-block-title"><span class="arch-dot" style="background:var(--six-red)"></span> Chat Agent</div>
+          <div class="arch-items">
+            <span class="arch-pill pill-red">Natural language tool use across the system</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="arch-arrow-row">
+        <div class="arch-arrow">&#8595;<span>REST API</span></div>
+      </div>
+
+      <!-- Services & Frontend -->
+      <div class="arch-row">
+        <div class="arch-block" style="flex:1">
+          <div class="arch-block-title"><span class="arch-dot" style="background:var(--green)"></span> Trust &amp; Compliance</div>
+          <div class="arch-items">
+            <span class="arch-pill pill-green">Audit Trail</span>
+            <span class="arch-pill pill-green">Explainability</span>
+            <span class="arch-pill pill-green">Trace Logging</span>
+            <span class="arch-pill pill-green">Spider Graph Scoring</span>
+          </div>
+        </div>
+        <div class="arch-block" style="flex:1">
+          <div class="arch-block-title"><span class="arch-dot" style="background:var(--six-blue)"></span> RM Dashboard</div>
+          <div class="arch-items">
+            <span class="arch-pill pill-blue">Home &amp; Action Items</span>
+            <span class="arch-pill pill-blue">Global News View</span>
+            <span class="arch-pill pill-blue">Client Panels</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── SLIDE 4: DEMO ────────────────────────────────── -->
+  <section class="slide" id="s4">
+    <div class="demo-layout">
+      <div class="demo-left">
+        <p class="eyebrow">Live Demo</p>
+        <h1 class="slide-title">From CRM to advisory <em>in 15 seconds</em></h1>
+        <p class="slide-sub">Four real Swiss private banking personas. Actual CRM logs. Live SIX financial data. One RM. Zero compromise.</p>
+
+        <div class="demo-steps">
+          <div class="demo-step"><div class="step-num">1</div>Select any client &mdash; their DNA surfaces instantly from CRM history</div>
+          <div class="demo-step"><div class="step-num">2</div>See live conflicts and news matched to their personal values</div>
+          <div class="demo-step"><div class="step-num">3</div>Hit <strong>Generate Advisory</strong> &mdash; bespoke message in &lt;5s</div>
+          <div class="demo-step"><div class="step-num">4</div>Ask the AI assistant anything &mdash; it knows the client cold</div>
+        </div>
+
+        <div class="url-chip">
+          <span class="url-dot"></span>
+          wealthadvisor-ai.fly.dev
+        </div>
+      </div>
+
+      <div class="demo-right">
+        <div class="mock-browser">
+          <div class="browser-bar">
+            <div class="b-dot" style="background:#ef4444"></div>
+            <div class="b-dot" style="background:#f59e0b"></div>
+            <div class="b-dot" style="background:#22c55e"></div>
+            <div class="browser-url">wealthadvisor-ai.fly.dev</div>
+          </div>
+          <div class="browser-body">
+            <div class="mock-sidebar">
+              <div class="mock-logo-bar">SIX <span>AI</span></div>
+              <div class="mock-client sel">
+                <div class="mock-av" style="background:var(--six-red)">HS</div>
+                <div><div class="mock-name">H. Schneider</div><div class="mock-tag">Balanced</div></div>
+              </div>
+              <div class="mock-client">
+                <div class="mock-av" style="background:var(--six-blue)">MH</div>
+                <div><div class="mock-name">M. Huber</div><div class="mock-tag">Defensive</div></div>
+              </div>
+              <div class="mock-client">
+                <div class="mock-av" style="background:var(--six-red-dk)">ER</div>
+                <div><div class="mock-name">E. R&auml;ber</div><div class="mock-tag">Defensive</div></div>
+              </div>
+              <div class="mock-client">
+                <div class="mock-av" style="background:var(--six-blue-br)">JA</div>
+                <div><div class="mock-name">J. Ammann</div><div class="mock-tag">Growth</div></div>
+              </div>
+            </div>
+            <div class="mock-main">
+              <div class="mock-advisory">
+                <strong>Advisory Draft &mdash;</strong> Dear Hubertus, the announced shutdown of AstraZeneca's chronic-illness research division directly conflicts with your foundation's mission. We recommend reviewing your exposure and suggest a swap into Roche Holding, CIO BUY-rated and aligned with your values.
+              </div>
+              <div class="mock-card">
+                <div class="mock-card-title">Client DNA</div>
+                <span class="mock-pill" style="background:rgba(46,111,214,.08);color:var(--six-blue)">health legacy</span>
+                <span class="mock-pill" style="background:rgba(46,111,214,.08);color:var(--six-blue)">ESG alignment</span>
+                <span class="mock-pill" style="background:rgba(200,16,46,.06);color:var(--six-red)">pharma exposure risk</span>
+                <span class="mock-pill" style="background:rgba(124,58,237,.08);color:var(--purple)">family foundation</span>
+              </div>
+              <div class="mock-alert">
+                &#9888; Major Pharma Co. shuts chronic-illness research &mdash; direct conflict with client DNA
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── SLIDE 5: Q&A / TEAM ─────────────────────────── -->
+  <section class="slide" id="s5">
+    <p class="eyebrow">The Team</p>
+    <h1 class="slide-title">Questions &amp; <em>Answers</em></h1>
+    <p class="slide-sub">Built in ~24 hours at SwissHacks 2026</p>
+
+    <div class="team-grid">
+      <div class="team-card">
+        <img class="team-photo" src="boris.JPG" alt="Boris Goranov" />
+        <div class="team-name">Boris Goranov</div>
+        <span class="team-role role-frontend">Front-end</span>
+      </div>
+      <div class="team-card">
+        <img class="team-photo" src="hristo.jpeg" alt="Hristo Stefanov" />
+        <div class="team-name">Hristo Stefanov</div>
+        <span class="team-role role-backend">Back-end</span>
+      </div>
+      <div class="team-card">
+        <img class="team-photo" src="nikola.jpeg" alt="Nikola Staykov" />
+        <div class="team-name">Nikola Staykov</div>
+        <span class="team-role role-business">Business</span>
+      </div>
+    </div>
+
+    <p class="closing-statement">Every client deserves a personal banker. We built one.</p>
+
+    <div class="qa-cta">
+      <span class="qa-icon">💬</span>
+      Questions?
+    </div>
+
+    <div class="powered-by">
+      Powered by SIX Financial Data &bull; SwissHacks 2026
+    </div>
+  </section>
+
+</div><!-- /deck -->
+
+<!-- Nav -->
+<nav>
+  <button class="nav-btn" id="btn-prev">&larr;</button>
+  <div class="dot active" data-slide="0"></div>
+  <div class="dot"        data-slide="1"></div>
+  <div class="dot"        data-slide="2"></div>
+  <div class="dot"        data-slide="3"></div>
+  <div class="dot"        data-slide="4"></div>
+  <div class="dot"        data-slide="5"></div>
+  <button class="nav-btn" id="btn-next">&rarr;</button>
+  <span class="slide-counter" id="counter">1 / 5</span>
+</nav>
+
+<script>
+  const slides = document.querySelectorAll('.slide');
+  const dots   = document.querySelectorAll('.dot');
+  const counter = document.getElementById('counter');
+  const slideLabel = document.getElementById('slide-label');
+  const labels = ['SIX AI', 'Problem', 'Solution', 'Architecture', 'Live Demo', 'Q&A'];
+  let cur = 0;
+
+  function go(n) {
+    slides[cur].classList.remove('active');
+    dots[cur].classList.remove('active');
+    cur = (n + slides.length) % slides.length;
+    slides[cur].classList.add('active');
+    dots[cur].classList.add('active');
+    counter.textContent = `${cur + 1} / ${slides.length}`;
+    slideLabel.textContent = String(cur + 1).padStart(2, '0') + ' / ' + String(slides.length).padStart(2, '0') + '  —  ' + labels[cur];
+  }
+
+  go(0);
+
+  document.getElementById('btn-next').addEventListener('click', () => go(cur + 1));
+  document.getElementById('btn-prev').addEventListener('click', () => go(cur - 1));
+  dots.forEach(d => d.addEventListener('click', () => go(+d.dataset.slide)));
+  document.addEventListener('keydown', e => {
+    if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); go(cur + 1); }
+    if (e.key === 'ArrowLeft')                    { e.preventDefault(); go(cur - 1); }
+  });
+</script>
+</body>
+</html>
