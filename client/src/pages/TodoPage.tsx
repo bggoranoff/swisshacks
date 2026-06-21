@@ -3,7 +3,7 @@ import type { HomeTodo } from "../types/api";
 import { Card, CardTitle } from "../components/shared/Card";
 import { EmptyState } from "../components/shared/EmptyState";
 import { TodoClientCard } from "../components/todo/TodoClientCard";
-import { formatDate, formatScore, severityLabels, severityStyles, sourceStyles, topTodoSources } from "./home.helpers";
+import { formatDate, formatScore, todoSeverityPills, topTodoSources } from "./home.helpers";
 
 interface TodoPageProps {
   todo: HomeTodo | null;
@@ -23,14 +23,18 @@ export function TodoPage({ todo, language, onBack, onSelectClient }: TodoPagePro
           <ArrowLeft className="h-3.5 w-3.5" />
           Back to home
         </button>
-        <EmptyState message="This todo is no longer available. It may have been refreshed — return home to see the current list." />
+        <EmptyState message="This action item is no longer available. It may have been refreshed — return home to see the current list." />
       </Card>
     );
   }
 
   const sourceArticles = topTodoSources(todo, 6);
   const primarySource = sourceArticles[0] ?? todo.sourceArticle;
-  const sortedClients = [...todo.affectedClients].sort((a, b) => b.relevanceScore - a.relevanceScore);
+  const sortedClients = [...todo.affectedClients].sort((a, b) =>
+    todoSeverityPills[b.severity].rank - todoSeverityPills[a.severity].rank ||
+    b.relevanceScore - a.relevanceScore
+  );
+  const severityPill = todoSeverityPills[todo.severity];
 
   return (
     <div className="flex flex-col gap-6">
@@ -44,12 +48,9 @@ export function TodoPage({ todo, language, onBack, onSelectClient }: TodoPagePro
           Back to home
         </button>
 
-        <div className="mb-3 flex flex-wrap items-center gap-2">
-          <span className={`rounded-full border px-2.5 py-1 text-[11px] font-semibold uppercase ${severityStyles[todo.severity]}`}>
-            {severityLabels[todo.severity]}
-          </span>
-          <span className={`rounded-full border px-2.5 py-1 text-[11px] font-medium uppercase ${sourceStyles[primarySource.sourceType]}`}>
-            {primarySource.sourceType}
+        <div className="mb-3 flex flex-wrap items-center gap-3">
+          <span className={`rounded-full border px-2.5 py-1 text-[11px] font-semibold uppercase ${severityPill.className}`}>
+            {severityPill.label}
           </span>
           <span className="inline-flex items-center gap-1 text-xs text-slate-500">
             <Clock className="h-3 w-3" />
@@ -64,18 +65,8 @@ export function TodoPage({ todo, language, onBack, onSelectClient }: TodoPagePro
         <h1 className="text-lg font-semibold leading-6 text-slate-50">{todo.title}</h1>
         <p className="mt-2 text-sm leading-6 text-slate-300">{todo.summary}</p>
 
-        {todo.riskTags.length > 0 && (
-          <div className="mt-3 flex flex-wrap gap-2">
-            {todo.riskTags.map(tag => (
-              <span key={tag} className="rounded-full bg-slate-700/60 px-2 py-1 text-[11px] text-slate-300">
-                {tag}
-              </span>
-            ))}
-          </div>
-        )}
-
         <div className="mt-4 rounded-lg border border-slate-700/80 bg-slate-800/40 px-3 py-2.5">
-          <p className="text-xs font-medium uppercase text-slate-500">Suggested RM action</p>
+          <p className="text-xs font-medium uppercase text-slate-500">Suggested action item</p>
           <p className="mt-1 text-sm leading-5 text-slate-200">{todo.recommendedAction}</p>
         </div>
 

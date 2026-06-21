@@ -55,8 +55,6 @@ function App() {
   const [auditOpen, setAuditOpen] = useState(false);
   const [advisory, setAdvisory] = useState<AdvisoryMessage | null>(null);
   const [advisoryLoading, setAdvisoryLoading] = useState(false);
-  const [demoActive, setDemoActive] = useState(false);
-  const [demoStep, setDemoStep] = useState(0);
   const [approvedAlertId, setApprovedAlertId] = useState<string | null>(null);
   const [advisoryLanguage, setAdvisoryLanguage] = useState<string>("en");
   const [chatHistories, setChatHistories] = useState<Record<string, ChatMessage[]>>({});
@@ -177,64 +175,6 @@ function App() {
     handleGenerate(lang);
   }, [handleGenerate]);
 
-  // Demo mode: auto-walkthrough of Schneider scenario
-  const handleDemo = useCallback(() => {
-    setSelectedId("schneider");
-    setAdvisory(null);
-    setDemoActive(true);
-    setDemoStep(0);
-
-    // Step 1 (immediate): Select Client is active (step 0), then mark complete
-    setTimeout(() => {
-      setDemoStep(1);
-    }, 1000);
-
-    // Step 2 (2s): scroll DNA panel into view
-    setTimeout(() => {
-      setDemoStep(1);
-      const dnaEl = document.getElementById("dna-panel");
-      if (dnaEl) dnaEl.scrollIntoView({ behavior: "smooth" });
-    }, 2000);
-
-    // Step 3 (4s): scroll alerts panel into view
-    setTimeout(() => {
-      setDemoStep(2);
-      const alertsEl = document.getElementById("alerts-panel");
-      if (alertsEl) alertsEl.scrollIntoView({ behavior: "smooth" });
-    }, 4000);
-
-    // Step 4 (6s): auto-click Generate Advisory
-    setTimeout(() => {
-      setDemoStep(3);
-      setAdvisoryLoading(true);
-      fetch("/api/clients/schneider/advisory", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(approvedAlertId ? { alertId: approvedAlertId } : {}),
-      })
-        .then((res) => res.json())
-        .then((json) => {
-          if (json.success) {
-            setAdvisory(json.data);
-          } else {
-            setAdvisory(DEMO_FALLBACKS_ENABLED ? (mockAdvisory["schneider"] ?? null) : null);
-          }
-          setDemoStep(4);
-          if (advisoryRef.current) {
-            advisoryRef.current.scrollIntoView({ behavior: "smooth" });
-          }
-        })
-        .catch(() => {
-          setAdvisory(DEMO_FALLBACKS_ENABLED ? (mockAdvisory["schneider"] ?? null) : null);
-          setDemoStep(4);
-          if (advisoryRef.current) {
-            advisoryRef.current.scrollIntoView({ behavior: "smooth" });
-          }
-        })
-        .finally(() => setAdvisoryLoading(false));
-    }, 6000);
-  }, []);
-
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
       // Don't trigger when typing in inputs
@@ -243,8 +183,6 @@ function App() {
       const clientIds = ["schneider", "huber", "raeber", "ammann"];
       if (e.key >= "1" && e.key <= "4") {
         handleSelectClient(clientIds[parseInt(e.key) - 1]);
-      } else if (e.key === "d" || e.key === "D") {
-        handleDemo();
       } else if (e.key === "a" || e.key === "A") {
         setAuditOpen(prev => !prev);
       } else if (e.key === "g" || e.key === "G") {
@@ -255,7 +193,7 @@ function App() {
     };
     window.addEventListener("keydown", handleKey);
     return () => window.removeEventListener("keydown", handleKey);
-  }, [handleDemo, handleSelectClient, handleGenerate, selectedId]);
+  }, [handleSelectClient, handleGenerate, selectedId]);
 
   // Scroll main content to top when switching clients
   useEffect(() => {
@@ -309,26 +247,7 @@ function App() {
         </button>
       )}
       <div className="flex flex-col flex-1 min-w-0 h-screen overflow-hidden">
-        <Header onDemo={handleDemo} onAuditClick={() => setAuditOpen(true)} />
-        {demoActive && (
-          <div className="bg-six-red/10 border-b border-six-red/30 px-4 py-2 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <span className="text-xs text-six-red">Demo Mode</span>
-              <div className="flex items-center gap-1">
-                {["Select Client", "View DNA", "Check Alerts", "Generate Advisory"].map((step, i) => (
-                  <span key={i} className={`text-xs px-2 py-0.5 rounded-full ${
-                    i < demoStep ? "bg-green-900/50 text-green-300" :
-                    i === demoStep ? "bg-six-red text-white animate-pulse" :
-                    "bg-slate-700 text-slate-500"
-                  }`}>
-                    {i < demoStep ? "✓" : i + 1}. {step}
-                  </span>
-                ))}
-              </div>
-            </div>
-            <button onClick={() => { setDemoActive(false); setDemoStep(0); }} className="text-xs text-slate-400 hover:text-slate-50">Dismiss</button>
-          </div>
-        )}
+        <Header onAuditClick={() => setAuditOpen(true)} />
         {anyError && (
           <div className="bg-amber-900/30 border-b border-amber-700/50 px-6 py-2 text-amber-200 text-xs font-medium flex items-center gap-2">
             <span className="h-1.5 w-1.5 rounded-full bg-amber-400 animate-pulse" />

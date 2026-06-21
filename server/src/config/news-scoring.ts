@@ -41,14 +41,32 @@ export const HOME_NEWS_LIMITS = {
   dnaQueries: parseInt(process.env.HOME_DNA_NEWS_QUERIES || "4", 10),
   mandateQueries: parseInt(process.env.HOME_MANDATE_NEWS_QUERIES || "3", 10),
   breakingQueries: parseInt(process.env.HOME_BREAKING_NEWS_QUERIES || "2", 10),
-  articlesPerQuery: parseInt(process.env.HOME_ARTICLES_PER_QUERY || "3", 10),
+  articlesPerQuery: parseInt(process.env.HOME_ARTICLES_PER_QUERY || "5", 10),
   // Raised from 18: with ~13 targeted + 2 breaking queries the raw pool is now
   // larger, and this cap is applied by recency — too low a value lets recent
   // breaking news crowd out the holding-matched articles that produce todos.
-  discoveredArticles: parseInt(process.env.HOME_DISCOVERED_ARTICLES_LIMIT || "30", 10),
+  discoveredArticles: parseInt(process.env.HOME_DISCOVERED_ARTICLES_LIMIT || "50", 10),
   latestNews: parseInt(process.env.HOME_LATEST_NEWS_LIMIT || "12", 10),
   todos: parseInt(process.env.HOME_TODOS_LIMIT || "16", 10),
 };
+
+const configuredLookbackHours = parseInt(process.env.HOME_NEWS_LOOKBACK_HOURS || "24", 10);
+export const HOME_NEWS_LOOKBACK_HOURS = Number.isFinite(configuredLookbackHours)
+  ? Math.max(1, configuredLookbackHours)
+  : 24;
+
+export function newsLookbackSince(now = new Date()): Date {
+  return new Date(now.getTime() - HOME_NEWS_LOOKBACK_HOURS * 60 * 60 * 1000);
+}
+
+export function eventRegistryDateStart(since: Date): string {
+  return since.toISOString().slice(0, 10);
+}
+
+export function isWithinNewsLookback(publishedAt: string, since: Date): boolean {
+  const time = new Date(publishedAt).getTime();
+  return Number.isNaN(time) ? true : time >= since.getTime();
+}
 
 // Event Registry rate-limits bursts. Firing all targeted + breaking queries in
 // one Promise.allSettled tripped HTTP 429 on ~40% of calls, so we cap in-flight

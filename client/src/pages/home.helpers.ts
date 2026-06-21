@@ -1,20 +1,21 @@
-import type { HomeNewsItem, HomeSourceArticle, HomeTodo, HomeTodoSeverity } from "../types/api";
+import type { HomeSourceArticle, HomeTodo } from "../types/api";
 
-export const severityStyles: Record<HomeTodoSeverity, string> = {
-  high: "bg-red-500/15 text-red-500 border-red-500/40",
-  medium: "bg-amber-500/15 text-amber-600 border-amber-500/40",
-  low: "bg-blue-500/15 text-blue-500 border-blue-500/40",
-};
-
-export const severityLabels: Record<HomeTodoSeverity, string> = {
-  high: "High",
-  medium: "Medium",
-  low: "Low",
-};
-
-export const sourceStyles: Record<HomeNewsItem["sourceType"], string> = {
-  live: "bg-emerald-500/15 text-emerald-500 border-emerald-500/30",
-  scenario: "bg-violet-500/15 text-violet-500 border-violet-500/30",
+export const todoSeverityPills: Record<HomeTodo["severity"], { className: string; label: string; rank: number }> = {
+  high: {
+    className: "bg-red-500/15 text-red-500 border-red-500/40",
+    label: "High",
+    rank: 3,
+  },
+  medium: {
+    className: "bg-amber-500/15 text-amber-600 border-amber-500/40",
+    label: "Medium",
+    rank: 2,
+  },
+  low: {
+    className: "bg-blue-500/15 text-blue-500 border-blue-500/40",
+    label: "Low",
+    rank: 1,
+  },
 };
 
 export function formatDate(value: string): string {

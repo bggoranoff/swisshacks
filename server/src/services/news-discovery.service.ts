@@ -1,5 +1,13 @@
 import axios, { AxiosInstance } from "axios";
-import { BREAKING_NEWS_QUERIES, HOME_NEWS_LIMITS, NEWS_QUERY_RATE } from "../config/news-scoring";
+import {
+  BREAKING_NEWS_QUERIES,
+  eventRegistryDateStart,
+  HOME_NEWS_LIMITS,
+  HOME_NEWS_LOOKBACK_HOURS,
+  isWithinNewsLookback,
+  newsLookbackSince,
+  NEWS_QUERY_RATE,
+} from "../config/news-scoring";
 import type { DiscoveredNewsArticle, DiscoverySource, MonitoredInterest } from "../types/news-impact";
 import type { ScoredNewsArticle } from "../types/news";
 
@@ -71,6 +79,7 @@ export class NewsDiscoveryService {
   }
 
   async discover(interests: MonitoredInterest[], scenarioArticles: ScoredNewsArticle[] = []): Promise<DiscoveredNewsArticle[]> {
+    const lookbackSince = newsLookbackSince();
     // Budget each interest source separately. A flat top-N slice over the
     // priority-sorted list only ever queried holdings (priority ~100), so
     // client-DNA (~55) and static mandate (~40) interests were never searched.
@@ -86,7 +95,8 @@ export class NewsDiscoveryService {
     console.log(
       `[NewsDiscovery] Querying ${selectedInterests.length} targeted interests ` +
       `(${holdingInterests.length} holding, ${dnaInterests.length} dna, ${mandateInterests.length} mandate) ` +
-      `+ ${Math.min(BREAKING_NEWS_QUERIES.length, HOME_NEWS_LIMITS.breakingQueries)} breaking`,
+      `+ ${Math.min(BREAKING_NEWS_QUERIES.length, HOME_NEWS_LIMITS.breakingQueries)} breaking ` +
+      `over ${HOME_NEWS_LOOKBACK_HOURS}h`,
     );
 
     const tasks: QueryTask[] = [
@@ -106,14 +116,16 @@ export class NewsDiscoveryService {
 
     // Cap in-flight requests globally and stagger batches to avoid Event Registry 429s.
     const fetched = await this.runPooled(tasks, task =>
-      this.fetchQuery(task.query, task.discoverySource, task.matchedInterestIds, task.keywordOper),
+      this.fetchQuery(task.query, task.discoverySource, task.matchedInterestIds, task.keywordOper, lookbackSince),
     );
 
     const allArticles: DiscoveredNewsArticle[] = fetched.flat();
     allArticles.push(...scenarioArticles.map(article => this.fromScenario(article)));
 
     const byKey = new Map<string, DiscoveredNewsArticle>();
-    for (const article of allArticles) {
+    for (const article of allArticles.filter(article =>
+      article.sourceType === "scenario" || isWithinNewsLookback(article.publishedAt, lookbackSince)
+    )) {
       const key = articleKey(article);
       const existing = byKey.get(key);
       if (existing) mergeArticle(existing, article);
@@ -164,16 +176,19 @@ export class NewsDiscoveryService {
     discoverySource: DiscoverySource,
     matchedInterestIds: string[],
     keywordOper: "and" | "or",
+    lookbackSince: Date,
   ): Promise<DiscoveredNewsArticle[]> {
     if (!this.apiKey) return [];
 
-    const cacheKey = `${discoverySource}:${keywordOper}:${query}`;
+    const cacheKey = `${discoverySource}:${keywordOper}:${eventRegistryDateStart(lookbackSince)}:${query}`;
     const cached = this.cache.get(cacheKey);
     if (cached && Date.now() - cached.cachedAt < CACHE_TTL_MS) {
-      return cached.articles.map(article => ({
-        ...article,
-        matchedInterestIds: [...new Set([...article.matchedInterestIds, ...matchedInterestIds])],
-      }));
+      return cached.articles
+        .filter(article => isWithinNewsLookback(article.publishedAt, lookbackSince))
+        .map(article => ({
+          ...article,
+          matchedInterestIds: [...new Set([...article.matchedInterestIds, ...matchedInterestIds])],
+        }));
     }
 
     try {
@@ -182,6 +197,7 @@ export class NewsDiscoveryService {
         keyword: query,
         keywordOper,
         lang: "eng",
+        dateStart: eventRegistryDateStart(lookbackSince),
         articlesCount: HOME_NEWS_LIMITS.articlesPerQuery,
         articlesSortBy: "date",
         resultType: "articles",
@@ -206,7 +222,10 @@ export class NewsDiscoveryService {
           discoverySource,
           searchQueries: [query],
         };
-      }).filter(article => article.title || article.summary);
+      }).filter(article =>
+        (article.title || article.summary) &&
+        isWithinNewsLookback(article.publishedAt, lookbackSince)
+      );
 
       this.cache.set(cacheKey, { articles, cachedAt: Date.now() });
       return articles;

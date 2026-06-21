@@ -6,6 +6,7 @@ import { ConfidenceBadge } from "../shared/ConfidenceBadge";
 import { CrmCitationChip, NewsCitationChip } from "./CitationChip";
 import { CrmCitationModal, type CrmCitation } from "./CrmCitationModal";
 import { DraftEmail } from "./DraftEmail";
+import { todoSeverityPills } from "../../pages/home.helpers";
 
 const alertStyles: Record<string, string> = {
   conflict: "bg-red-500/15 text-red-500 border-red-500/40",
@@ -77,6 +78,7 @@ export function TodoClientCard({
   );
   const suggestions = actionSuggestions(client.alertType);
   const alertId = todo.sourceArticle?.id ? `news-${todo.sourceArticle.id}` : undefined;
+  const severityPill = todoSeverityPills[client.severity];
 
   return (
     <article className="rounded-lg border border-slate-700 bg-slate-900/40 p-4">
@@ -86,6 +88,9 @@ export function TodoClientCard({
           <div className="flex items-center gap-2">
             <Users className="h-4 w-4 flex-none text-blue-300" />
             <h3 className="text-sm font-semibold text-slate-50">{client.name}</h3>
+            <span className={`rounded-full border px-2 py-0.5 text-[11px] font-semibold uppercase ${severityPill.className}`}>
+              {severityPill.label}
+            </span>
             <ConfidenceBadge score={client.relevanceScore} />
             {client.alertType && (
               <span className={`rounded-full border px-2 py-0.5 text-[11px] font-medium uppercase ${alertStyles[client.alertType] ?? ""}`}>

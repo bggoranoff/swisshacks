@@ -1,11 +1,10 @@
 import clsx from "clsx";
-import { ClipboardList, Keyboard, Play } from "lucide-react";
+import { ClipboardList, Keyboard } from "lucide-react";
 import { useEffect, useState } from "react";
 import { StatusDot } from "../shared/StatusDot";
 import { useTheme } from "../../ThemeContext";
 
 interface HeaderProps {
-  onDemo?: () => void;
   onAuditClick?: () => void;
 }
 
@@ -24,7 +23,7 @@ const PROBE_LABEL_MAP: Record<string, keyof ProbeStatus> = {
 const DEFAULT_STATUS: ProbeStatus = { six: false, news: false, llm: false };
 const ALL_OK: ProbeStatus = { six: true, news: true, llm: true };
 
-export function Header({ onDemo, onAuditClick }: HeaderProps) {
+export function Header({ onAuditClick }: HeaderProps) {
   const { theme, toggle } = useTheme();
   const [status, setStatus] = useState<ProbeStatus>(ALL_OK);
 
@@ -64,15 +63,6 @@ export function Header({ onDemo, onAuditClick }: HeaderProps) {
             Audit
           </button>
         )}
-        {onDemo && (
-          <button
-            onClick={onDemo}
-            className="bg-six-red hover:bg-six-red-bright text-white px-3 py-1.5 rounded text-sm font-medium flex items-center gap-2 transition-colors"
-          >
-            <Play className="h-3.5 w-3.5" />
-            Demo
-          </button>
-        )}
         <button
           onClick={toggle}
           title={`Switch to ${theme === "dark" ? "light" : "dark"} mode`}
@@ -95,7 +85,6 @@ export function Header({ onDemo, onAuditClick }: HeaderProps) {
             <p className="text-xs font-medium text-slate-300 mb-2">Keyboard Shortcuts</p>
             <div className="space-y-1 text-xs text-slate-400">
               <div className="flex justify-between"><span>1-4</span><span>Select client</span></div>
-              <div className="flex justify-between"><span>D</span><span>Demo mode</span></div>
               <div className="flex justify-between"><span>A</span><span>Audit log</span></div>
               <div className="flex justify-between"><span>G</span><span>Generate advisory</span></div>
               <div className="flex justify-between"><span>Esc</span><span>Close drawer</span></div>

@@ -306,10 +306,6 @@ function dateValue(date: string): number {
   return Number.isFinite(value) ? value : 0;
 }
 
-function scorePercent(value: number): string {
-  return `${Math.round(value * 100)}%`;
-}
-
 function severityFromBand(band: SeverityBand, score: number): HomeTodoSeverity {
   if (band === "major" || score >= 0.02) return "high";
   if (band === "material" || score >= 0.008) return "medium";
@@ -322,6 +318,7 @@ function makeAffectedClient(score: ClientNewsScore): HomeAffectedClient {
     name: score.clientName,
     strategy: score.strategy,
     reason: score.reason,
+    severity: severityFromBand(score.severityBand, score.clientNewsScore),
     clientNewsScore: score.clientNewsScore,
     portfolioExposureShare: score.portfolioExposureShare,
     severityBand: score.severityBand,
@@ -364,52 +361,47 @@ function riskTagsForImpact(impact: NewsImpactScore, scope: "client" | "global"):
   return Array.from(tags);
 }
 
-function recommendedActionForImpact(scope: "client" | "global"): string {
-  if (scope === "global") {
-    return "Review the affected clients, confirm the suggested outreach priority, and prepare a coordinated relationship-manager response.";
-  }
-  return "Review the affected portfolio sleeve and prepare a client communication explaining the risk or opportunity and any proposed follow-up.";
+function actionClientScoresForImpact(impact: NewsImpactScore): ClientNewsScore[] {
+  const thresholded = impact.clientScores.filter(score => score.clientNewsScore >= HOME_SCORE_THRESHOLDS.clientNewsScore);
+  return thresholded.length > 0 ? thresholded : impact.clientScores;
 }
 
-function clientTodo(impact: NewsImpactScore, clientScore: ClientNewsScore): HomeTodo {
-  const articleSource = sourceArticle(impact);
-  return {
-    id: `home-todo-client-${impact.article.id}-${clientScore.clientId}`,
-    title: `Review ${clientScore.clientName}: ${impact.article.title}`,
-    summary: clientScore.reason,
-    severity: severityFromBand(clientScore.severityBand, clientScore.clientNewsScore),
-    scope: "client",
-    triggerType: "news",
-    recommendedAction: recommendedActionForImpact("client"),
-    affectedClients: [makeAffectedClient(clientScore)],
-    sourceArticle: articleSource,
-    sourceArticles: [articleSource],
-    createdAt: new Date().toISOString(),
-    riskTags: riskTagsForImpact(impact, "client"),
-    clientNewsScore: clientScore.clientNewsScore,
-    portfolioExposureShare: clientScore.portfolioExposureShare,
-    severityBand: clientScore.severityBand,
-    effectDirection: clientScore.effectDirection,
-    eventFamily: clientScore.eventFamily,
-  };
+function overallSeverityForImpact(impact: NewsImpactScore, scores: ClientNewsScore[]): HomeTodoSeverity {
+  return scores.reduce<HomeTodoSeverity>((highest, score) => {
+    const severity = severityFromBand(score.severityBand, score.clientNewsScore);
+    return severityRank[severity] > severityRank[highest] ? severity : highest;
+  }, severityFromBand(impact.severityBand, impact.maxClientNewsScore));
 }
 
-function globalTodo(impact: NewsImpactScore): HomeTodo {
+function newsAggregatedTodo(impact: NewsImpactScore): HomeTodo {
   const articleSource = sourceArticle(impact);
+  const clientScores = actionClientScoresForImpact(impact);
+  const affectedClients = clientScores
+    .map(makeAffectedClient)
+    .sort((a, b) =>
+      severityRank[b.severity] - severityRank[a.severity] ||
+      b.clientNewsScore - a.clientNewsScore ||
+      b.portfolioExposureShare - a.portfolioExposureShare
+    );
+  const severity = overallSeverityForImpact(impact, clientScores);
+  const clientNames = affectedClients.slice(0, 3).map(client => client.name).join(", ");
+  const extraClients = affectedClients.length > 3 ? ` and ${affectedClients.length - 3} more` : "";
+
   return {
-    id: `home-todo-global-${impact.article.id}`,
-    title: `Global portfolio review: ${impact.article.title}`,
-    summary: `${impact.affectedClientCount} affected clients; global score ${scorePercent(impact.globalNewsScore)}. Review the largest contributors and coordinate outreach.`,
-    severity: severityFromBand(impact.severityBand, impact.globalNewsScore),
+    id: `home-todo-news-${impact.article.id}`,
+    title: impact.article.title,
+    summary: impact.article.summary,
+    severity,
     scope: "global",
     triggerType: "news",
-    recommendedAction: recommendedActionForImpact("global"),
-    affectedClients: impact.clientScores.map(makeAffectedClient),
+    recommendedAction: `Review client-specific impact for ${clientNames}${extraClients}, then prepare the appropriate follow-up for each relationship.`,
+    affectedClients,
     sourceArticle: articleSource,
     sourceArticles: [articleSource],
     createdAt: new Date().toISOString(),
     riskTags: riskTagsForImpact(impact, "global"),
     globalNewsScore: impact.globalNewsScore,
+    clientNewsScore: impact.maxClientNewsScore,
     severityBand: impact.severityBand,
     effectDirection: impact.effectDirection,
     eventFamily: impact.eventFamily,
@@ -454,19 +446,12 @@ async function buildHomeDashboard(options: HomeDashboardOptions): Promise<HomeDa
       affectedClients: impact.clientScores.map(makeAffectedClient),
     }));
 
-  const todos: HomeTodo[] = [];
-  for (const impact of impacts) {
-    for (const score of impact.clientScores) {
-      if (score.clientNewsScore >= HOME_SCORE_THRESHOLDS.clientNewsScore) {
-        todos.push(clientTodo(impact, score));
-      }
-    }
-    if (impact.globalNewsScore >= HOME_SCORE_THRESHOLDS.globalNewsScore) {
-      todos.push(globalTodo(impact));
-    }
-  }
-
-  const sortedTodos = todos
+  const sortedTodos = impacts
+    .filter(impact =>
+      impact.globalNewsScore >= HOME_SCORE_THRESHOLDS.globalNewsScore ||
+      impact.clientScores.some(score => score.clientNewsScore >= HOME_SCORE_THRESHOLDS.clientNewsScore)
+    )
+    .map(newsAggregatedTodo)
     .sort((a, b) =>
       severityRank[b.severity] - severityRank[a.severity] ||
       (b.globalNewsScore || b.clientNewsScore || 0) - (a.globalNewsScore || a.clientNewsScore || 0) ||

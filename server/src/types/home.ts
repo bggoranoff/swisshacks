@@ -19,6 +19,7 @@ export interface HomeAffectedClient {
   name: string;
   strategy: string;
   reason: string;
+  severity: HomeTodoSeverity;
   clientNewsScore: number;
   portfolioExposureShare: number;
   severityBand: SeverityBand;

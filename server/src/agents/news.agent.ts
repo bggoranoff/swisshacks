@@ -6,6 +6,12 @@ import { extractDNA } from "./crm.agent";
 import { getClient } from "../data/store";
 import { ClientDNA } from "../types/dna";
 import { demoModeEnabled, scenarioNewsEnabled as scenarioNewsEnabledConfig } from "../config/demo";
+import {
+  eventRegistryDateStart,
+  HOME_NEWS_LOOKBACK_HOURS,
+  isWithinNewsLookback,
+  newsLookbackSince,
+} from "../config/news-scoring";
 
 const CACHE_TTL_MS = 5 * 60 * 1000;
 
@@ -155,6 +161,7 @@ export class NewsAgent {
   private async fetchLiveNews(clientId: string, dna: ClientDNA | null): Promise<ScoredNewsArticle[]> {
     const keywords = this.getNewsQueries(clientId, dna);
     if (!keywords || keywords.length === 0 || !this.newsApiKey) return [];
+    const lookbackSince = newsLookbackSince();
 
     // Try each keyword in order, return the first set of results that is non-empty
     for (const query of keywords) {
@@ -166,6 +173,7 @@ export class NewsAgent {
             keyword: query,
             keywordOper: "or",
             lang: "eng",
+            dateStart: eventRegistryDateStart(lookbackSince),
             articlesCount: 10,
             articlesSortBy: "date",
             resultType: "articles",
@@ -176,14 +184,18 @@ export class NewsAgent {
         );
 
         const results = data?.articles?.results || [];
-        if (results.length === 0) {
-          console.warn(`[NewsAgent] No results for keyword "${query}", trying next...`);
+        const recentResults = results.filter((a: { dateTimePub?: string; dateTime?: string }) =>
+          isWithinNewsLookback(a.dateTimePub || a.dateTime || new Date().toISOString(), lookbackSince)
+        );
+
+        if (recentResults.length === 0) {
+          console.warn(`[NewsAgent] No results from the last ${HOME_NEWS_LOOKBACK_HOURS}h for keyword "${query}", trying next...`);
           continue;
         }
 
         const articles: ScoredNewsArticle[] = [];
 
-        for (const a of results) {
+        for (const a of recentResults) {
           const uri = String(a.uri || "");
           const sentiment = typeof a.sentiment === "number" ? a.sentiment : 0;
           let sentimentLabel: "BEARISH" | "NEUTRAL" | "BULLISH" = "NEUTRAL";
